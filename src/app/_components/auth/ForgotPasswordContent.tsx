@@ -88,7 +88,7 @@ export function ForgotPasswordContent() {
           required
           fullWidth
           autoComplete="email"
-          dir="ltr"
+      
         />
 
         <SubmitButton />

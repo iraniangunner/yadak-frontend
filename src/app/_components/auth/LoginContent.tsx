@@ -65,7 +65,7 @@ export function LoginContent() {
 
     (async () => {
       await refreshUser();
-      const redirectTo = searchParams.get("redirect") || "/";
+      const redirectTo = searchParams.get("redirect") || "/account/profile";
       router.push(redirectTo);
     })();
   }, [state.isSuccess, refreshUser, router, searchParams]);
@@ -93,7 +93,7 @@ export function LoginContent() {
           required
           fullWidth
           autoComplete="email"
-          dir="ltr"
+        
         />
 
         <TextField
@@ -106,7 +106,7 @@ export function LoginContent() {
           slotProps={{
             input: {
               endAdornment: (
-                <InputAdornment position="start">
+                <InputAdornment position="end">
                   <IconButton
                     onClick={() => setShowPassword((p) => !p)}
                     edge="end"

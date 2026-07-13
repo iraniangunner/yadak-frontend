@@ -20,6 +20,7 @@ type User = {
   name: string;
   phone: string | null;
   email: string | null;
+  city: string | null;
   role: string;
 };
 

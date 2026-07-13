@@ -94,7 +94,6 @@ export function RegisterContent() {
           required
           fullWidth
           autoComplete="email"
-          dir="ltr"
         />
         <TextField
           name="password"
@@ -103,7 +102,6 @@ export function RegisterContent() {
           required
           fullWidth
           autoComplete="new-password"
-          dir="ltr"
         />
         <TextField
           name="password_confirmation"
@@ -112,7 +110,6 @@ export function RegisterContent() {
           required
           fullWidth
           autoComplete="new-password"
-          dir="ltr"
         />
 
         <SubmitButton />

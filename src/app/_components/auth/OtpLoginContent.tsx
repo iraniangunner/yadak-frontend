@@ -106,7 +106,7 @@ export function OtpLoginContent() {
 
     (async () => {
       await refreshUser();
-      const redirectTo = searchParams.get("redirect") || "/";
+      const redirectTo = searchParams.get("redirect") || "/account/profile";
       router.push(redirectTo);
     })();
   }, [verifyState.isSuccess, refreshUser, router, searchParams]);

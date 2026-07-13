@@ -1,36 +1,16 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import ThemeRegistry from "@/lib/ThemeRegistry";
 import AuthInitializer from "@/lib/AuthInitializer";
+import MuiProviders from "./_components/mui/MuiProviders";
 
 const iranyekan = localFont({
   src: [
-    {
-      path: "../../public/fonts/iranyekan/IRANYekanXFaNum-Light.woff2",
-      weight: "300",
-      style: "normal",
-    },
-    {
-      path: "../../public/fonts/iranyekan/IRANYekanXFaNum-Regular.woff2",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../../public/fonts/iranyekan/IRANYekanXFaNum-Bold.woff2",
-      weight: "700",
-      style: "normal",
-    },
-    {
-      path: "../../public/fonts/iranyekan/IRANYekanXFaNum-Black.woff2",
-      weight: "900",
-      style: "normal",
-    },
-    {
-      path: "../../public/fonts/iranyekan/IRANYekanXFaNum-ExtraBlack.woff2",
-      weight: "950",
-      style: "normal",
-    },
+    { path: "../../public/fonts/iranyekan/IRANYekanXFaNum-Light.woff2", weight: "300", style: "normal" },
+    { path: "../../public/fonts/iranyekan/IRANYekanXFaNum-Regular.woff2", weight: "400", style: "normal" },
+    { path: "../../public/fonts/iranyekan/IRANYekanXFaNum-Bold.woff2", weight: "700", style: "normal" },
+    { path: "../../public/fonts/iranyekan/IRANYekanXFaNum-Black.woff2", weight: "900", style: "normal" },
+    { path: "../../public/fonts/iranyekan/IRANYekanXFaNum-ExtraBlack.woff2", weight: "950", style: "normal" },
   ],
   variable: "--font-iranyekan",
   display: "swap",
@@ -43,16 +23,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fa" dir="rtl">
       <body className={`${iranyekan.variable} antialiased`}>
-        <ThemeRegistry>
+        <MuiProviders>
           <AuthInitializer />
           {children}
-        </ThemeRegistry>
+        </MuiProviders>
       </body>
     </html>
   );
