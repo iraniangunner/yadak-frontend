@@ -13,7 +13,7 @@ declare module "axios" {
 }
 
 const api = axios.create({
-  baseURL: API_URL, // http://yadak-backend.test/api
+  baseURL: API_URL, // مثلاً http://yadaki.test/api
 });
 
 // ----------------------
@@ -22,6 +22,7 @@ const api = axios.create({
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   if (config.requiresAuth) {
     try {
+      // مسیر واقعی: app/api/token/route.ts
       const res = await fetch("/api/token");
       const data = await res.json();
 
@@ -82,7 +83,8 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const res = await fetch("/api/refresh-token", { method: "POST" });
+      // مسیر واقعی: app/api/refresh/route.ts
+      const res = await fetch("/api/refresh", { method: "POST" });
       const data = await res.json();
 
       if (!res.ok || !data.success) {
@@ -104,7 +106,7 @@ api.interceptors.response.use(
 
       return Promise.reject(err);
     }
-  },
+  }
 );
 
 export default api;
@@ -147,7 +149,7 @@ export const productsAPI = {
     per_page?: number;
     page?: number;
   }) => api.get("/products", { params }),
-  show: (id: number) => api.get(`/products/${id}`),
+  show: (slug: string) => api.get(`/products/${slug}`),
   priceForQuantity: (id: number, quantity: number) =>
     api.get(`/products/${id}/price-for-quantity`, { params: { quantity } }),
   subscribeStock: (id: number, payload?: { mobile?: string }) =>
@@ -199,7 +201,7 @@ export const addressesAPI: any = {
   }) => api.post("/addresses", payload, { requiresAuth: true }),
   update: (
     id: number,
-    payload: Partial<Parameters<typeof addressesAPI.create>[0]>,
+    payload: Partial<Parameters<typeof addressesAPI.create>[0]>
   ) => api.put(`/addresses/${id}`, payload, { requiresAuth: true }),
   delete: (id: number) =>
     api.delete(`/addresses/${id}`, { requiresAuth: true }),
@@ -247,7 +249,7 @@ export const returnsAPI = {
   list: () => api.get("/returns", { requiresAuth: true }),
   request: (
     orderId: number,
-    payload: { order_item_id: number; quantity: number; reason: string },
+    payload: { order_item_id: number; quantity: number; reason: string }
   ) => api.post(`/orders/${orderId}/returns`, payload, { requiresAuth: true }),
 };
 
@@ -260,6 +262,7 @@ export const adminAPI = {
     search: (query: string) =>
       api.get("/admin/users/search", { params: { query }, requiresAuth: true }),
   },
+
   // مدیریت کارمندان
   staff: {
     list: (params?: { per_page?: number }) =>
@@ -308,6 +311,17 @@ export const adminAPI = {
 
   // محصول
   products: {
+    list: (params?: {
+      category_id?: number;
+      brand_id?: number;
+      stock_status?: string;
+      is_active?: boolean;
+      search?: string;
+      per_page?: number;
+      page?: number;
+    }) => api.get("/admin/products", { params, requiresAuth: true }),
+    get: (id: number) =>
+      api.get(`/admin/products/${id}`, { requiresAuth: true }),
     create: (payload: FormData) =>
       api.post("/admin/products", payload, { requiresAuth: true }),
     update: (id: number, payload: FormData) =>
@@ -327,7 +341,7 @@ export const adminAPI = {
           min_quantity: number;
           max_quantity: number | null;
           price: number;
-        },
+        }
       ) =>
         api.post(`/admin/products/${productId}/price-tiers`, payload, {
           requiresAuth: true,
@@ -339,7 +353,7 @@ export const adminAPI = {
           min_quantity: number;
           max_quantity: number | null;
           price: number;
-        }>,
+        }>
       ) =>
         api.put(`/admin/products/${productId}/price-tiers/${tierId}`, payload, {
           requiresAuth: true,
@@ -413,7 +427,7 @@ export const adminAPI = {
       api.post(
         `/admin/referral-commissions/${id}/mark-paid`,
         {},
-        { requiresAuth: true },
+        { requiresAuth: true }
       ),
   },
 
@@ -430,7 +444,7 @@ export const adminAPI = {
       payload: {
         items: { id: number; quantity: number; is_available: boolean }[];
         admin_note?: string;
-      },
+      }
     ) => api.put(`/admin/orders/${id}/items`, payload, { requiresAuth: true }),
     cancel: (id: number, note?: string) =>
       api.post(`/admin/orders/${id}/cancel`, { note }, { requiresAuth: true }),
@@ -446,19 +460,19 @@ export const adminAPI = {
       api.post(
         `/admin/returns/${id}/approve`,
         { admin_note },
-        { requiresAuth: true },
+        { requiresAuth: true }
       ),
     reject: (id: number, admin_note: string) =>
       api.post(
         `/admin/returns/${id}/reject`,
         { admin_note },
-        { requiresAuth: true },
+        { requiresAuth: true }
       ),
     markRefunded: (id: number, refund_amount: number) =>
       api.post(
         `/admin/returns/${id}/mark-refunded`,
         { refund_amount },
-        { requiresAuth: true },
+        { requiresAuth: true }
       ),
   },
 

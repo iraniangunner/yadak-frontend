@@ -50,6 +50,21 @@ function SubmitButton() {
   );
 }
 
+/**
+ * مسیر پیش‌فرض بعد از لاگین رو بر اساس نقش کاربر تعیین می‌کنه:
+ * - admin / warehouse / sales / support (یعنی هرکسی که customer نیست) → /admin
+ * - customer → /account/profile
+ * اگه پارامتر ?redirect= صریحاً توی URL باشه، همیشه اون اولویت داره.
+ */
+function resolveRedirectTarget(
+  role: string | undefined,
+  explicitRedirect: string | null
+): string {
+  if (explicitRedirect) return explicitRedirect;
+  if (role && role !== "customer") return "/admin";
+  return "/account/profile";
+}
+
 export function LoginContent() {
   const [state, formAction] = useFormState(loginAction, initialState);
   const [showPassword, setShowPassword] = useState(false);
@@ -59,14 +74,19 @@ export function LoginContent() {
   const refreshUser = useAuthStore((s) => s.refreshUser);
 
   // loginAction فقط کوکی رو ست می‌کنه، user رو برنمی‌گردونه؛ پس بعد از
-  // موفقیت، خودمون پروفایل رو از /me می‌کشیم تا Zustand پر بشه.
+  // موفقیت، خودمون پروفایل رو از /me می‌کشیم تا هم Zustand پر بشه هم
+  // نقش کاربر رو برای تعیین مسیر ریدایرکت داشته باشیم.
   useEffect(() => {
     if (!state.isSuccess) return;
 
     (async () => {
       await refreshUser();
-      const redirectTo = searchParams.get("redirect") || "/account/profile";
-      router.push(redirectTo);
+      const currentUser = useAuthStore.getState().user;
+      const target = resolveRedirectTarget(
+        currentUser?.role,
+        searchParams.get("redirect")
+      );
+      router.push(target);
     })();
   }, [state.isSuccess, refreshUser, router, searchParams]);
 
@@ -93,7 +113,6 @@ export function LoginContent() {
           required
           fullWidth
           autoComplete="email"
-        
         />
 
         <TextField
