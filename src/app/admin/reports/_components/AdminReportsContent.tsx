@@ -141,16 +141,22 @@ export function AdminReportsContent() {
 function ProductSalesTab() {
   const [rows, setRows] = useState<ProductSalesRow[] | null>(null);
   const [error, setError] = useState("");
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [resetKey, setResetKey] = useState(0);
 
-  const load = (fromValue: string, toValue: string) => {
+  const load = (fromValue: string, toValue: string, pageValue: number, perPage: number) => {
     setRows(null);
     setError("");
     adminAPI.reports
-      .productSales({ from: fromValue || undefined, to: toValue || undefined })
-      .then((res) => setRows(res.data.data))
+      .productSales({ from: fromValue || undefined, to: toValue || undefined, page: pageValue + 1, per_page: perPage })
+      .then((res) => {
+        setRows(res.data.data);
+        setTotal(res.data.total);
+      })
       .catch((err) => {
         console.error("خطا در دریافت گزارش فروش محصولات:", err);
         setError(err?.response?.data?.message || "خطا در دریافت گزارش. دوباره تلاش کنید.");
@@ -159,15 +165,21 @@ function ProductSalesTab() {
   };
 
   useEffect(() => {
-    load("", "");
+    load(from, to, page, rowsPerPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, rowsPerPage]);
 
   const handleClear = () => {
     setFrom("");
     setTo("");
     setResetKey((k) => k + 1);
-    load("", "");
+    setPage(0);
+    load("", "", 0, rowsPerPage);
+  };
+
+  const handleSearch = () => {
+    setPage(0);
+    load(from, to, 0, rowsPerPage);
   };
 
   const handleDownload = async () => {
@@ -181,7 +193,7 @@ function ProductSalesTab() {
         <DateRangeFilter
           onFromChange={setFrom}
           onToChange={setTo}
-          onSearch={() => load(from, to)}
+          onSearch={handleSearch}
           onClear={handleClear}
           resetKey={resetKey}
         />
@@ -233,6 +245,21 @@ function ProductSalesTab() {
             )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          component="div"
+          count={total}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+          rowsPerPageOptions={[10, 20, 50]}
+          labelRowsPerPage="ردیف در صفحه"
+          labelDisplayedRows={({ from, to, count }) => `${from}–${to} از ${count}`}
+        />
       </TableContainer>
     </Box>
   );
@@ -245,16 +272,22 @@ function ProductSalesTab() {
 function CustomerSalesTab() {
   const [rows, setRows] = useState<CustomerSalesRow[] | null>(null);
   const [error, setError] = useState("");
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [resetKey, setResetKey] = useState(0);
 
-  const load = (fromValue: string, toValue: string) => {
+  const load = (fromValue: string, toValue: string, pageValue: number, perPage: number) => {
     setRows(null);
     setError("");
     adminAPI.reports
-      .customerSales({ from: fromValue || undefined, to: toValue || undefined })
-      .then((res) => setRows(res.data.data))
+      .customerSales({ from: fromValue || undefined, to: toValue || undefined, page: pageValue + 1, per_page: perPage })
+      .then((res) => {
+        setRows(res.data.data);
+        setTotal(res.data.total);
+      })
       .catch((err) => {
         console.error("خطا در دریافت گزارش فروش مشتریان:", err);
         setError(err?.response?.data?.message || "خطا در دریافت گزارش. دوباره تلاش کنید.");
@@ -263,15 +296,21 @@ function CustomerSalesTab() {
   };
 
   useEffect(() => {
-    load("", "");
+    load(from, to, page, rowsPerPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, rowsPerPage]);
 
   const handleClear = () => {
     setFrom("");
     setTo("");
     setResetKey((k) => k + 1);
-    load("", "");
+    setPage(0);
+    load("", "", 0, rowsPerPage);
+  };
+
+  const handleSearch = () => {
+    setPage(0);
+    load(from, to, 0, rowsPerPage);
   };
 
   const handleDownload = async () => {
@@ -285,7 +324,7 @@ function CustomerSalesTab() {
         <DateRangeFilter
           onFromChange={setFrom}
           onToChange={setTo}
-          onSearch={() => load(from, to)}
+          onSearch={handleSearch}
           onClear={handleClear}
           resetKey={resetKey}
         />
@@ -337,6 +376,21 @@ function CustomerSalesTab() {
             )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          component="div"
+          count={total}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+          rowsPerPageOptions={[10, 20, 50]}
+          labelRowsPerPage="ردیف در صفحه"
+          labelDisplayedRows={({ from, to, count }) => `${from}–${to} از ${count}`}
+        />
       </TableContainer>
     </Box>
   );
@@ -349,16 +403,22 @@ function CustomerSalesTab() {
 function CitySalesTab() {
   const [rows, setRows] = useState<CitySalesRow[] | null>(null);
   const [error, setError] = useState("");
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [resetKey, setResetKey] = useState(0);
 
-  const load = (fromValue: string, toValue: string) => {
+  const load = (fromValue: string, toValue: string, pageValue: number, perPage: number) => {
     setRows(null);
     setError("");
     adminAPI.reports
-      .citySales({ from: fromValue || undefined, to: toValue || undefined })
-      .then((res) => setRows(res.data.data))
+      .citySales({ from: fromValue || undefined, to: toValue || undefined, page: pageValue + 1, per_page: perPage })
+      .then((res) => {
+        setRows(res.data.data);
+        setTotal(res.data.total);
+      })
       .catch((err) => {
         console.error("خطا در دریافت گزارش فروش شهرها:", err);
         setError(err?.response?.data?.message || "خطا در دریافت گزارش. دوباره تلاش کنید.");
@@ -367,15 +427,21 @@ function CitySalesTab() {
   };
 
   useEffect(() => {
-    load("", "");
+    load(from, to, page, rowsPerPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, rowsPerPage]);
 
   const handleClear = () => {
     setFrom("");
     setTo("");
     setResetKey((k) => k + 1);
-    load("", "");
+    setPage(0);
+    load("", "", 0, rowsPerPage);
+  };
+
+  const handleSearch = () => {
+    setPage(0);
+    load(from, to, 0, rowsPerPage);
   };
 
   const handleDownload = async () => {
@@ -389,7 +455,7 @@ function CitySalesTab() {
         <DateRangeFilter
           onFromChange={setFrom}
           onToChange={setTo}
-          onSearch={() => load(from, to)}
+          onSearch={handleSearch}
           onClear={handleClear}
           resetKey={resetKey}
         />
@@ -439,6 +505,21 @@ function CitySalesTab() {
             )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          component="div"
+          count={total}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+          rowsPerPageOptions={[10, 20, 50]}
+          labelRowsPerPage="ردیف در صفحه"
+          labelDisplayedRows={({ from, to, count }) => `${from}–${to} از ${count}`}
+        />
       </TableContainer>
     </Box>
   );

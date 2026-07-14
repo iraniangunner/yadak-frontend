@@ -445,11 +445,11 @@ export const adminAPI = {
 
   // گزارش‌گیری فروش
   reports: {
-    productSales: (params?: { from?: string; to?: string }) =>
+    productSales: (params?: { from?: string; to?: string; page?: number; per_page?: number }) =>
       api.get("/admin/reports/product-sales", { params, requiresAuth: true }),
-    customerSales: (params?: { from?: string; to?: string }) =>
+    customerSales: (params?: { from?: string; to?: string; page?: number; per_page?: number }) =>
       api.get("/admin/reports/customer-sales", { params, requiresAuth: true }),
-    citySales: (params?: { from?: string; to?: string }) =>
+    citySales: (params?: { from?: string; to?: string; page?: number; per_page?: number }) =>
       api.get("/admin/reports/city-sales", { params, requiresAuth: true }),
     returns: (params?: { status?: string; from?: string; to?: string; per_page?: number; page?: number }) =>
       api.get("/admin/reports/returns", { params, requiresAuth: true }),
