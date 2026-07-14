@@ -19,15 +19,27 @@ import { useAuthStore } from "@/lib/store/authStore";
 */
 
 const links = [
-  { href: "/account/profile", label: "پروفایل", icon: <Person fontSize="small" /> },
-  { href: "/account/orders", label: "سفارش‌های من", icon: <ShoppingBag fontSize="small" /> },
-  { href: "/account/addresses", label: "آدرس‌های من", icon: <LocationOn fontSize="small" /> },
-  { href: "/account/vehicles", label: "خودروهای من", icon: <DirectionsCar fontSize="small" /> },
+  {
+    href: "/account/profile",
+    label: "اطلاعات کاربری",
+    icon: <Person fontSize="small" />,
+  },
+  {
+    href: "/account/orders",
+    label: "سفارش‌های من",
+    icon: <ShoppingBag fontSize="small" />,
+  },
+  {
+    href: "/account/addresses",
+    label: "آدرس‌های من",
+    icon: <LocationOn fontSize="small" />,
+  },
+  {
+    href: "/account/vehicles",
+    label: "خودروهای من",
+    icon: <DirectionsCar fontSize="small" />,
+  },
 ];
-
-function initialsOf(name: string) {
-  return name.trim().split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-}
 
 export function AccountSidebar() {
   const pathname = usePathname();
@@ -45,30 +57,59 @@ export function AccountSidebar() {
       sx={{
         bgcolor: "background.paper",
         borderRadius: 3,
-        border: "1px solid",
-        borderColor: "divider",
-        overflow: "hidden",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+        p: 2,
       }}
     >
       {user && (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 2.5 }}>
-          <Avatar sx={{ bgcolor: "primary.main", color: "primary.contrastText", fontWeight: 700 }}>
-            {initialsOf(user.name)}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            pb: 2,
+            mb: 1,
+            gap: 1,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <Avatar
+            sx={{
+              width: 32,
+              height: 32,
+              bgcolor: "background.default",
+              color: "text.secondary",
+            }}
+          >
+            <Person fontSize="small" />
           </Avatar>
           <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: "0.9rem" }} noWrap>
+            <Typography sx={{ fontWeight: 700, fontSize: "0.95rem" }} noWrap>
               {user.name}
+              {user.phone && (
+                <Typography
+                  component="span"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.8rem" }}
+                >
+                  {" "}
+                  ({user.phone})
+                </Typography>
+              )}
             </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
-              {user.phone || user.email}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              noWrap
+              sx={{ display: "block" }}
+            >
+              {user.email}
             </Typography>
           </Box>
         </Box>
       )}
 
-      <Box sx={{ height: "1px", bgcolor: "divider" }} />
-
-      <Stack component="nav" sx={{ p: 1.5, gap: 0.5 }}>
+      <Stack component="nav" sx={{ gap: 0.5 }}>
         {links.map((link) => {
           const isActive = pathname === link.href;
 
@@ -80,18 +121,21 @@ export function AccountSidebar() {
               sx={{
                 display: "flex",
                 alignItems: "center",
-                gap: 1.5,
-                px: 2,
+                // justifyContent: "space-around",
+                px: 1.5,
                 py: 1.25,
+                gap: 1,
                 borderRadius: 2,
                 textDecoration: "none",
-                color: isActive ? "primary.contrastText" : "text.primary",
-                bgcolor: isActive ? "primary.main" : "transparent",
+                color: isActive ? "primary.main" : "text.primary",
+                bgcolor: isActive ? "rgba(30,58,138,0.08)" : "transparent",
                 fontWeight: isActive ? 600 : 400,
                 fontSize: "0.9rem",
                 transition: "background-color .15s",
                 "&:hover": {
-                  bgcolor: isActive ? "primary.main" : "background.default",
+                  bgcolor: isActive
+                    ? "rgba(30,58,138,0.08)"
+                    : "background.default",
                 },
               }}
             >
@@ -102,7 +146,7 @@ export function AccountSidebar() {
         })}
       </Stack>
 
-      <Box sx={{ height: "1px", bgcolor: "divider" }} />
+      <Box sx={{ height: "1px", bgcolor: "divider", my: 1.5 }} />
 
       <Box
         component="button"
@@ -110,22 +154,23 @@ export function AccountSidebar() {
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 1.5,
+          // justifyContent: "space-between",
           width: "100%",
-          textAlign: "right",
           border: "none",
           bgcolor: "transparent",
           cursor: "pointer",
           color: "error.main",
           fontFamily: "inherit",
           fontSize: "0.9rem",
-          px: "28px",
-          py: 1.75,
+          px: 1.5,
+          py: 1.25,
+          gap: 1,
+          borderRadius: 2,
           "&:hover": { bgcolor: "background.default" },
         }}
       >
         <Logout fontSize="small" />
-        خروج از حساب
+        خروج از حساب کاربری
       </Box>
     </Box>
   );

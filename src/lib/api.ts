@@ -255,6 +255,11 @@ export const returnsAPI = {
 // پنل ادمین
 // ----------------------
 export const adminAPI = {
+  // جستجوی کاربر (برای فرم‌هایی مثل انتخاب صاحب کد معرف)
+  users: {
+    search: (query: string) =>
+      api.get("/admin/users/search", { params: { query }, requiresAuth: true }),
+  },
   // مدیریت کارمندان
   staff: {
     list: (params?: { per_page?: number }) =>
