@@ -78,7 +78,7 @@ type OrderDetail = {
     email: string | null;
   };
   items: OrderItem[];
-  statusHistories: StatusHistory[];
+  status_histories: StatusHistory[];
 };
 
 function Section({
@@ -448,7 +448,7 @@ export function AdminOrderDetailContent({
       {/* تاریخچه وضعیت */}
       <Section title="تاریخچه وضعیت">
         <Stack spacing={1.5}>
-          {order.statusHistories.map((h) => (
+          {order.status_histories.map((h) => (
             <Box
               key={h.id}
               sx={{
