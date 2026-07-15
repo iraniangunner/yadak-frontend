@@ -99,10 +99,6 @@ export function AdminActivityLogsContent() {
   }, [typeFilter, actionFilter, selectedUser, page, rowsPerPage]);
 
   const handleUserSearch = (query: string) => {
-    if (!query) {
-      setUserOptions([]);
-      return;
-    }
     setUserSearchLoading(true);
     adminAPI.users
       .search(query)
@@ -165,6 +161,7 @@ export function AdminActivityLogsContent() {
             setPage(0);
             setSelectedUser(newValue);
           }}
+          onOpen={() => handleUserSearch("")}
           onInputChange={(_, newInput) => handleUserSearch(newInput)}
           noOptionsText="کاربری پیدا نشد"
           sx={{ minWidth: 220 }}
@@ -267,6 +264,7 @@ export function AdminActivityLogsContent() {
         <DialogContent>
           <Box
             component="pre"
+            dir="ltr"
             sx={{
               bgcolor: "background.default",
               p: 2,

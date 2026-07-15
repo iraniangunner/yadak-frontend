@@ -135,8 +135,12 @@ export const categoriesAPI = {
 };
 
 export const vehiclesAPI = {
-  list: (params?: { search?: string; with_inactive?: boolean; per_page?: number; page?: number }) =>
-    api.get("/vehicles", { params }),
+  list: (params?: {
+    search?: string;
+    with_inactive?: boolean;
+    per_page?: number;
+    page?: number;
+  }) => api.get("/vehicles", { params }),
 };
 
 export const productsAPI = {
@@ -165,7 +169,8 @@ export const articlesAPI = {
 };
 
 export const bannersAPI = {
-  list: () => api.get("/banners"),
+  list: (params?: { with_inactive?: boolean }) =>
+    api.get("/banners", { params }),
 };
 
 // ----------------------
@@ -185,7 +190,7 @@ export const shippingAPI = {
 // ----------------------
 // آدرس‌های مشتری (نیاز به لاگین)
 // ----------------------
-export const addressesAPI = {
+export const addressesAPI: any = {
   list: () => api.get("/addresses", { requiresAuth: true }),
   create: (payload: {
     title?: string;
@@ -199,9 +204,12 @@ export const addressesAPI = {
     longitude?: number;
     is_default?: boolean;
   }) => api.post("/addresses", payload, { requiresAuth: true }),
-  update: (id: number, payload: Partial<Parameters<typeof addressesAPI.create>[0]>) =>
-    api.put(`/addresses/${id}`, payload, { requiresAuth: true }),
-  delete: (id: number) => api.delete(`/addresses/${id}`, { requiresAuth: true }),
+  update: (
+    id: number,
+    payload: Partial<Parameters<typeof addressesAPI.create>[0]>
+  ) => api.put(`/addresses/${id}`, payload, { requiresAuth: true }),
+  delete: (id: number) =>
+    api.delete(`/addresses/${id}`, { requiresAuth: true }),
 };
 
 // ----------------------
@@ -235,7 +243,8 @@ export const ordersAPI = {
     api.post(`/orders/${id}/confirm`, {}, { requiresAuth: true }),
   cancel: (id: number) =>
     api.post(`/orders/${id}/cancel`, {}, { requiresAuth: true }),
-  pay: (id: number) => api.post(`/orders/${id}/pay`, {}, { requiresAuth: true }),
+  pay: (id: number) =>
+    api.post(`/orders/${id}/pay`, {}, { requiresAuth: true }),
 };
 
 // ----------------------
@@ -280,14 +289,19 @@ export const adminAPI = {
     create: (payload: FormData) =>
       api.post("/admin/brands", payload, { requiresAuth: true }),
     update: (id: number, payload: FormData) =>
-      api.post(`/admin/brands/${id}?_method=PUT`, payload, { requiresAuth: true }),
-    delete: (id: number) => api.delete(`/admin/brands/${id}`, { requiresAuth: true }),
+      api.post(`/admin/brands/${id}?_method=PUT`, payload, {
+        requiresAuth: true,
+      }),
+    delete: (id: number) =>
+      api.delete(`/admin/brands/${id}`, { requiresAuth: true }),
   },
   categories: {
     create: (payload: FormData) =>
       api.post("/admin/categories", payload, { requiresAuth: true }),
     update: (id: number, payload: FormData) =>
-      api.post(`/admin/categories/${id}?_method=PUT`, payload, { requiresAuth: true }),
+      api.post(`/admin/categories/${id}?_method=PUT`, payload, {
+        requiresAuth: true,
+      }),
     delete: (id: number) =>
       api.delete(`/admin/categories/${id}`, { requiresAuth: true }),
   },
@@ -311,11 +325,14 @@ export const adminAPI = {
       per_page?: number;
       page?: number;
     }) => api.get("/admin/products", { params, requiresAuth: true }),
-    get: (id: number) => api.get(`/admin/products/${id}`, { requiresAuth: true }),
+    get: (id: number) =>
+      api.get(`/admin/products/${id}`, { requiresAuth: true }),
     create: (payload: FormData) =>
       api.post("/admin/products", payload, { requiresAuth: true }),
     update: (id: number, payload: FormData) =>
-      api.post(`/admin/products/${id}?_method=PUT`, payload, { requiresAuth: true }),
+      api.post(`/admin/products/${id}?_method=PUT`, payload, {
+        requiresAuth: true,
+      }),
     delete: (id: number) =>
       api.delete(`/admin/products/${id}`, { requiresAuth: true }),
     deleteImage: (productId: number, imageId: number) =>
@@ -325,7 +342,11 @@ export const adminAPI = {
     priceTiers: {
       create: (
         productId: number,
-        payload: { min_quantity: number; max_quantity: number | null; price: number }
+        payload: {
+          min_quantity: number;
+          max_quantity: number | null;
+          price: number;
+        }
       ) =>
         api.post(`/admin/products/${productId}/price-tiers`, payload, {
           requiresAuth: true,
@@ -333,7 +354,11 @@ export const adminAPI = {
       update: (
         productId: number,
         tierId: number,
-        payload: Partial<{ min_quantity: number; max_quantity: number | null; price: number }>
+        payload: Partial<{
+          min_quantity: number;
+          max_quantity: number | null;
+          price: number;
+        }>
       ) =>
         api.put(`/admin/products/${productId}/price-tiers/${tierId}`, payload, {
           requiresAuth: true,
@@ -404,14 +429,19 @@ export const adminAPI = {
     list: (params?: { user_id?: number; status?: string; per_page?: number }) =>
       api.get("/admin/referral-commissions", { params, requiresAuth: true }),
     markPaid: (id: number) =>
-      api.post(`/admin/referral-commissions/${id}/mark-paid`, {}, { requiresAuth: true }),
+      api.post(
+        `/admin/referral-commissions/${id}/mark-paid`,
+        {},
+        { requiresAuth: true }
+      ),
   },
 
   // سفارش‌ها
   orders: {
     list: (params?: { status?: string; per_page?: number; page?: number }) =>
       api.get("/admin/orders", { params, requiresAuth: true }),
-    show: (id: number) => api.get(`/admin/orders/${id}`, { requiresAuth: true }),
+    show: (id: number) =>
+      api.get(`/admin/orders/${id}`, { requiresAuth: true }),
     approve: (id: number) =>
       api.post(`/admin/orders/${id}/approve`, {}, { requiresAuth: true }),
     updateItems: (
@@ -432,9 +462,17 @@ export const adminAPI = {
     list: (params?: { status?: string; user_id?: number; per_page?: number }) =>
       api.get("/admin/returns", { params, requiresAuth: true }),
     approve: (id: number, admin_note?: string) =>
-      api.post(`/admin/returns/${id}/approve`, { admin_note }, { requiresAuth: true }),
+      api.post(
+        `/admin/returns/${id}/approve`,
+        { admin_note },
+        { requiresAuth: true }
+      ),
     reject: (id: number, admin_note: string) =>
-      api.post(`/admin/returns/${id}/reject`, { admin_note }, { requiresAuth: true }),
+      api.post(
+        `/admin/returns/${id}/reject`,
+        { admin_note },
+        { requiresAuth: true }
+      ),
     markRefunded: (id: number, refund_amount: number) =>
       api.post(
         `/admin/returns/${id}/mark-refunded`,
@@ -445,14 +483,33 @@ export const adminAPI = {
 
   // گزارش‌گیری فروش
   reports: {
-    productSales: (params?: { from?: string; to?: string; page?: number; per_page?: number }) =>
+    productSales: (params?: {
+      from?: string;
+      to?: string;
+      page?: number;
+      per_page?: number;
+    }) =>
       api.get("/admin/reports/product-sales", { params, requiresAuth: true }),
-    customerSales: (params?: { from?: string; to?: string; page?: number; per_page?: number }) =>
+    customerSales: (params?: {
+      from?: string;
+      to?: string;
+      page?: number;
+      per_page?: number;
+    }) =>
       api.get("/admin/reports/customer-sales", { params, requiresAuth: true }),
-    citySales: (params?: { from?: string; to?: string; page?: number; per_page?: number }) =>
-      api.get("/admin/reports/city-sales", { params, requiresAuth: true }),
-    returns: (params?: { status?: string; from?: string; to?: string; per_page?: number; page?: number }) =>
-      api.get("/admin/reports/returns", { params, requiresAuth: true }),
+    citySales: (params?: {
+      from?: string;
+      to?: string;
+      page?: number;
+      per_page?: number;
+    }) => api.get("/admin/reports/city-sales", { params, requiresAuth: true }),
+    returns: (params?: {
+      status?: string;
+      from?: string;
+      to?: string;
+      per_page?: number;
+      page?: number;
+    }) => api.get("/admin/reports/returns", { params, requiresAuth: true }),
     // دانلود اکسل - چون سیستم احراز هویت توکنیه (نه کوکی)، نمی‌شه با لینک
     // ساده دانلود کرد؛ باید blob رو با axios (همراه توکن) گرفت.
     downloadExcel: (
@@ -503,7 +560,9 @@ export const adminAPI = {
     create: (payload: FormData) =>
       api.post("/admin/articles", payload, { requiresAuth: true }),
     update: (id: number, payload: FormData) =>
-      api.post(`/admin/articles/${id}?_method=PUT`, payload, { requiresAuth: true }),
+      api.post(`/admin/articles/${id}?_method=PUT`, payload, {
+        requiresAuth: true,
+      }),
     delete: (id: number) =>
       api.delete(`/admin/articles/${id}`, { requiresAuth: true }),
   },
@@ -511,7 +570,9 @@ export const adminAPI = {
     create: (payload: FormData) =>
       api.post("/admin/banners", payload, { requiresAuth: true }),
     update: (id: number, payload: FormData) =>
-      api.post(`/admin/banners/${id}?_method=PUT`, payload, { requiresAuth: true }),
+      api.post(`/admin/banners/${id}?_method=PUT`, payload, {
+        requiresAuth: true,
+      }),
     delete: (id: number) =>
       api.delete(`/admin/banners/${id}`, { requiresAuth: true }),
   },
@@ -519,8 +580,11 @@ export const adminAPI = {
   // نرخ ارسال
   shippingRates: {
     list: () => api.get("/admin/shipping-rates", { requiresAuth: true }),
-    create: (payload: { city: string | null; base_price: number; price_per_kg: number }) =>
-      api.post("/admin/shipping-rates", payload, { requiresAuth: true }),
+    create: (payload: {
+      city: string | null;
+      base_price: number;
+      price_per_kg: number;
+    }) => api.post("/admin/shipping-rates", payload, { requiresAuth: true }),
     update: (id: number, payload: any) =>
       api.put(`/admin/shipping-rates/${id}`, payload, { requiresAuth: true }),
     delete: (id: number) =>

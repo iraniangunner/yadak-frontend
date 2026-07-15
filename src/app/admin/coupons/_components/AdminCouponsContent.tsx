@@ -32,6 +32,7 @@ import {
 import { Add, Edit, Delete } from "@mui/icons-material";
 import { adminAPI } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
+import { JalaliDateField } from "@/app/_components/JalaliDateField";
 
 /*
 |--------------------------------------------------------------------------
@@ -91,7 +92,6 @@ export function AdminCouponsContent() {
 
   useEffect(() => {
     loadCoupons();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage]);
 
   const openCreateDialog = () => {
@@ -103,6 +103,7 @@ export function AdminCouponsContent() {
 
   const openEditDialog = (coupon: Coupon) => {
     setEditingId(coupon.id);
+
     setForm({
       code: coupon.code,
       type: coupon.type,
@@ -158,9 +159,7 @@ export function AdminCouponsContent() {
       loadCoupons();
     } catch (err: any) {
       setErrors(
-        err?.response?.data?.errors || {
-          general: ["خطا در ذخیره‌ی کد تخفیف."],
-        },
+        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی کد تخفیف."] }
       );
     } finally {
       setIsSaving(false);
@@ -395,23 +394,17 @@ export function AdminCouponsContent() {
             </Box>
 
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-              <TextField
+              <JalaliDateField
+                key={`starts-${editingId ?? "new"}`}
                 label="تاریخ شروع (اختیاری)"
-                type="date"
-                value={form.starts_at}
-                onChange={(e) =>
-                  setForm({ ...form, starts_at: e.target.value })
-                }
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ flex: "1 1 200px" }}
+                defaultValue={form.starts_at || null}
+                onChange={(v) => setForm({ ...form, starts_at: v })}
               />
-              <TextField
+              <JalaliDateField
+                key={`ends-${editingId ?? "new"}`}
                 label="تاریخ پایان (اختیاری)"
-                type="date"
-                value={form.ends_at}
-                onChange={(e) => setForm({ ...form, ends_at: e.target.value })}
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ flex: "1 1 200px" }}
+                defaultValue={form.ends_at || null}
+                onChange={(v) => setForm({ ...form, ends_at: v })}
               />
             </Box>
 

@@ -169,7 +169,7 @@ function ReferralCodesTab() {
             name: `کاربر #${code.user_id}`,
             phone: null,
             email: null,
-          },
+          }
     );
     setUserOptions([]);
     setErrors({});
@@ -177,10 +177,6 @@ function ReferralCodesTab() {
   };
 
   const handleUserSearch = (query: string) => {
-    if (!query) {
-      setUserOptions([]);
-      return;
-    }
     setUserSearchLoading(true);
     adminAPI.users
       .search(query)
@@ -216,7 +212,7 @@ function ReferralCodesTab() {
       loadCodes();
     } catch (err: any) {
       setErrors(
-        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی کد معرف."] },
+        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی کد معرف."] }
       );
     } finally {
       setIsSaving(false);
@@ -379,6 +375,7 @@ function ReferralCodesTab() {
               isOptionEqualToValue={(a, b) => a.id === b.id}
               value={selectedUser}
               onChange={(_, newValue) => setSelectedUser(newValue)}
+              onOpen={() => handleUserSearch("")}
               onInputChange={(_, newInput) => handleUserSearch(newInput)}
               noOptionsText="کاربری پیدا نشد"
               renderInput={(params) => (
