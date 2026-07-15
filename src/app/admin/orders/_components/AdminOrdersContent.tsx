@@ -43,7 +43,9 @@ type Order = {
   user?: { name: string; phone: string | null };
 };
 
-export function AdminOrdersContent() {
+export function AdminOrdersContent({
+  readOnly = false,
+}: { readOnly?: boolean } = {}) {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -131,7 +133,9 @@ export function AdminOrdersContent() {
             ) : orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                  <Typography color="text.secondary">سفارشی یافت نشد</Typography>
+                  <Typography color="text.secondary">
+                    سفارشی یافت نشد
+                  </Typography>
                 </TableCell>
               </TableRow>
             ) : (
@@ -144,13 +148,21 @@ export function AdminOrdersContent() {
                     <TableCell>
                       {order.user?.name || "-"}
                       {order.user?.phone && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block" }}
+                        >
                           {order.user.phone}
                         </Typography>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Chip label={status.label} color={status.color} size="small" />
+                      <Chip
+                        label={status.label}
+                        color={status.color}
+                        size="small"
+                      />
                     </TableCell>
                     <TableCell>{formatPrice(order.total_amount)}</TableCell>
                     <TableCell>{formatDateTime(order.created_at)}</TableCell>
@@ -163,7 +175,7 @@ export function AdminOrdersContent() {
                         <Visibility fontSize="small" />
                       </IconButton>
 
-                      {order.status === "pending_review" && (
+                      {!readOnly && order.status === "pending_review" && (
                         <IconButton
                           size="small"
                           color="success"
@@ -174,18 +186,21 @@ export function AdminOrdersContent() {
                         </IconButton>
                       )}
 
-                      {["pending_review", "needs_customer_confirmation", "awaiting_payment"].includes(
-                        order.status
-                      ) && (
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleCancel(order.id)}
-                          title="لغو سفارش"
-                        >
-                          <Close fontSize="small" />
-                        </IconButton>
-                      )}
+                      {!readOnly &&
+                        [
+                          "pending_review",
+                          "needs_customer_confirmation",
+                          "awaiting_payment",
+                        ].includes(order.status) && (
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleCancel(order.id)}
+                            title="لغو سفارش"
+                          >
+                            <Close fontSize="small" />
+                          </IconButton>
+                        )}
                     </TableCell>
                   </TableRow>
                 );
@@ -206,7 +221,9 @@ export function AdminOrdersContent() {
           }}
           rowsPerPageOptions={[10, 20, 50]}
           labelRowsPerPage="ردیف در صفحه"
-          labelDisplayedRows={({ from, to, count }) => `${from}–${to} از ${count}`}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}–${to} از ${count}`
+          }
         />
       </TableContainer>
 
@@ -221,6 +238,7 @@ export function AdminOrdersContent() {
           {selectedOrderId !== null && (
             <AdminOrderDetailContent
               orderId={selectedOrderId}
+              readOnly={readOnly}
               onClose={() => setSelectedOrderId(null)}
               onChanged={loadOrders}
             />

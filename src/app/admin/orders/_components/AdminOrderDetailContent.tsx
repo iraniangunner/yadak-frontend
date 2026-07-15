@@ -108,10 +108,12 @@ export function AdminOrderDetailContent({
   orderId,
   onClose,
   onChanged,
+  readOnly = false,
 }: {
   orderId: number;
   onClose?: () => void;
   onChanged?: () => void;
+  readOnly?: boolean;
 }) {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [itemsEdit, setItemsEdit] = useState<OrderItem[]>([]);
@@ -249,38 +251,44 @@ export function AdminOrderDetailContent({
         </Alert>
       )}
 
-      {/* دکمه‌های عملیات کلی */}
-      <Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: "wrap" }}>
-        {order.status === "pending_review" && !isEditingItems && (
-          <Button variant="contained" disableElevation onClick={handleApprove}>
-            تأیید سفارش (همه‌ی اقلام موجود)
-          </Button>
-        )}
-        {order.status === "pending_review" && (
-          <Button
-            variant="outlined"
-            onClick={() => setIsEditingItems((v) => !v)}
-          >
-            {isEditingItems
-              ? "انصراف از ویرایش آیتم‌ها"
-              : "ویرایش آیتم‌ها (بعضی ناموجودند)"}
-          </Button>
-        )}
-        {[
-          "pending_review",
-          "needs_customer_confirmation",
-          "awaiting_payment",
-        ].includes(order.status) && (
-          <Button variant="outlined" color="error" onClick={handleCancel}>
-            لغو سفارش
-          </Button>
-        )}
-        {order.status === "paid" && !order.invoice_number && (
-          <Button variant="outlined" onClick={handleIssueInvoice}>
-            صدور فاکتور
-          </Button>
-        )}
-      </Stack>
+      {/* دکمه‌های عملیات کلی - فقط وقتی readOnly نیست (مثلاً برای sales/support) */}
+      {!readOnly && (
+        <Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: "wrap" }}>
+          {order.status === "pending_review" && !isEditingItems && (
+            <Button
+              variant="contained"
+              disableElevation
+              onClick={handleApprove}
+            >
+              تأیید سفارش (همه‌ی اقلام موجود)
+            </Button>
+          )}
+          {order.status === "pending_review" && (
+            <Button
+              variant="outlined"
+              onClick={() => setIsEditingItems((v) => !v)}
+            >
+              {isEditingItems
+                ? "انصراف از ویرایش آیتم‌ها"
+                : "ویرایش آیتم‌ها (بعضی ناموجودند)"}
+            </Button>
+          )}
+          {[
+            "pending_review",
+            "needs_customer_confirmation",
+            "awaiting_payment",
+          ].includes(order.status) && (
+            <Button variant="outlined" color="error" onClick={handleCancel}>
+              لغو سفارش
+            </Button>
+          )}
+          {order.status === "paid" && !order.invoice_number && (
+            <Button variant="outlined" onClick={handleIssueInvoice}>
+              صدور فاکتور
+            </Button>
+          )}
+        </Stack>
+      )}
 
       {/* اطلاعات مشتری و ارسال */}
       <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>

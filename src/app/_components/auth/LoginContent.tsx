@@ -58,10 +58,12 @@ function SubmitButton() {
  */
 function resolveRedirectTarget(
   role: string | undefined,
-  explicitRedirect: string | null
+  explicitRedirect: string | null,
 ): string {
   if (explicitRedirect) return explicitRedirect;
-  if (role && role !== "customer") return "/admin";
+  if (role === "admin") return "/admin";
+  if (role === "warehouse" || role === "sales" || role === "support")
+    return "/staff";
   return "/account/profile";
 }
 
@@ -84,7 +86,7 @@ export function LoginContent() {
       const currentUser = useAuthStore.getState().user;
       const target = resolveRedirectTarget(
         currentUser?.role,
-        searchParams.get("redirect")
+        searchParams.get("redirect"),
       );
       router.push(target);
     })();

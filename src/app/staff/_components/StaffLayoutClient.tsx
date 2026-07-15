@@ -13,21 +13,24 @@ import {
 } from "@mui/material";
 import { Menu as MenuIcon } from "@mui/icons-material";
 import { useAuthStore } from "@/lib/store/authStore";
-import { AdminSidebar } from "@/app/admin/_components/AdminSidebar";
+import { StaffSidebar } from "@/app/staff/_components/StaffSidebar";
 
 /*
 |--------------------------------------------------------------------------
-| مسیر فایل: src/app/admin/AdminLayoutClient.tsx
+| مسیر فایل: src/app/staff/StaffLayoutClient.tsx
 |--------------------------------------------------------------------------
-| زیر md: سایدبار داخل یه Drawer موقتیه که با دکمه‌ی همبرگری (توی یه
-| AppBar بالای صفحه) باز/بسته می‌شه.
-| از md به بالا: همون سایدبار ثابت قبلی، بدون AppBar.
+| فقط warehouse/sales/support اجازه‌ی ورود دارن. admin به /admin و customer
+| به /account/profile هدایت می‌شن - چون این پنل مخصوص خودِ ادمین نیست.
 */
 
-const STAFF_ROLES = ["admin"];
+const STAFF_ROLES = ["warehouse", "sales", "support"];
 const DRAWER_WIDTH = 260;
 
-export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
+export default function StaffLayoutClient({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
   const router = useRouter();
@@ -42,8 +45,8 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
       return;
     }
 
-    if (["warehouse", "sales", "support"].includes(user.role)) {
-      router.replace("/staff");
+    if (user.role === "admin") {
+      router.replace("/admin");
       return;
     }
 
@@ -54,7 +57,14 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
 
   if (isLoading || !user || !STAFF_ROLES.includes(user.role)) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -62,7 +72,6 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
 
   return (
     <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
-      {/* AppBar فقط زیر md دیده می‌شه */}
       <AppBar
         position="sticky"
         color="inherit"
@@ -75,15 +84,18 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
         }}
       >
         <Toolbar>
-          <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ ml: 1 }}>
+          <IconButton
+            edge="start"
+            onClick={() => setMobileOpen(true)}
+            sx={{ ml: 1 }}
+          >
             <MenuIcon />
           </IconButton>
-          <Typography sx={{ fontWeight: 700 }}>پنل مدیریت یدکی</Typography>
+          <Typography sx={{ fontWeight: 700 }}>پنل کارمندان</Typography>
         </Toolbar>
       </AppBar>
 
       <Box sx={{ display: "flex" }}>
-        {/* سایدبار ثابت - فقط از md به بالا */}
         <Box
           sx={{
             width: DRAWER_WIDTH,
@@ -95,10 +107,9 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
             bgcolor: "background.paper",
           }}
         >
-          <AdminSidebar role={user.role} />
+          <StaffSidebar role={user.role} />
         </Box>
 
-        {/* Drawer موقتی - فقط زیر md */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -110,7 +121,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
           }}
         >
           <Box onClick={() => setMobileOpen(false)}>
-            <AdminSidebar role={user.role} />
+            <StaffSidebar role={user.role} />
           </Box>
         </Drawer>
 

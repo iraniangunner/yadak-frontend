@@ -1,8 +1,10 @@
 "use client";
 
 import NextLink from "next/link";
-import { usePathname } from "next/navigation";
-import { Box, Stack, Typography } from "@mui/material";
+import { usePathname, useRouter } from "next/navigation";
+import { Box, Stack, Typography, Divider } from "@mui/material";
+import { Logout } from "@mui/icons-material";
+import { useAuthStore } from "@/lib/store/authStore";
 import {
   Dashboard,
   ShoppingBag,
@@ -182,6 +184,13 @@ const sections: { title: string; items: NavItem[] }[] = [
 
 export function AdminSidebar({ role }: { role: string }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const logout = useAuthStore((s) => s.logout);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
+  };
 
   return (
     <Box sx={{ p: 2, position: "sticky", top: 0 }}>
@@ -246,6 +255,32 @@ export function AdminSidebar({ role }: { role: string }) {
           </Box>
         );
       })}
+
+      <Divider sx={{ my: 1.5 }} />
+
+      <Box
+        component="button"
+        onClick={handleLogout}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          width: "100%",
+          border: "none",
+          bgcolor: "transparent",
+          cursor: "pointer",
+          color: "error.main",
+          fontFamily: "inherit",
+          fontSize: "0.875rem",
+          px: 1.5,
+          py: 1,
+          borderRadius: 2,
+          "&:hover": { bgcolor: "background.default" },
+        }}
+      >
+        <Logout fontSize="small" />
+        خروج از حساب
+      </Box>
     </Box>
   );
 }
