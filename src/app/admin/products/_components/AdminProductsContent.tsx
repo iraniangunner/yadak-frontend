@@ -78,6 +78,12 @@ type PriceTier = {
   max_quantity: number | null;
   price: number;
 };
+type ProductAttribute = {
+  id: number;
+  name: string;
+  value: string;
+  sort_order: number;
+};
 
 type Option = { id: number; name: string };
 
@@ -117,12 +123,14 @@ export function AdminProductsContent() {
   // گالری و قیمت پلکانی - فقط وقتی محصولی در حال ویرایشه معنی دارن
   const [images, setImages] = useState<ProductImage[]>([]);
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
+  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [newTier, setNewTier] = useState({
     min_quantity: "",
     max_quantity: "",
     price: "",
   });
+  const [newAttribute, setNewAttribute] = useState({ name: "", value: "" });
 
   const loadProducts = () => {
     setProducts(null);
@@ -152,6 +160,7 @@ export function AdminProductsContent() {
     adminAPI.products.get(id).then((res) => {
       setImages(res.data.product.images || []);
       setPriceTiers(res.data.product.price_tiers || []);
+      setAttributes(res.data.product.product_attributes || []);
     });
   };
 
@@ -161,6 +170,7 @@ export function AdminProductsContent() {
     setThumbnailFile(null);
     setImages([]);
     setPriceTiers([]);
+    setAttributes([]);
     setErrors({});
     setTab(0);
     setDialogOpen(true);
@@ -296,6 +306,28 @@ export function AdminProductsContent() {
   const handleDeleteTier = async (tierId: number) => {
     if (!editingId) return;
     await adminAPI.products.priceTiers.delete(editingId, tierId);
+    loadProductDetails(editingId);
+  };
+
+  // ------------------------------------------------------------------
+  // ویژگی‌های محصول
+  // ------------------------------------------------------------------
+
+  const handleAddAttribute = async () => {
+    if (!editingId || !newAttribute.name || !newAttribute.value) return;
+
+    await adminAPI.products.attributes.create(editingId, {
+      name: newAttribute.name,
+      value: newAttribute.value,
+      sort_order: attributes.length,
+    });
+    setNewAttribute({ name: "", value: "" });
+    loadProductDetails(editingId);
+  };
+
+  const handleDeleteAttribute = async (attributeId: number) => {
+    if (!editingId) return;
+    await adminAPI.products.attributes.delete(editingId, attributeId);
     loadProductDetails(editingId);
   };
 
@@ -480,6 +512,7 @@ export function AdminProductsContent() {
           <Tab label="اطلاعات پایه" />
           <Tab label="گالری تصاویر" disabled={!editingId} />
           <Tab label="قیمت پلکانی" disabled={!editingId} />
+          <Tab label="ویژگی‌ها" disabled={!editingId} />
         </Tabs>
 
         <DialogContent>
@@ -838,6 +871,93 @@ export function AdminProductsContent() {
                   variant="contained"
                   disableElevation
                   onClick={handleAddTier}
+                >
+                  افزودن
+                </Button>
+              </Box>
+            </Box>
+          )}
+
+          {/* ---------------- تب ۴: ویژگی‌های محصول ---------------- */}
+          {tab === 3 && editingId && (
+            <Box sx={{ pt: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                ویژگی‌های فنی محصول رو به‌صورت کلید-مقدار اضافه کنید (مثلاً
+                «جنس: فلزی»، «رنگ: مشکی»).
+              </Typography>
+
+              <TableContainer
+                component={Paper}
+                variant="outlined"
+                sx={{ mb: 2 }}
+              >
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>ویژگی</TableCell>
+                      <TableCell>مقدار</TableCell>
+                      <TableCell align="center">حذف</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {attributes.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} align="center">
+                          <Typography variant="body2" color="text.secondary">
+                            هنوز ویژگی‌ای تعریف نشده
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      attributes.map((attribute) => (
+                        <TableRow key={attribute.id}>
+                          <TableCell>{attribute.name}</TableCell>
+                          <TableCell>{attribute.value}</TableCell>
+                          <TableCell align="center">
+                            <IconButton
+                              size="small"
+                              onClick={() =>
+                                handleDeleteAttribute(attribute.id)
+                              }
+                            >
+                              <Delete fontSize="small" color="error" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 2,
+                  flexWrap: "wrap",
+                  alignItems: "flex-end",
+                }}
+              >
+                <TextField
+                  label="نام ویژگی (مثلاً جنس)"
+                  value={newAttribute.name}
+                  onChange={(e) =>
+                    setNewAttribute({ ...newAttribute, name: e.target.value })
+                  }
+                  sx={{ flex: "1 1 200px" }}
+                />
+                <TextField
+                  label="مقدار (مثلاً فلزی)"
+                  value={newAttribute.value}
+                  onChange={(e) =>
+                    setNewAttribute({ ...newAttribute, value: e.target.value })
+                  }
+                  sx={{ flex: "1 1 200px" }}
+                />
+                <Button
+                  variant="contained"
+                  disableElevation
+                  onClick={handleAddAttribute}
                 >
                   افزودن
                 </Button>

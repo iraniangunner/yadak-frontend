@@ -25,5 +25,7 @@ export default async function AccountLayout({
     redirect("/login?redirect=/account/profile");
   }
 
-  return <AccountLayoutClient>{children}</AccountLayoutClient>;
+  return (<AccountLayoutClient>
+    {children}
+    </AccountLayoutClient>);
 }

@@ -2,6 +2,8 @@
 
 import { Box, Container } from "@mui/material";
 import { AccountSidebar } from "@/app/account/_components/AccountSidebar";
+import { SiteHeader } from "./shop/SiteHeader";
+import { SiteFooter } from "./shop/SiteFooter";
 
 /*
 |--------------------------------------------------------------------------
@@ -19,28 +21,32 @@ export default function AccountLayoutClient({
   children: React.ReactNode;
 }) {
   return (
-    <Box
-      sx={{
-        bgcolor: "background.default",
-        minHeight: "100vh",
-        py: { xs: 3, md: 5 },
-      }}
-    >
-      <Container maxWidth="lg">
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", md: "row" },
-            gap: { xs: 3, md: 6 },
-          }}
-        >
-          <Box sx={{ width: { xs: "100%", md: 220 }, flexShrink: 0 }}>
-            <AccountSidebar />
-          </Box>
+    <>
+      <SiteHeader />
+      <Box
+        sx={{
+          bgcolor: "background.default",
+          minHeight: "100vh",
+          py: { xs: 3, md: 5 },
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              gap: { xs: 3, md: 6 },
+            }}
+          >
+            <Box sx={{ width: { xs: "100%", md: 220 }, flexShrink: 0 }}>
+              <AccountSidebar />
+            </Box>
 
-          <Box sx={{ flex: 1, minWidth: 0 }}>{children}</Box>
-        </Box>
-      </Container>
-    </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>{children}</Box>
+          </Box>
+        </Container>
+      </Box>
+      <SiteFooter />
+    </>
   );
 }

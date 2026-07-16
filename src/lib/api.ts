@@ -156,6 +156,24 @@ export const productsAPI = {
     api.post(`/products/${id}/stock-subscribe`, payload ?? {}),
 };
 
+export const favoritesAPI = {
+  list: (params?: { page?: number; per_page?: number }) =>
+    api.get("/favorites", { params, requiresAuth: true }),
+  add: (productId: number) =>
+    api.post(`/products/${productId}/favorite`, {}, { requiresAuth: true }),
+  remove: (productId: number) =>
+    api.delete(`/products/${productId}/favorite`, { requiresAuth: true }),
+};
+
+export const productReviewsAPI = {
+  list: (productId: number, params?: { page?: number; per_page?: number }) =>
+    api.get(`/products/${productId}/reviews`, { params }),
+  create: (productId: number, payload: { rating: number; comment?: string }) =>
+    api.post(`/products/${productId}/reviews`, payload, { requiresAuth: true }),
+  remove: (productId: number) =>
+    api.delete(`/products/${productId}/reviews`, { requiresAuth: true }),
+};
+
 // ----------------------
 // مقالات و بنر
 // ----------------------
@@ -252,6 +270,11 @@ export const returnsAPI = {
 // ----------------------
 // پنل ادمین
 // ----------------------
+export const productStockSubscribeAPI = {
+  subscribe: (productId: number, mobile: string) =>
+    api.post(`/products/${productId}/stock-subscribe`, { mobile }),
+};
+
 export const myReferralAPI = {
   code: () => api.get("/my/referral-code", { requiresAuth: true }),
   commissions: (params?: { status?: string; page?: number; per_page?: number }) =>
@@ -346,6 +369,22 @@ export const adminAPI = {
         }),
       delete: (productId: number, tierId: number) =>
         api.delete(`/admin/products/${productId}/price-tiers/${tierId}`, {
+          requiresAuth: true,
+        }),
+    },
+    attributes: {
+      create: (productId: number, payload: { name: string; value: string; sort_order?: number }) =>
+        api.post(`/admin/products/${productId}/attributes`, payload, { requiresAuth: true }),
+      update: (
+        productId: number,
+        attributeId: number,
+        payload: Partial<{ name: string; value: string; sort_order: number }>
+      ) =>
+        api.put(`/admin/products/${productId}/attributes/${attributeId}`, payload, {
+          requiresAuth: true,
+        }),
+      delete: (productId: number, attributeId: number) =>
+        api.delete(`/admin/products/${productId}/attributes/${attributeId}`, {
           requiresAuth: true,
         }),
     },
@@ -542,5 +581,12 @@ export const adminAPI = {
       action?: string;
       per_page?: number;
     }) => api.get("/admin/activity-logs", { params, requiresAuth: true }),
+  },
+
+  reviews: {
+    list: (params?: { status?: string; page?: number; per_page?: number }) =>
+      api.get("/admin/reviews", { params, requiresAuth: true }),
+    approve: (id: number) => api.post(`/admin/reviews/${id}/approve`, {}, { requiresAuth: true }),
+    reject: (id: number) => api.post(`/admin/reviews/${id}/reject`, {}, { requiresAuth: true }),
   },
 };
