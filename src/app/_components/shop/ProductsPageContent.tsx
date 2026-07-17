@@ -15,14 +15,8 @@ import {
 } from "@mui/material";
 import { FilterList, Close, ExpandMore } from "@mui/icons-material";
 import { productsAPI, categoriesAPI, brandsAPI } from "@/lib/api";
-import {
-  ProductCard,
-  ProductCardData,
-} from "@/app/_components/shop/ProductCard";
-import {
-  ProductFilterPanel,
-  ProductFilters,
-} from "@/app/_components/shop/ProductFilterPanel";
+import { ProductCard, ProductCardData } from "@/app/_components/shop/ProductCard";
+import { ProductFilterPanel, ProductFilters } from "@/app/_components/shop/ProductFilterPanel";
 
 /*
 |--------------------------------------------------------------------------
@@ -73,9 +67,7 @@ export function ProductsPageContent() {
         .list({
           search: search || undefined,
           vehicle_id: vehicleId ? Number(vehicleId) : undefined,
-          category_id: filters.category_id
-            ? Number(filters.category_id)
-            : undefined,
+          category_id: filters.category_id ? Number(filters.category_id) : undefined,
           brand_id: filters.brand_id ? Number(filters.brand_id) : undefined,
           stock_status: filters.stock_status || undefined,
           page: pageToFetch,
@@ -90,25 +82,13 @@ export function ProductsPageContent() {
         .finally(() => setLoading(false));
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      search,
-      vehicleId,
-      filters.category_id,
-      filters.brand_id,
-      filters.stock_status,
-    ],
+    [search, vehicleId, filters.category_id, filters.brand_id, filters.stock_status]
   );
 
   useEffect(() => {
     fetchProducts(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    search,
-    vehicleId,
-    filters.category_id,
-    filters.brand_id,
-    filters.stock_status,
-  ]);
+  }, [search, vehicleId, filters.category_id, filters.brand_id, filters.stock_status]);
 
   const updateFilters = (next: ProductFilters) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -173,12 +153,7 @@ export function ProductsPageContent() {
             >
               فیلترها
               {activeFilterCount > 0 && (
-                <Chip
-                  label={activeFilterCount}
-                  size="small"
-                  color="primary"
-                  sx={{ mr: 1, height: 20 }}
-                />
+                <Chip label={activeFilterCount} size="small" color="primary" sx={{ mr: 1, height: 20 }} />
               )}
             </Button>
           </Box>
@@ -187,17 +162,12 @@ export function ProductsPageContent() {
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
                 gap: 2,
               }}
             >
               {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton
-                  key={i}
-                  variant="rounded"
-                  height={280}
-                  sx={{ borderRadius: 3 }}
-                />
+                <Skeleton key={i} variant="rounded" height={280} sx={{ borderRadius: 3 }} />
               ))}
             </Box>
           ) : products.length === 0 ? (
@@ -210,16 +180,14 @@ export function ProductsPageContent() {
                 textAlign: "center",
               }}
             >
-              <Typography color="text.secondary">
-                محصولی با این فیلتر پیدا نشد
-              </Typography>
+              <Typography color="text.secondary">محصولی با این فیلتر پیدا نشد</Typography>
             </Box>
           ) : (
             <>
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
                   gap: 2,
                 }}
               >
@@ -246,20 +214,9 @@ export function ProductsPageContent() {
         </Box>
       </Box>
 
-      <Drawer
-        anchor="bottom"
-        open={mobileFiltersOpen}
-        onClose={() => setMobileFiltersOpen(false)}
-      >
+      <Drawer anchor="bottom" open={mobileFiltersOpen} onClose={() => setMobileFiltersOpen(false)}>
         <Box sx={{ p: 3, maxHeight: "80vh", overflowY: "auto" }}>
-          <Stack
-            direction="row"
-            sx={{
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 2,
-            }}
-          >
+          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
             <Typography sx={{ fontWeight: 700 }}>فیلترها</Typography>
             <IconButton onClick={() => setMobileFiltersOpen(false)}>
               <Close />

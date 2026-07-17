@@ -2,24 +2,7 @@
 
 import { useState } from "react";
 import NextLink from "next/link";
-import {
-  Card,
-  CardMedia,
-  CardContent,
-  CardActionArea,
-  CardActions,
-  Typography,
-  Chip,
-  Button,
-  Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Alert,
-  CircularProgress,
-} from "@mui/material";
+import { Card, CardMedia, CardContent, CardActionArea, CardActions, Typography, Button, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert, CircularProgress, Rating } from "@mui/material";
 import { NotificationsActive, Check, ShoppingCart } from "@mui/icons-material";
 import { productsAPI } from "@/lib/api";
 import { useCartStore } from "@/lib/store/cartStore";
@@ -29,9 +12,9 @@ import { formatPrice } from "@/lib/format";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/ProductCard.tsx
 |--------------------------------------------------------------------------
-| از کامپوننت‌های واقعی MUI (Card, CardMedia, CardContent, CardActionArea,
-| CardActions) استفاده شده - نه یه Box شبیه‌سازی‌شده.
-| نسخه‌ی بازطراحی‌شده: مینیمال‌تر، فضای تنفس بیشتر، تعامل‌های ظریف‌تر.
+| بدون گوشه‌ی گرد (borderRadius: 0) - عرض واقعی کارت رو گرید والد
+| (ProductsPageContent.tsx / HomeContent.tsx) کنترل می‌کنه، اونجا هم
+| minmax رو عریض‌تر کردم.
 */
 
 export type ProductCardData = {
@@ -43,6 +26,8 @@ export type ProductCardData = {
   compare_price?: number | null;
   stock_status: string;
   thumbnail_url: string | null;
+  average_rating?: number | null;
+  reviews_count?: number;
 };
 
 type StockColor = "success" | "error" | "warning" | "info" | "default";
@@ -55,9 +40,7 @@ const stockStatusLabels: Record<string, { label: string; color: StockColor; dot:
 };
 
 export function ProductCard({ product }: { product: ProductCardData }) {
-  const cartItem = useCartStore((s) =>
-    s.items.find((i) => i.product_id === product.id),
-  );
+  const cartItem = useCartStore((s) => s.items.find((i) => i.product_id === product.id));
   const addToCart = useCartStore((s) => s.addItem);
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -71,22 +54,13 @@ export function ProductCard({ product }: { product: ProductCardData }) {
     color: "default" as StockColor,
     dot: "#9AA0A6",
   };
-  const hasDiscount =
-    !!product.compare_price && product.compare_price > product.final_price;
+  const hasDiscount = !!product.compare_price && product.compare_price > product.final_price;
   const discountPercent = hasDiscount
-    ? Math.round(
-        ((product.compare_price! - product.final_price) /
-          product.compare_price!) *
-          100,
-      )
+    ? Math.round(((product.compare_price! - product.final_price) / product.compare_price!) * 100)
     : 0;
-  const isOutOfStock =
-    product.stock_status === "out_of_stock" ||
-    product.stock_status === "stopped";
-  const isPurchasable =
-    product.stock_status === "available" || product.stock_status === "incoming";
+  const isOutOfStock = product.stock_status === "out_of_stock" || product.stock_status === "stopped";
+  const isPurchasable = product.stock_status === "available" || product.stock_status === "incoming";
 
-  // نگه‌داشتن دیالوگ باز تا نتیجه واقعی درخواست مشخص بشه، به‌جای بستن خوش‌بینانه
   const handleSubscribe = async () => {
     if (!/^09[0-9]{9}$/.test(mobile)) {
       setError("شماره موبایل معتبر نیست (باید با 09 شروع بشه و ۱۱ رقم باشه).");
@@ -123,7 +97,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
     <Card
       elevation={0}
       sx={{
-        borderRadius: 4,
+        borderRadius: 2,
         border: "1px solid",
         borderColor: "rgba(0,0,0,0.06)",
         boxShadow: "none",
@@ -145,12 +119,10 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       <CardActionArea
         component={NextLink}
         href={`/products/${product.slug}`}
-        data-active={cartItem ? "" : undefined}
         disableRipple
         sx={{
-          "&[data-active] .product-card-content": {
-            bgcolor: "rgba(25, 118, 210, 0.04)",
-          },
+          "&:hover .MuiCardActionArea-focusHighlight": { opacity: 0 },
+          "& .MuiCardActionArea-focusHighlight": { opacity: 0 },
         }}
       >
         <Box sx={{ position: "relative", overflow: "hidden", bgcolor: "#F7F7F5" }}>
@@ -161,7 +133,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             alt={product.title}
             loading="lazy"
             sx={{
-              height: 180,
+              height: 190,
               objectFit: "cover",
               display: "block",
               transition: "transform .45s cubic-bezier(.2,.7,.3,1)",
@@ -175,7 +147,6 @@ export function ProductCard({ product }: { product: ProductCardData }) {
                 insetInlineStart: 10,
                 px: 1,
                 py: 0.4,
-                borderRadius: 1.5,
                 bgcolor: "rgba(217,83,79,0.94)",
                 color: "#fff",
                 fontSize: 12,
@@ -190,7 +161,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           )}
         </Box>
 
-        <CardContent className="product-card-content" sx={{ pb: 1.25, pt: 1.5, transition: "background-color .2s ease" }}>
+        <CardContent sx={{ pb: 1.25, pt: 1.5 }}>
           <Typography
             variant="body2"
             sx={{
@@ -209,34 +180,40 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           </Typography>
 
           <Box
-            sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 1, flexWrap: "wrap" }}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 1,
+              mb: 1,
+              flexWrap: "wrap",
+            }}
           >
-            <Typography
-              variant="body1"
-              sx={{ fontWeight: 800, color: "text.primary", letterSpacing: -0.2 }}
-            >
-              {formatPrice(product.final_price)}
-            </Typography>
-            {hasDiscount && (
-              <Typography
-                variant="caption"
-                sx={{ textDecoration: "line-through", color: "text.disabled" }}
-              >
-                {formatPrice(product.compare_price!)}
+            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap" }}>
+              <Typography variant="body1" sx={{ fontWeight: 800, color: "text.primary", letterSpacing: -0.2 }}>
+                {formatPrice(product.final_price)}
               </Typography>
+              {hasDiscount && (
+                <Typography variant="caption" sx={{ textDecoration: "line-through", color: "text.disabled" }}>
+                  {formatPrice(product.compare_price!)}
+                </Typography>
+              )}
+            </Box>
+
+            {product.average_rating != null && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Rating value={product.average_rating} precision={0.1} readOnly size="small" />
+                {product.reviews_count != null && (
+                  <Typography variant="caption" color="text.secondary">
+                    ({product.reviews_count})
+                  </Typography>
+                )}
+              </Box>
             )}
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-            <Box
-              sx={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                bgcolor: stock.dot,
-                flexShrink: 0,
-              }}
-            />
+            <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: stock.dot, flexShrink: 0 }} />
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
               {stock.label}
             </Typography>
@@ -244,7 +221,6 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         </CardContent>
       </CardActionArea>
 
-      {/* ردیف پایین: افزودن به سبد / نشانگر «در سبد» */}
       {isPurchasable && (
         <CardActions sx={{ px: 1.75, pb: 1.75, pt: 0, mt: "auto" }}>
           {cartItem ? (
@@ -257,7 +233,6 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               disabled
               startIcon={<Check fontSize="small" />}
               sx={{
-                borderRadius: 2.5,
                 py: 0.9,
                 fontWeight: 600,
                 bgcolor: "rgba(31,169,125,0.08)",
@@ -275,15 +250,9 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               startIcon={<ShoppingCart fontSize="small" />}
               onClick={handleAdd}
               sx={{
-                borderRadius: 2.5,
                 py: 0.9,
                 fontWeight: 600,
                 boxShadow: "none",
-                transition: "transform .15s ease, box-shadow .15s ease",
-                "&:hover": {
-                  boxShadow: "0 6px 16px -6px rgba(25,118,210,0.5)",
-                  transform: "translateY(-1px)",
-                },
               }}
             >
               افزودن به سبد
@@ -293,29 +262,14 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       )}
 
       {isOutOfStock && (
-        <CardActions
-          sx={{
-            px: 1.75,
-            pb: 1.75,
-            pt: 0,
-            mt: "auto",
-            flexDirection: "column",
-            alignItems: "stretch",
-          }}
-        >
+        <CardActions sx={{ px: 1.75, pb: 1.75, pt: 0, mt: "auto", flexDirection: "column", alignItems: "stretch" }}>
           {subscribed ? (
             <Button
               size="small"
               fullWidth
               disabled
               startIcon={<Check fontSize="small" />}
-              sx={{
-                borderRadius: 2.5,
-                py: 0.9,
-                fontWeight: 600,
-                color: "success.main",
-                "&.Mui-disabled": { color: "success.main" },
-              }}
+              sx={{ py: 0.9, fontWeight: 600, color: "success.main", "&.Mui-disabled": { color: "success.main" } }}
             >
               اطلاع‌رسانی ثبت شد
             </Button>
@@ -327,26 +281,18 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               startIcon={<NotificationsActive fontSize="small" />}
               onClick={() => setDialogOpen(true)}
               sx={{
-                borderRadius: 2.5,
                 py: 0.9,
                 fontWeight: 600,
                 borderColor: "rgba(0,0,0,0.14)",
                 color: "text.primary",
-                "&:hover": {
-                  borderColor: "rgba(0,0,0,0.28)",
-                  bgcolor: "rgba(0,0,0,0.02)",
-                },
+                "&:hover": { borderColor: "rgba(0,0,0,0.28)", bgcolor: "rgba(0,0,0,0.02)" },
               }}
             >
               اطلاع بده وقتی موجود شد
             </Button>
           )}
           {error && !dialogOpen && (
-            <Typography
-              variant="caption"
-              color="error"
-              sx={{ display: "block", mt: 0.75 }}
-            >
+            <Typography variant="caption" color="error" sx={{ display: "block", mt: 0.75 }}>
               {error}
             </Typography>
           )}
@@ -358,20 +304,16 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         onClose={() => !isSaving && setDialogOpen(false)}
         fullWidth
         maxWidth="xs"
-        slotProps={{
-          paper: { sx: { borderRadius: 4 } },
-        }}
       >
         <DialogTitle sx={{ fontWeight: 700 }}>اطلاع‌رسانی موجودی</DialogTitle>
         <DialogContent>
           {error && (
-            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+            <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            شماره موبایلتون رو وارد کنید تا وقتی «{product.title}» موجود شد
-            بهتون پیامک بدیم.
+            شماره موبایلتون رو وارد کنید تا وقتی «{product.title}» موجود شد بهتون پیامک بدیم.
           </Typography>
           <TextField
             label="شماره موبایل"
@@ -381,16 +323,10 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             fullWidth
             disabled={isSaving}
             slotProps={{ htmlInput: { maxLength: 11 } }}
-            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2.5 } }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button
-            color="inherit"
-            onClick={() => setDialogOpen(false)}
-            disabled={isSaving}
-            sx={{ borderRadius: 2.5 }}
-          >
+          <Button color="inherit" onClick={() => setDialogOpen(false)} disabled={isSaving}>
             انصراف
           </Button>
           <Button
@@ -398,10 +334,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             disableElevation
             onClick={handleSubscribe}
             disabled={isSaving}
-            startIcon={
-              isSaving ? <CircularProgress size={16} color="inherit" /> : undefined
-            }
-            sx={{ borderRadius: 2.5, fontWeight: 600 }}
+            startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={{ fontWeight: 600 }}
           >
             ثبت
           </Button>

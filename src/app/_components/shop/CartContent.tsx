@@ -166,7 +166,7 @@ export function CartContent() {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <CheckoutSteps />
 
-      <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start", flexWrap: "wrap-reverse" }}>
+      <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start", flexWrap: "wrap" }}>
         {/* لیست آیتم‌ها - سمت راست (بزرگ‌تر) */}
         <Box sx={{ flex: "2 1 420px", display: "flex", flexDirection: "column", gap: 2 }}>
           {isSyncing && (
@@ -186,10 +186,11 @@ export function CartContent() {
                 key={item.product_id}
                 sx={{
                   bgcolor: "background.paper",
-                  borderRadius: 3,
+                  borderRadius: 2,
                   boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
                   p: 2,
                   display: "flex",
+                  alignItems: "flex-start",
                   gap: 2,
                   opacity: isUnavailable ? 0.6 : 1,
                 }}
@@ -200,31 +201,33 @@ export function CartContent() {
                     component="img"
                     src={item.thumbnail_url || undefined}
                     alt={item.title}
-                    sx={{ width: 96, height: 96, objectFit: "cover", borderRadius: 2, bgcolor: "background.default" }}
+                    sx={{ width: 92, height: 92, objectFit: "cover", borderRadius: 2, bgcolor: "background.default" }}
                   />
                 </Box>
 
                 {/* ستون محتوا */}
-                <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 0.5 }}>
-                  {/* عنوان + آیکون حذف کنارش */}
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 0.75 }}>
+                  {/* ردیف ۱: عنوان + حذف */}
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
+                      <Typography
+                        component={NextLink}
+                        href={`/products/${item.slug}`}
+                        variant="body1"
+                        sx={{ fontWeight: 700, color: "text.primary", textDecoration: "none" }}
+                        noWrap
+                      >
+                        {item.title}
+                      </Typography>
+                    </Box>
                     <Tooltip title="حذف از سبد">
-                      <IconButton size="small" onClick={() => removeItem(item.product_id)} sx={{ p: 0.5 }}>
+                      <IconButton size="small" onClick={() => removeItem(item.product_id)} sx={{ flexShrink: 0 }}>
                         <Delete fontSize="small" color="error" />
                       </IconButton>
                     </Tooltip>
-                    <Typography
-                      component={NextLink}
-                      href={`/products/${item.slug}`}
-                      variant="body1"
-                      sx={{ fontWeight: 700, color: "text.primary", textDecoration: "none" }}
-                      noWrap
-                    >
-                      {item.title}
-                    </Typography>
                   </Box>
 
-                  {/* زیرعنوان: برند + وضعیت موجودی */}
+                  {/* ردیف ۲: برند + وضعیت موجودی */}
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     {item.brand_name && (
                       <Typography variant="caption" color="text.secondary">
@@ -234,23 +237,33 @@ export function CartContent() {
                     <Chip label={stock.label} color={stock.color} size="small" sx={{ height: 20 }} />
                   </Box>
 
-                  {/* قیمت */}
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
-                    {hasDiscount && (
-                      <Chip label={`٪${discountPercent}`} color="error" size="small" sx={{ fontWeight: 700, height: 22 }} />
+                  {/* ردیف ۳: امتیاز هم‌سطح قیمت */}
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                    {item.average_rating != null ? (
+                      <Rating value={item.average_rating} precision={0.1} readOnly size="small" />
+                    ) : (
+                      <Box />
                     )}
-                    {hasDiscount && (
-                      <Typography variant="caption" color="text.secondary" sx={{ textDecoration: "line-through" }}>
-                        {formatPrice(item.compare_price!)}
+
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      {hasDiscount && (
+                        <Chip label={`٪${discountPercent}`} color="error" size="small" sx={{ fontWeight: 700, height: 22 }} />
+                      )}
+                      {hasDiscount && (
+                        <Typography variant="caption" color="text.secondary" sx={{ textDecoration: "line-through" }}>
+                          {formatPrice(item.compare_price!)}
+                        </Typography>
+                      )}
+                      <Typography variant="body1" sx={{ fontWeight: 800 }}>
+                        {formatPrice(item.unit_price)}
                       </Typography>
-                    )}
-                    <Typography variant="body1" sx={{ fontWeight: 800 }}>
-                      {formatPrice(item.unit_price)}
-                    </Typography>
+                    </Box>
                   </Box>
 
-                  {/* ردیف پایین: تعداد + امتیاز */}
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 0.75 }}>
+                  <Divider sx={{ my: 0.25 }} />
+
+                  {/* ردیف ۴: تعداد + جمع این ردیف */}
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <Box sx={{ display: "flex", alignItems: "center", border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
                       <IconButton size="small" onClick={() => updateQuantity(item.product_id, item.quantity - 1)} disabled={isUnavailable}>
                         <Remove fontSize="small" />
@@ -268,9 +281,12 @@ export function CartContent() {
                       </IconButton>
                     </Box>
 
-                    {item.average_rating != null && (
-                      <Rating value={item.average_rating} precision={0.1} readOnly size="small" />
-                    )}
+                    <Typography variant="body2" color="text.secondary">
+                      جمع:{" "}
+                      <Typography component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
+                        {formatPrice(item.unit_price * item.quantity)}
+                      </Typography>
+                    </Typography>
                   </Box>
                 </Box>
               </Box>
