@@ -64,6 +64,12 @@ type OrderDetail = {
   admin_note: string | null;
   invoice_number: string | null;
   invoice_url: string | null;
+  coupon: { id: number; code: string; type: string; value: number } | null;
+  referral_code: {
+    id: number;
+    code: string;
+    user: { id: number; name: string } | null;
+  } | null;
   shipping_receiver_name: string | null;
   shipping_receiver_phone: string | null;
   shipping_city: string | null;
@@ -422,12 +428,24 @@ export function AdminOrderDetailContent({
           </Stack>
           <Stack direction="row" sx={{ justifyContent: "space-between" }}>
             <Typography variant="body2" color="text.secondary">
-              تخفیف
+              تخفیف{order.coupon && ` (کد: ${order.coupon.code})`}
             </Typography>
             <Typography variant="body2">
               {formatPrice(order.discount_amount)}
             </Typography>
           </Stack>
+          {order.referral_code && (
+            <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+              <Typography variant="body2" color="text.secondary">
+                کد معرف
+              </Typography>
+              <Typography variant="body2" sx={{ direction: "ltr" }}>
+                {order.referral_code.code}
+                {order.referral_code.user &&
+                  ` (${order.referral_code.user.name})`}
+              </Typography>
+            </Stack>
+          )}
           <Stack direction="row" sx={{ justifyContent: "space-between" }}>
             <Typography variant="body2" color="text.secondary">
               هزینه ارسال

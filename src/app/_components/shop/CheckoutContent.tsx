@@ -21,8 +21,15 @@ import {
 } from "@mui/material";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useCartStore } from "@/lib/store/cartStore";
-import { addressesAPI, shippingAPI, ordersAPI } from "@/lib/api";
+import {
+  addressesAPI,
+  shippingAPI,
+  ordersAPI,
+  couponCheckAPI,
+  referralCodeCheckAPI,
+} from "@/lib/api";
 import { formatPrice } from "@/lib/format";
+import { Check, Close } from "@mui/icons-material";
 
 /*
 |--------------------------------------------------------------------------
@@ -70,19 +77,38 @@ export function CheckoutContent() {
 
   const [mounted, setMounted] = useState(false);
   const [addresses, setAddresses] = useState<Address[] | null>(null);
-  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(
+    null,
+  );
 
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const [addressForm, setAddressForm] = useState(emptyAddressForm);
-  const [addressErrors, setAddressErrors] = useState<Record<string, string[]>>({});
+  const [addressErrors, setAddressErrors] = useState<Record<string, string[]>>(
+    {},
+  );
   const [isSavingAddress, setIsSavingAddress] = useState(false);
 
-  const [shippingOptions, setShippingOptions] = useState<ShippingOption[] | null>(null);
-  const [selectedShippingIndex, setSelectedShippingIndex] = useState<number | null>(null);
+  const [shippingOptions, setShippingOptions] = useState<
+    ShippingOption[] | null
+  >(null);
+  const [selectedShippingIndex, setSelectedShippingIndex] = useState<
+    number | null
+  >(null);
   const [isLoadingShipping, setIsLoadingShipping] = useState(false);
 
   const [couponCode, setCouponCode] = useState("");
   const [referralCode, setReferralCode] = useState("");
+  const [couponCheck, setCouponCheck] = useState<{
+    valid: boolean;
+    message: string;
+    discount_amount?: number;
+  } | null>(null);
+  const [referralCheck, setReferralCheck] = useState<{
+    valid: boolean;
+    message: string;
+  } | null>(null);
+  const [isCheckingCoupon, setIsCheckingCoupon] = useState(false);
+  const [isCheckingReferral, setIsCheckingReferral] = useState(false);
   const [customerNote, setCustomerNote] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,7 +146,10 @@ export function CheckoutContent() {
     shippingAPI
       .options({
         city: address.city,
-        items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+        items: items.map((i) => ({
+          product_id: i.product_id,
+          quantity: i.quantity,
+        })),
       })
       .then((res) => {
         const options: ShippingOption[] = res.data.options || [];
@@ -143,29 +172,77 @@ export function CheckoutContent() {
       setAddressDialogOpen(false);
       setAddressForm(emptyAddressForm);
     } catch (err: any) {
-      setAddressErrors(err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی آدرس."] });
+      setAddressErrors(
+        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی آدرس."] },
+      );
     } finally {
       setIsSavingAddress(false);
     }
   };
 
   const subtotal = items.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
-  const shippingCost = selectedShippingIndex !== null ? shippingOptions?.[selectedShippingIndex]?.cost || 0 : 0;
-  const estimatedTotal = subtotal + shippingCost;
+  const shippingCost =
+    selectedShippingIndex !== null
+      ? shippingOptions?.[selectedShippingIndex]?.cost || 0
+      : 0;
+  const discountAmount = couponCheck?.valid
+    ? couponCheck.discount_amount || 0
+    : 0;
+  const estimatedTotal = subtotal + shippingCost - discountAmount;
+
+  const handleCheckCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsCheckingCoupon(true);
+    setCouponCheck(null);
+    try {
+      const res = await couponCheckAPI.check(couponCode.trim(), subtotal);
+      setCouponCheck(res.data);
+    } catch (err: any) {
+      setCouponCheck({
+        valid: false,
+        message: err?.response?.data?.message || "بررسی کد ناموفق بود.",
+      });
+    } finally {
+      setIsCheckingCoupon(false);
+    }
+  };
+
+  const handleCheckReferral = async () => {
+    if (!referralCode.trim()) return;
+    setIsCheckingReferral(true);
+    setReferralCheck(null);
+    try {
+      const res = await referralCodeCheckAPI.check(referralCode.trim());
+      setReferralCheck(res.data);
+    } catch (err: any) {
+      setReferralCheck({
+        valid: false,
+        message: err?.response?.data?.message || "بررسی کد ناموفق بود.",
+      });
+    } finally {
+      setIsCheckingReferral(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!selectedAddressId) {
       setSubmitError("لطفاً یه آدرس انتخاب کنید.");
       return;
     }
-    const shippingOption = selectedShippingIndex !== null ? shippingOptions?.[selectedShippingIndex] : null;
+    const shippingOption =
+      selectedShippingIndex !== null
+        ? shippingOptions?.[selectedShippingIndex]
+        : null;
 
     setIsSubmitting(true);
     setSubmitError("");
 
     try {
       const res = await ordersAPI.create({
-        items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+        items: items.map((i) => ({
+          product_id: i.product_id,
+          quantity: i.quantity,
+        })),
         shipping_address_id: selectedAddressId,
         shipping_carrier: shippingOption?.carrier,
         shipping_service_name: shippingOption?.service_name,
@@ -176,12 +253,23 @@ export function CheckoutContent() {
 
       clearCart();
       const orderId = res.data.order?.id;
-      router.push(orderId ? `/account/orders?created=${orderId}` : "/account/orders?created=1");
+      router.push(
+        orderId
+          ? `/account/orders?created=${orderId}`
+          : "/account/orders?created=1",
+      );
     } catch (err: any) {
-      const errors: Record<string, string[]> | undefined = err?.response?.data?.errors;
-      const firstFieldError = errors ? Object.values(errors)[0]?.[0] : undefined;
+      const errors: Record<string, string[]> | undefined =
+        err?.response?.data?.errors;
+      const firstFieldError = errors
+        ? Object.values(errors)[0]?.[0]
+        : undefined;
 
-      setSubmitError(err?.response?.data?.message || firstFieldError || "ثبت سفارش ناموفق بود.");
+      setSubmitError(
+        err?.response?.data?.message ||
+          firstFieldError ||
+          "ثبت سفارش ناموفق بود.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -201,10 +289,38 @@ export function CheckoutContent() {
         تسویه‌حساب
       </Typography>
 
-      <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <Box sx={{ flex: "2 1 400px", display: "flex", flexDirection: "column", gap: 3 }}>
-          <Box sx={{ bgcolor: "background.paper", borderRadius: 3, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", p: 3 }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 3,
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+        }}
+      >
+        <Box
+          sx={{
+            flex: "2 1 400px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+          }}
+        >
+          <Box
+            sx={{
+              bgcolor: "background.paper",
+              borderRadius: 3,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              p: 3,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
               <Typography sx={{ fontWeight: 700 }}>آدرس تحویل</Typography>
               <Button size="small" onClick={() => setAddressDialogOpen(true)}>
                 افزودن آدرس جدید
@@ -230,7 +346,10 @@ export function CheckoutContent() {
                     sx={{
                       alignItems: "flex-start",
                       border: "1px solid",
-                      borderColor: selectedAddressId === address.id ? "primary.main" : "divider",
+                      borderColor:
+                        selectedAddressId === address.id
+                          ? "primary.main"
+                          : "divider",
                       borderRadius: 2,
                       p: 1.5,
                       mb: 1.5,
@@ -239,9 +358,14 @@ export function CheckoutContent() {
                     label={
                       <Box sx={{ pt: 0.5 }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {address.title || address.city} — {address.receiver_name}
+                          {address.title || address.city} —{" "}
+                          {address.receiver_name}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block" }}
+                        >
                           {address.city}، {address.full_address}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -256,7 +380,14 @@ export function CheckoutContent() {
           </Box>
 
           {selectedAddressId && (
-            <Box sx={{ bgcolor: "background.paper", borderRadius: 3, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", p: 3 }}>
+            <Box
+              sx={{
+                bgcolor: "background.paper",
+                borderRadius: 3,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                p: 3,
+              }}
+            >
               <Typography sx={{ fontWeight: 700, mb: 2 }}>روش ارسال</Typography>
 
               {isLoadingShipping ? (
@@ -267,8 +398,14 @@ export function CheckoutContent() {
                 </Typography>
               ) : (
                 <RadioGroup
-                  value={selectedShippingIndex !== null ? String(selectedShippingIndex) : ""}
-                  onChange={(e) => setSelectedShippingIndex(Number(e.target.value))}
+                  value={
+                    selectedShippingIndex !== null
+                      ? String(selectedShippingIndex)
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setSelectedShippingIndex(Number(e.target.value))
+                  }
                 >
                   {shippingOptions.map((option, idx) => (
                     <FormControlLabel
@@ -277,7 +414,10 @@ export function CheckoutContent() {
                       control={<Radio />}
                       sx={{
                         border: "1px solid",
-                        borderColor: selectedShippingIndex === idx ? "primary.main" : "divider",
+                        borderColor:
+                          selectedShippingIndex === idx
+                            ? "primary.main"
+                            : "divider",
                         borderRadius: 2,
                         p: 1.5,
                         mb: 1.5,
@@ -285,13 +425,26 @@ export function CheckoutContent() {
                         width: "100%",
                       }}
                       label={
-                        <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%", gap: 2 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            width: "100%",
+                            gap: 2,
+                          }}
+                        >
                           <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 600 }}
+                            >
                               {option.carrier} — {option.service_name}
                             </Typography>
                             {option.eta_days && (
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
                                 تحویل طی {option.eta_days} روز کاری
                               </Typography>
                             )}
@@ -308,24 +461,106 @@ export function CheckoutContent() {
             </Box>
           )}
 
-          <Box sx={{ bgcolor: "background.paper", borderRadius: 3, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", p: 3 }}>
-            <Typography sx={{ fontWeight: 700, mb: 2 }}>کد تخفیف و معرف (اختیاری)</Typography>
-            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
+          <Box
+            sx={{
+              bgcolor: "background.paper",
+              borderRadius: 3,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              p: 3,
+            }}
+          >
+            <Typography sx={{ fontWeight: 700, mb: 2 }}>
+              کد تخفیف و معرف (اختیاری)
+            </Typography>
+
+            {/* کد تخفیف */}
+            <Box sx={{ display: "flex", gap: 1, mb: 0.5 }}>
               <TextField
                 label="کد تخفیف"
                 value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
+                onChange={(e) => {
+                  setCouponCode(e.target.value);
+                  setCouponCheck(null);
+                }}
                 size="small"
-                sx={{ flex: "1 1 200px" }}
+                fullWidth
+                error={couponCheck?.valid === false}
               />
+              <Button
+                variant="outlined"
+                onClick={handleCheckCoupon}
+                disabled={!couponCode.trim() || isCheckingCoupon}
+                sx={{ flexShrink: 0, minWidth: 96 }}
+              >
+                {isCheckingCoupon ? <CircularProgress size={18} /> : "بررسی کد"}
+              </Button>
+            </Box>
+            {couponCheck && (
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 2 }}
+              >
+                {couponCheck.valid ? (
+                  <Check fontSize="small" color="success" />
+                ) : (
+                  <Close fontSize="small" color="error" />
+                )}
+                <Typography
+                  variant="caption"
+                  color={couponCheck.valid ? "success.main" : "error.main"}
+                >
+                  {couponCheck.valid
+                    ? `${couponCheck.message} (${formatPrice(couponCheck.discount_amount || 0)} تخفیف)`
+                    : couponCheck.message}
+                </Typography>
+              </Box>
+            )}
+            {!couponCheck && <Box sx={{ mb: 2 }} />}
+
+            {/* کد معرف */}
+            <Box sx={{ display: "flex", gap: 1, mb: 0.5 }}>
               <TextField
                 label="کد معرف"
                 value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value)}
+                onChange={(e) => {
+                  setReferralCode(e.target.value);
+                  setReferralCheck(null);
+                }}
                 size="small"
-                sx={{ flex: "1 1 200px" }}
+                fullWidth
+                error={referralCheck?.valid === false}
               />
+              <Button
+                variant="outlined"
+                onClick={handleCheckReferral}
+                disabled={!referralCode.trim() || isCheckingReferral}
+                sx={{ flexShrink: 0, minWidth: 96 }}
+              >
+                {isCheckingReferral ? (
+                  <CircularProgress size={18} />
+                ) : (
+                  "بررسی کد"
+                )}
+              </Button>
             </Box>
+            {referralCheck && (
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 2 }}
+              >
+                {referralCheck.valid ? (
+                  <Check fontSize="small" color="success" />
+                ) : (
+                  <Close fontSize="small" color="error" />
+                )}
+                <Typography
+                  variant="caption"
+                  color={referralCheck.valid ? "success.main" : "error.main"}
+                >
+                  {referralCheck.message}
+                </Typography>
+              </Box>
+            )}
+            {!referralCheck && <Box sx={{ mb: 2 }} />}
+
             <TextField
               label="توضیحات سفارش (اختیاری)"
               value={customerNote}
@@ -356,23 +591,40 @@ export function CheckoutContent() {
             </Typography>
             <Typography variant="body2">{formatPrice(subtotal)}</Typography>
           </Box>
-          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
             <Typography variant="body2" color="text.secondary">
               هزینه‌ی ارسال
             </Typography>
-            <Typography variant="body2">{shippingCost ? formatPrice(shippingCost) : "—"}</Typography>
+            <Typography variant="body2">
+              {shippingCost ? formatPrice(shippingCost) : "—"}
+            </Typography>
           </Box>
+
+          {discountAmount > 0 && (
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                تخفیف کد «{couponCode}»
+              </Typography>
+              <Typography
+                variant="body2"
+                color="success.main"
+                sx={{ fontWeight: 600 }}
+              >
+                {formatPrice(discountAmount)}-
+              </Typography>
+            </Box>
+          )}
 
           <Divider sx={{ mb: 2 }} />
 
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
             <Typography sx={{ fontWeight: 700 }}>مبلغ تقریبی</Typography>
-            <Typography sx={{ fontWeight: 700 }}>{formatPrice(estimatedTotal)}</Typography>
+            <Typography sx={{ fontWeight: 700 }}>
+              {formatPrice(estimatedTotal)}
+            </Typography>
           </Box>
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
-            کد تخفیف (در صورت وجود) روی مبلغ نهایی بعد از ثبت اعمال می‌شه.
-          </Typography>
-
           {submitError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {submitError}
@@ -392,7 +644,12 @@ export function CheckoutContent() {
         </Box>
       </Box>
 
-      <Dialog open={addressDialogOpen} onClose={() => setAddressDialogOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={addressDialogOpen}
+        onClose={() => setAddressDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>افزودن آدرس جدید</DialogTitle>
         <DialogContent>
           {addressErrors.general && (
@@ -404,13 +661,20 @@ export function CheckoutContent() {
             <TextField
               label="عنوان آدرس (مثلاً منزل، محل کار)"
               value={addressForm.title}
-              onChange={(e) => setAddressForm({ ...addressForm, title: e.target.value })}
+              onChange={(e) =>
+                setAddressForm({ ...addressForm, title: e.target.value })
+              }
               fullWidth
             />
             <TextField
               label="نام گیرنده"
               value={addressForm.receiver_name}
-              onChange={(e) => setAddressForm({ ...addressForm, receiver_name: e.target.value })}
+              onChange={(e) =>
+                setAddressForm({
+                  ...addressForm,
+                  receiver_name: e.target.value,
+                })
+              }
               error={!!addressErrors.receiver_name}
               helperText={addressErrors.receiver_name?.[0]}
               fullWidth
@@ -418,7 +682,12 @@ export function CheckoutContent() {
             <TextField
               label="موبایل گیرنده"
               value={addressForm.receiver_phone}
-              onChange={(e) => setAddressForm({ ...addressForm, receiver_phone: e.target.value })}
+              onChange={(e) =>
+                setAddressForm({
+                  ...addressForm,
+                  receiver_phone: e.target.value,
+                })
+              }
               error={!!addressErrors.receiver_phone}
               helperText={addressErrors.receiver_phone?.[0]}
               fullWidth
@@ -426,7 +695,9 @@ export function CheckoutContent() {
             <TextField
               label="شهر"
               value={addressForm.city}
-              onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+              onChange={(e) =>
+                setAddressForm({ ...addressForm, city: e.target.value })
+              }
               error={!!addressErrors.city}
               helperText={addressErrors.city?.[0]}
               fullWidth
@@ -434,7 +705,9 @@ export function CheckoutContent() {
             <TextField
               label="آدرس کامل"
               value={addressForm.full_address}
-              onChange={(e) => setAddressForm({ ...addressForm, full_address: e.target.value })}
+              onChange={(e) =>
+                setAddressForm({ ...addressForm, full_address: e.target.value })
+              }
               error={!!addressErrors.full_address}
               helperText={addressErrors.full_address?.[0]}
               multiline
@@ -444,16 +717,27 @@ export function CheckoutContent() {
             <TextField
               label="کد پستی (اختیاری)"
               value={addressForm.postal_code}
-              onChange={(e) => setAddressForm({ ...addressForm, postal_code: e.target.value })}
+              onChange={(e) =>
+                setAddressForm({ ...addressForm, postal_code: e.target.value })
+              }
               fullWidth
             />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button color="inherit" onClick={() => setAddressDialogOpen(false)} disabled={isSavingAddress}>
+          <Button
+            color="inherit"
+            onClick={() => setAddressDialogOpen(false)}
+            disabled={isSavingAddress}
+          >
             انصراف
           </Button>
-          <Button variant="contained" disableElevation onClick={handleSaveAddress} disabled={isSavingAddress}>
+          <Button
+            variant="contained"
+            disableElevation
+            onClick={handleSaveAddress}
+            disabled={isSavingAddress}
+          >
             {isSavingAddress ? "در حال ذخیره..." : "ذخیره"}
           </Button>
         </DialogActions>

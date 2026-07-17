@@ -270,9 +270,17 @@ export const returnsAPI = {
 // ----------------------
 // پنل ادمین
 // ----------------------
-export const productStockSubscribeAPI = {
-  subscribe: (productId: number, mobile: string) =>
-    api.post(`/products/${productId}/stock-subscribe`, { mobile }),
+export const newsletterAPI = {
+  subscribe: (email: string) => api.post("/newsletter/subscribe", { email }),
+};
+
+export const couponCheckAPI = {
+  check: (code: string, subtotal: number) =>
+    api.post("/coupons/check", { code, subtotal }, { requiresAuth: true }),
+};
+
+export const referralCodeCheckAPI = {
+  check: (code: string) => api.post("/referral-codes/check", { code }, { requiresAuth: true }),
 };
 
 export const myReferralAPI = {
@@ -588,5 +596,10 @@ export const adminAPI = {
       api.get("/admin/reviews", { params, requiresAuth: true }),
     approve: (id: number) => api.post(`/admin/reviews/${id}/approve`, {}, { requiresAuth: true }),
     reject: (id: number) => api.post(`/admin/reviews/${id}/reject`, {}, { requiresAuth: true }),
+  },
+
+  newsletter: {
+    list: (params?: { page?: number; per_page?: number }) =>
+      api.get("/admin/newsletter-subscriptions", { params, requiresAuth: true }),
   },
 };

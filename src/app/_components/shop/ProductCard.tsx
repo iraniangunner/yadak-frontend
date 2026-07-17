@@ -31,6 +31,7 @@ import { formatPrice } from "@/lib/format";
 |--------------------------------------------------------------------------
 | از کامپوننت‌های واقعی MUI (Card, CardMedia, CardContent, CardActionArea,
 | CardActions) استفاده شده - نه یه Box شبیه‌سازی‌شده.
+| نسخه‌ی بازطراحی‌شده: مینیمال‌تر، فضای تنفس بیشتر، تعامل‌های ظریف‌تر.
 */
 
 export type ProductCardData = {
@@ -46,11 +47,11 @@ export type ProductCardData = {
 
 type StockColor = "success" | "error" | "warning" | "info" | "default";
 
-const stockStatusLabels: Record<string, { label: string; color: StockColor }> = {
-  available: { label: "موجود", color: "success" },
-  stopped: { label: "متوقف‌شده", color: "warning" },
-  out_of_stock: { label: "ناموجود", color: "error" },
-  incoming: { label: "در حال تأمین", color: "info" },
+const stockStatusLabels: Record<string, { label: string; color: StockColor; dot: string }> = {
+  available: { label: "موجود", color: "success", dot: "#1FA97D" },
+  stopped: { label: "متوقف‌شده", color: "warning", dot: "#D99B3D" },
+  out_of_stock: { label: "ناموجود", color: "error", dot: "#D9534F" },
+  incoming: { label: "در حال تأمین", color: "info", dot: "#3D8BD9" },
 };
 
 export function ProductCard({ product }: { product: ProductCardData }) {
@@ -67,7 +68,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
   const stock = stockStatusLabels[product.stock_status] || {
     label: product.stock_status,
-    color: "default",
+    color: "default" as StockColor,
+    dot: "#9AA0A6",
   };
   const hasDiscount =
     !!product.compare_price && product.compare_price > product.final_price;
@@ -121,91 +123,146 @@ export function ProductCard({ product }: { product: ProductCardData }) {
     <Card
       elevation={0}
       sx={{
-        borderRadius: 3,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+        borderRadius: 4,
+        border: "1px solid",
+        borderColor: "rgba(0,0,0,0.06)",
+        boxShadow: "none",
         display: "flex",
         flexDirection: "column",
-        transition: "box-shadow .15s",
-        "&:hover": { boxShadow: "0 2px 10px rgba(0,0,0,0.12)" },
+        overflow: "hidden",
+        bgcolor: "background.paper",
+        transition: "border-color .2s ease, box-shadow .2s ease, transform .2s ease",
+        "&:hover": {
+          borderColor: "rgba(0,0,0,0.1)",
+          boxShadow: "0 12px 28px -12px rgba(20,20,20,0.18)",
+          transform: "translateY(-2px)",
+        },
+        "&:hover .product-card-media": {
+          transform: "scale(1.045)",
+        },
       }}
     >
       <CardActionArea
         component={NextLink}
         href={`/products/${product.slug}`}
         data-active={cartItem ? "" : undefined}
+        disableRipple
         sx={{
-          "&[data-active]": {
-            bgcolor: "action.selected",
+          "&[data-active] .product-card-content": {
+            bgcolor: "rgba(25, 118, 210, 0.04)",
           },
         }}
       >
-        <Box sx={{ position: "relative" }}>
+        <Box sx={{ position: "relative", overflow: "hidden", bgcolor: "#F7F7F5" }}>
           <CardMedia
             component="img"
+            className="product-card-media"
             image={product.thumbnail_url || undefined}
             alt={product.title}
             loading="lazy"
             sx={{
-              height: 170,
+              height: 180,
               objectFit: "cover",
-              bgcolor: "background.default",
+              display: "block",
+              transition: "transform .45s cubic-bezier(.2,.7,.3,1)",
             }}
           />
           {hasDiscount && (
-            <Chip
-              label={`٪${discountPercent}`}
-              color="error"
-              size="small"
-              sx={{ position: "absolute", top: 8, right: 8, fontWeight: 800 }}
-            />
+            <Box
+              sx={{
+                position: "absolute",
+                top: 10,
+                insetInlineStart: 10,
+                px: 1,
+                py: 0.4,
+                borderRadius: 1.5,
+                bgcolor: "rgba(217,83,79,0.94)",
+                color: "#fff",
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: 0.2,
+                lineHeight: 1,
+                backdropFilter: "blur(2px)",
+              }}
+            >
+              ٪{discountPercent}−
+            </Box>
           )}
         </Box>
 
-        <CardContent sx={{ pb: 1 }}>
+        <CardContent className="product-card-content" sx={{ pb: 1.25, pt: 1.5, transition: "background-color .2s ease" }}>
           <Typography
             variant="body2"
-            sx={{ fontWeight: 600, mb: 0.75, minHeight: 40 }}
+            sx={{
+              fontWeight: 500,
+              mb: 1,
+              minHeight: 40,
+              lineHeight: 1.5,
+              color: "text.primary",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
           >
             {product.title}
           </Typography>
 
           <Box
-            sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 0.75 }}
+            sx={{ display: "flex", alignItems: "baseline", gap: 1, mb: 1, flexWrap: "wrap" }}
           >
             <Typography
               variant="body1"
-              color="primary.main"
-              sx={{ fontWeight: 700 }}
+              sx={{ fontWeight: 800, color: "text.primary", letterSpacing: -0.2 }}
             >
               {formatPrice(product.final_price)}
             </Typography>
             {hasDiscount && (
               <Typography
                 variant="caption"
-                color="text.secondary"
-                sx={{ textDecoration: "line-through" }}
+                sx={{ textDecoration: "line-through", color: "text.disabled" }}
               >
                 {formatPrice(product.compare_price!)}
               </Typography>
             )}
           </Box>
 
-          <Chip label={stock.label} color={stock.color} size="small" />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                bgcolor: stock.dot,
+                flexShrink: 0,
+              }}
+            />
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+              {stock.label}
+            </Typography>
+          </Box>
         </CardContent>
       </CardActionArea>
 
       {/* ردیف پایین: افزودن به سبد / نشانگر «در سبد» */}
       {isPurchasable && (
-        <CardActions sx={{ px: 1.5, pb: 1.5, pt: 0, mt: "auto" }}>
+        <CardActions sx={{ px: 1.75, pb: 1.75, pt: 0, mt: "auto" }}>
           {cartItem ? (
             <Button
               size="small"
               fullWidth
-              variant="outlined"
+              variant="text"
               color="success"
               disableElevation
               disabled
               startIcon={<Check fontSize="small" />}
+              sx={{
+                borderRadius: 2.5,
+                py: 0.9,
+                fontWeight: 600,
+                bgcolor: "rgba(31,169,125,0.08)",
+                "&.Mui-disabled": { color: "success.main" },
+              }}
             >
               در سبد
             </Button>
@@ -217,6 +274,17 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               disableElevation
               startIcon={<ShoppingCart fontSize="small" />}
               onClick={handleAdd}
+              sx={{
+                borderRadius: 2.5,
+                py: 0.9,
+                fontWeight: 600,
+                boxShadow: "none",
+                transition: "transform .15s ease, box-shadow .15s ease",
+                "&:hover": {
+                  boxShadow: "0 6px 16px -6px rgba(25,118,210,0.5)",
+                  transform: "translateY(-1px)",
+                },
+              }}
             >
               افزودن به سبد
             </Button>
@@ -227,8 +295,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       {isOutOfStock && (
         <CardActions
           sx={{
-            px: 1.5,
-            pb: 1.5,
+            px: 1.75,
+            pb: 1.75,
             pt: 0,
             mt: "auto",
             flexDirection: "column",
@@ -241,7 +309,13 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               fullWidth
               disabled
               startIcon={<Check fontSize="small" />}
-              sx={{ color: "success.main" }}
+              sx={{
+                borderRadius: 2.5,
+                py: 0.9,
+                fontWeight: 600,
+                color: "success.main",
+                "&.Mui-disabled": { color: "success.main" },
+              }}
             >
               اطلاع‌رسانی ثبت شد
             </Button>
@@ -252,6 +326,17 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               variant="outlined"
               startIcon={<NotificationsActive fontSize="small" />}
               onClick={() => setDialogOpen(true)}
+              sx={{
+                borderRadius: 2.5,
+                py: 0.9,
+                fontWeight: 600,
+                borderColor: "rgba(0,0,0,0.14)",
+                color: "text.primary",
+                "&:hover": {
+                  borderColor: "rgba(0,0,0,0.28)",
+                  bgcolor: "rgba(0,0,0,0.02)",
+                },
+              }}
             >
               اطلاع بده وقتی موجود شد
             </Button>
@@ -260,7 +345,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             <Typography
               variant="caption"
               color="error"
-              sx={{ display: "block", mt: 0.5 }}
+              sx={{ display: "block", mt: 0.75 }}
             >
               {error}
             </Typography>
@@ -273,11 +358,14 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         onClose={() => !isSaving && setDialogOpen(false)}
         fullWidth
         maxWidth="xs"
+        slotProps={{
+          paper: { sx: { borderRadius: 4 } },
+        }}
       >
         <DialogTitle sx={{ fontWeight: 700 }}>اطلاع‌رسانی موجودی</DialogTitle>
         <DialogContent>
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
@@ -293,6 +381,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             fullWidth
             disabled={isSaving}
             slotProps={{ htmlInput: { maxLength: 11 } }}
+            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2.5 } }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
@@ -300,6 +389,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             color="inherit"
             onClick={() => setDialogOpen(false)}
             disabled={isSaving}
+            sx={{ borderRadius: 2.5 }}
           >
             انصراف
           </Button>
@@ -311,6 +401,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             startIcon={
               isSaving ? <CircularProgress size={16} color="inherit" /> : undefined
             }
+            sx={{ borderRadius: 2.5, fontWeight: 600 }}
           >
             ثبت
           </Button>
