@@ -17,8 +17,11 @@ export type CartItem = {
   title: string;
   thumbnail_url: string | null;
   unit_price: number; // قیمت واحد در لحظه‌ی افزودن (با احتساب قیمت پلکانی)
+  compare_price?: number | null; // قیمت قبل از تخفیف (برای محاسبه‌ی مبلغ صرفه‌جویی)
   quantity: number;
   stock_status: string;
+  brand_name?: string | null;
+  average_rating?: number | null;
 };
 
 type CartState = {

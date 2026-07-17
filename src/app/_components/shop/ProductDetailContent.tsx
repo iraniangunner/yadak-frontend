@@ -63,10 +63,7 @@ type ProductDetail = {
   product_attributes: ProductAttribute[];
 };
 
-const stockStatusLabels: Record<
-  string,
-  { label: string; color: "success" | "error" | "warning" | "info" }
-> = {
+const stockStatusLabels: Record<string, { label: string; color: "success" | "error" | "warning" | "info" }> = {
   available: { label: "موجود", color: "success" },
   stopped: { label: "متوقف‌شده", color: "warning" },
   out_of_stock: { label: "ناموجود", color: "error" },
@@ -107,13 +104,9 @@ export function ProductDetailContent({ slug }: { slug: string }) {
 
   useEffect(() => {
     if (!product?.category) return;
-    productsAPI
-      .list({ category_id: product.category.id, per_page: 10 })
-      .then((res) => {
-        setRelatedProducts(
-          res.data.data.filter((p: ProductCardData) => p.id !== product.id),
-        );
-      });
+    productsAPI.list({ category_id: product.category.id, per_page: 10 }).then((res) => {
+      setRelatedProducts(res.data.data.filter((p: ProductCardData) => p.id !== product.id));
+    });
   }, [product?.category, product?.id]);
 
   const handleToggleFavorite = async () => {
@@ -144,9 +137,12 @@ export function ProductDetailContent({ slug }: { slug: string }) {
         title: product.title,
         thumbnail_url: product.thumbnail_url,
         unit_price: unitPrice,
+        compare_price: product.compare_price,
         stock_status: product.stock_status,
+        brand_name: product.brand?.name,
+        average_rating: product.average_rating,
       },
-      quantity,
+      quantity
     );
     setToast("به سبد خرید اضافه شد");
   };
@@ -177,12 +173,7 @@ export function ProductDetailContent({ slug }: { slug: string }) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box sx={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          <Skeleton
-            variant="rounded"
-            width={400}
-            height={400}
-            sx={{ borderRadius: 3 }}
-          />
+          <Skeleton variant="rounded" width={400} height={400} sx={{ borderRadius: 3 }} />
           <Box sx={{ flex: 1, minWidth: 260 }}>
             <Skeleton width="60%" height={40} />
             <Skeleton width="30%" height={30} />
@@ -193,34 +184,18 @@ export function ProductDetailContent({ slug }: { slug: string }) {
     );
   }
 
-  const stock = stockStatusLabels[product.stock_status] || {
-    label: product.stock_status,
-    color: "default" as any,
-  };
-  const isPurchasable =
-    product.stock_status === "available" || product.stock_status === "incoming";
-  const hasDiscount =
-    product.compare_price && product.compare_price > product.final_price;
-  const images =
-    product.images.length > 0
-      ? product.images.map((i) => i.url)
-      : [product.thumbnail_url || ""];
+  const stock = stockStatusLabels[product.stock_status] || { label: product.stock_status, color: "default" as any };
+  const isPurchasable = product.stock_status === "available" || product.stock_status === "incoming";
+  const hasDiscount = product.compare_price && product.compare_price > product.final_price;
+  const images = product.images.length > 0 ? product.images.map((i) => i.url) : [product.thumbnail_url || ""];
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Breadcrumbs separator={<NavigateNext fontSize="small" />} sx={{ mb: 3 }}>
-        <Box
-          component={NextLink}
-          href="/"
-          sx={{ color: "text.secondary", textDecoration: "none" }}
-        >
+        <Box component={NextLink} href="/" sx={{ color: "text.secondary", textDecoration: "none" }}>
           خانه
         </Box>
-        <Box
-          component={NextLink}
-          href="/products"
-          sx={{ color: "text.secondary", textDecoration: "none" }}
-        >
+        <Box component={NextLink} href="/products" sx={{ color: "text.secondary", textDecoration: "none" }}>
           محصولات
         </Box>
         {product.category && (
@@ -252,84 +227,40 @@ export function ProductDetailContent({ slug }: { slug: string }) {
 
           {product.average_rating !== null && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-              <Rating
-                value={product.average_rating}
-                precision={0.1}
-                readOnly
-                size="small"
-              />
+              <Rating value={product.average_rating} precision={0.1} readOnly size="small" />
               <Typography variant="body2" color="text.secondary">
                 ({product.reviews_count} نظر)
               </Typography>
             </Box>
           )}
 
-          <Box
-            sx={{ display: "flex", alignItems: "baseline", gap: 1.5, mb: 1.5 }}
-          >
-            <Typography
-              variant="h5"
-              color="primary.main"
-              sx={{ fontWeight: 800 }}
-            >
+          <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5, mb: 1.5 }}>
+            <Typography variant="h5" color="primary.main" sx={{ fontWeight: 800 }}>
               {formatPrice(unitPrice ?? product.final_price)}
             </Typography>
             {hasDiscount && (
-              <Typography
-                variant="body1"
-                color="text.secondary"
-                sx={{ textDecoration: "line-through" }}
-              >
+              <Typography variant="body1" color="text.secondary" sx={{ textDecoration: "line-through" }}>
                 {formatPrice(product.compare_price!)}
               </Typography>
             )}
           </Box>
 
-          <Chip
-            label={stock.label}
-            color={stock.color}
-            size="small"
-            sx={{ mb: 3 }}
-          />
+          <Chip label={stock.label} color={stock.color} size="small" sx={{ mb: 3 }} />
 
           {isPurchasable && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
-                mb: 3,
-                flexWrap: "wrap",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 2,
-                }}
-              >
-                <IconButton
-                  size="small"
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, flexWrap: "wrap" }}>
+              <Box sx={{ display: "flex", alignItems: "center", border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                <IconButton size="small" onClick={() => setQuantity((q) => Math.max(1, q - 1))}>
                   <Remove fontSize="small" />
                 </IconButton>
                 <TextField
                   value={quantity}
-                  onChange={(e) =>
-                    setQuantity(Math.max(1, Number(e.target.value) || 1))
-                  }
+                  onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
                   size="small"
                   sx={{ width: 56, "& fieldset": { border: "none" } }}
                   slotProps={{ htmlInput: { style: { textAlign: "center" } } }}
                 />
-                <IconButton
-                  size="small"
-                  onClick={() => setQuantity((q) => q + 1)}
-                >
+                <IconButton size="small" onClick={() => setQuantity((q) => q + 1)}>
                   <Add fontSize="small" />
                 </IconButton>
               </Box>
@@ -351,22 +282,13 @@ export function ProductDetailContent({ slug }: { slug: string }) {
             <Button
               variant="outlined"
               color={isFavorited ? "error" : "inherit"}
-              startIcon={
-                isFavorited ? (
-                  <Favorite fontSize="small" />
-                ) : (
-                  <FavoriteBorder fontSize="small" />
-                )
-              }
+              startIcon={isFavorited ? <Favorite fontSize="small" /> : <FavoriteBorder fontSize="small" />}
               onClick={handleToggleFavorite}
               size="small"
             >
               {isFavorited ? "در علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها"}
             </Button>
-            <IconButton
-              onClick={handleShare}
-              sx={{ border: "1px solid", borderColor: "divider" }}
-            >
+            <IconButton onClick={handleShare} sx={{ border: "1px solid", borderColor: "divider" }}>
               <Share fontSize="small" />
             </IconButton>
           </Box>
@@ -393,19 +315,12 @@ export function ProductDetailContent({ slug }: { slug: string }) {
                   display: "flex",
                   px: 2.5,
                   py: 1.5,
-                  borderBottom:
-                    idx < product.product_attributes.length - 1
-                      ? "1px solid"
-                      : "none",
+                  borderBottom: idx < product.product_attributes.length - 1 ? "1px solid" : "none",
                   borderColor: "divider",
                   bgcolor: idx % 2 === 0 ? "background.default" : "transparent",
                 }}
               >
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ width: 160, flexShrink: 0 }}
-                >
+                <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>
                   {attr.name}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -422,11 +337,7 @@ export function ProductDetailContent({ slug }: { slug: string }) {
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
             توضیحات
           </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ whiteSpace: "pre-line", lineHeight: 1.9 }}
-          >
+          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "pre-line", lineHeight: 1.9 }}>
             {product.description}
           </Typography>
         </Box>

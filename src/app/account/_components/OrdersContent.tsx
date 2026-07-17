@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import NextLink from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Box,
   Typography,
@@ -9,7 +10,9 @@ import {
   Stack,
   Button,
   CircularProgress,
+  Alert,
 } from "@mui/material";
+import { ChevronLeft } from "@mui/icons-material";
 import { ordersAPI } from "@/lib/api";
 
 /*
@@ -42,12 +45,13 @@ function formatPrice(amount: number) {
 }
 
 function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(
-    new Date(dateStr),
-  );
+  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(dateStr));
 }
 
 export function OrdersContent() {
+  const searchParams = useSearchParams();
+  const justCreatedId = searchParams.get("created");
+
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState("");
 
@@ -85,12 +89,7 @@ export function OrdersContent() {
         <Typography color="text.secondary" sx={{ mb: 2 }}>
           هنوز سفارشی ثبت نکرده‌اید
         </Typography>
-        <Button
-          component={NextLink}
-          href="/"
-          variant="contained"
-          disableElevation
-        >
+        <Button component={NextLink} href="/" variant="contained" disableElevation>
           مشاهده‌ی محصولات
         </Button>
       </Box>
@@ -98,46 +97,57 @@ export function OrdersContent() {
   }
 
   return (
-    <Stack spacing={2}>
-      {orders.map((order) => {
-        const status = statusLabels[order.status] || {
-          label: order.status,
-          color: "default" as const,
-        };
+    <Box>
+      {justCreatedId && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          سفارش شما با موفقیت ثبت شد و در حال بررسیه.
+        </Alert>
+      )}
 
-        return (
-          <Box
-            key={order.id}
-            sx={{
-              bgcolor: "background.paper",
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 3,
-              p: 3,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 2,
-            }}
-          >
-            <Box>
-              <Typography variant="body2" color="text.secondary">
-                سفارش #{order.id}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {formatDate(order.created_at)}
-              </Typography>
+      <Stack spacing={2}>
+        {orders.map((order) => {
+          const status = statusLabels[order.status] || { label: order.status, color: "default" as const };
+
+          return (
+            <Box
+              key={order.id}
+              component={NextLink}
+              href={`/account/orders/${order.id}`}
+              sx={{
+                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: justCreatedId === String(order.id) ? "primary.main" : "divider",
+                borderRadius: 3,
+                p: 3,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 2,
+                textDecoration: "none",
+                color: "text.primary",
+                transition: "box-shadow .15s",
+                "&:hover": { boxShadow: "0 2px 8px rgba(0,0,0,0.08)" },
+              }}
+            >
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  سفارش #{order.id}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {formatDate(order.created_at)}
+                </Typography>
+              </Box>
+
+              <Chip label={status.label} color={status.color} size="small" />
+
+              <Typography sx={{ fontWeight: 700 }}>{formatPrice(order.total_amount)}</Typography>
+
+              <ChevronLeft fontSize="small" sx={{ color: "text.secondary" }} />
             </Box>
-
-            <Chip label={status.label} color={status.color} size="small" />
-
-            <Typography sx={{ fontWeight: 700 }}>
-              {formatPrice(order.total_amount)}
-            </Typography>
-          </Box>
-        );
-      })}
-    </Stack>
+          );
+        })}
+      </Stack>
+    </Box>
   );
 }

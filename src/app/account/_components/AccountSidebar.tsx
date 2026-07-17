@@ -9,6 +9,7 @@ import {
   LocationOn,
   DirectionsCar,
   Logout,
+  Favorite,
 } from "@mui/icons-material";
 import { useAuthStore } from "@/lib/store/authStore";
 
@@ -38,6 +39,11 @@ const links = [
     href: "/account/vehicles",
     label: "خودروهای من",
     icon: <DirectionsCar fontSize="small" />,
+  },
+  {
+    href: "/account/favorites",
+    label: "علاقه مندی های من",
+    icon: <Favorite fontSize="small" />,
   },
 ];
 
