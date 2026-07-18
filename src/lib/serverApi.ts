@@ -14,7 +14,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 async function serverFetch<T>(
   path: string,
-  revalidateSeconds = 60,
+  revalidateSeconds = 60
 ): Promise<T | null> {
   try {
     const res = await fetch(`${API_URL}${path}`, {
@@ -85,17 +85,24 @@ export async function getBanners() {
 }
 
 export async function getProducts(params: string, revalidateSeconds = 60) {
-  const res = await serverFetch<{ data: ServerProduct[]; total: number }>(
-    `/products?${params}`,
-    revalidateSeconds,
-  );
-  return { data: res?.data || [], total: res?.total || 0 };
+  const res = await serverFetch<{
+    data: ServerProduct[];
+    total: number;
+    last_page: number;
+    current_page: number;
+  }>(`/products?${params}`, revalidateSeconds);
+  return {
+    data: res?.data || [],
+    total: res?.total || 0,
+    lastPage: res?.last_page || 1,
+    currentPage: res?.current_page || 1,
+  };
 }
 
 export async function getArticles(perPage = 3) {
   const res = await serverFetch<{ data: ServerArticle[] }>(
     `/articles?per_page=${perPage}`,
-    300,
+    300
   );
   return res?.data || [];
 }
@@ -103,7 +110,7 @@ export async function getArticles(perPage = 3) {
 export async function getVehicles() {
   const res = await serverFetch<{ data: ServerVehicle[] }>(
     "/vehicles?per_page=300",
-    300,
+    300
   );
   return res?.data || [];
 }

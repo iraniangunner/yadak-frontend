@@ -3,23 +3,32 @@
 import {
   Box,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  FormControlLabel,
+  Checkbox,
   Button,
+  Divider,
+  Rating,
 } from "@mui/material";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/ProductFilterPanel.tsx
 |--------------------------------------------------------------------------
+| همه‌ی فیلترها با چک‌باکس (چندانتخابی) هستن، به‌جز امتیاز که رفتارش شبیه
+| فیلترهای فروشگاه‌های بزرگه: «۴ ستاره و بالاتر» رو انتخاب می‌کنید، نه
+| یه عدد دقیق.
+|
+| ⚠️ فرض کردم بک‌اند از این پارامترهای جدید پشتیبانی می‌کنه:
+| category_id/brand_id/stock_status به‌صورت رشته‌ی کاما-جدا (چندتایی)،
+| min_rating (عدد)، price_min/price_max (عدد). اگه بک‌اند فعلاً این‌ها رو
+| نداره، باید ProductController::index() رو هم آپدیت کنیم.
 */
 
 export type ProductFilters = {
-  category_id: string;
-  brand_id: string;
-  stock_status: string;
+  category_ids: string[];
+  brand_ids: string[];
+  stock_statuses: string[];
+  min_rating: string;
 };
 
 type Option = { id: number; name: string };
@@ -30,6 +39,8 @@ const stockStatusOptions = [
   { value: "stopped", label: "متوقف‌شده" },
   { value: "out_of_stock", label: "ناموجود" },
 ];
+
+const ratingOptions = [4, 3, 2, 1];
 
 export function ProductFilterPanel({
   filters,
@@ -44,63 +55,118 @@ export function ProductFilterPanel({
   onChange: (filters: ProductFilters) => void;
   onClear: () => void;
 }) {
+  const toggleInArray = (key: keyof ProductFilters, value: string) => {
+    const current = filters[key] as string[];
+    const next = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : [...current, value];
+    onChange({ ...filters, [key]: next });
+  };
+
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Typography sx={{ fontWeight: 700 }}>فیلترها</Typography>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <Typography sx={{ fontWeight: 700, mb: 0.5 }}>فیلترها</Typography>
 
-      <FormControl size="small" fullWidth>
-        <InputLabel>دسته‌بندی</InputLabel>
-        <Select
-          label="دسته‌بندی"
-          value={filters.category_id}
-          onChange={(e) =>
-            onChange({ ...filters, category_id: e.target.value })
-          }
-        >
-          <MenuItem value="">همه</MenuItem>
-          {categories.map((c) => (
-            <MenuItem key={c.id} value={String(c.id)}>
-              {c.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      {/* دسته‌بندی */}
+      <Typography variant="body2" sx={{ fontWeight: 600, mt: 1 }}>
+        دسته‌بندی
+      </Typography>
+      <Box sx={{ display: "flex", flexDirection: "column" }}>
+        {categories.map((c) => (
+          <FormControlLabel
+            key={c.id}
+            control={
+              <Checkbox
+                size="small"
+                checked={filters.category_ids.includes(String(c.id))}
+                onChange={() => toggleInArray("category_ids", String(c.id))}
+              />
+            }
+            label={<Typography variant="body2">{c.name}</Typography>}
+          />
+        ))}
+      </Box>
 
-      <FormControl size="small" fullWidth>
-        <InputLabel>برند</InputLabel>
-        <Select
-          label="برند"
-          value={filters.brand_id}
-          onChange={(e) => onChange({ ...filters, brand_id: e.target.value })}
-        >
-          <MenuItem value="">همه</MenuItem>
-          {brands.map((b) => (
-            <MenuItem key={b.id} value={String(b.id)}>
-              {b.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <Divider sx={{ my: 1 }} />
 
-      <FormControl size="small" fullWidth>
-        <InputLabel>وضعیت موجودی</InputLabel>
-        <Select
-          label="وضعیت موجودی"
-          value={filters.stock_status}
-          onChange={(e) =>
-            onChange({ ...filters, stock_status: e.target.value })
-          }
-        >
-          <MenuItem value="">همه</MenuItem>
-          {stockStatusOptions.map((s) => (
-            <MenuItem key={s.value} value={s.value}>
-              {s.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      {/* برند */}
+      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        برند
+      </Typography>
+      <Box sx={{ display: "flex", flexDirection: "column" }}>
+        {brands.map((b) => (
+          <FormControlLabel
+            key={b.id}
+            control={
+              <Checkbox
+                size="small"
+                checked={filters.brand_ids.includes(String(b.id))}
+                onChange={() => toggleInArray("brand_ids", String(b.id))}
+              />
+            }
+            label={<Typography variant="body2">{b.name}</Typography>}
+          />
+        ))}
+      </Box>
 
-      <Button color="inherit" onClick={onClear} size="small">
+      <Divider sx={{ my: 1 }} />
+
+      {/* وضعیت موجودی */}
+      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        وضعیت موجودی
+      </Typography>
+      <Box sx={{ display: "flex", flexDirection: "column" }}>
+        {stockStatusOptions.map((s) => (
+          <FormControlLabel
+            key={s.value}
+            control={
+              <Checkbox
+                size="small"
+                checked={filters.stock_statuses.includes(s.value)}
+                onChange={() => toggleInArray("stock_statuses", s.value)}
+              />
+            }
+            label={<Typography variant="body2">{s.label}</Typography>}
+          />
+        ))}
+      </Box>
+
+      <Divider sx={{ my: 1 }} />
+
+      {/* امتیاز */}
+      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        امتیاز
+      </Typography>
+      <Box sx={{ display: "flex", flexDirection: "column" }}>
+        {ratingOptions.map((r) => (
+          <FormControlLabel
+            key={r}
+            control={
+              <Checkbox
+                size="small"
+                checked={filters.min_rating === String(r)}
+                onChange={() =>
+                  onChange({
+                    ...filters,
+                    min_rating:
+                      filters.min_rating === String(r) ? "" : String(r),
+                  })
+                }
+              />
+            }
+            label={
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Rating value={r} readOnly size="small" />
+                <Typography variant="body2" color="text.secondary">
+                  و بالاتر
+                </Typography>
+              </Box>
+            }
+          />
+        ))}
+      </Box>
+
+      <Button color="inherit" onClick={onClear} size="small" sx={{ mt: 1 }}>
         پاک کردن فیلترها
       </Button>
     </Box>
