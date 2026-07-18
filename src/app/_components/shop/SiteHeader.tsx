@@ -7,8 +7,6 @@ import { useRouter } from "next/navigation";
 import {
   Box,
   Container,
-  TextField,
-  InputAdornment,
   IconButton,
   Button,
   Menu,
@@ -16,7 +14,6 @@ import {
   Avatar,
   Stack,
   Badge,
-  Typography,
   Divider,
 } from "@mui/material";
 import {
@@ -24,12 +21,11 @@ import {
   ShoppingCart,
   KeyboardArrowDown,
   Category,
-  Phone,
-  LocalShipping,
 } from "@mui/icons-material";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useCartStore } from "@/lib/store/cartStore";
 import { ServerCategory } from "@/lib/serverApi";
+import { SearchModal } from "@/app/_components/shop/SearchModal";
 
 /*
 |--------------------------------------------------------------------------
@@ -192,7 +188,7 @@ function DesktopCategoriesMegaMenu({
         size="small"
         sx={{ borderColor: "divider", color: "text.primary" }}
       >
-        دسته‌بندی محصولات
+        دسته‌بندی محصولات 
       </Button>
 
       {open &&
@@ -278,15 +274,8 @@ export function SiteHeader({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const [search, setSearch] = useState("");
   const [accountAnchor, setAccountAnchor] = useState<HTMLElement | null>(null);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (search.trim()) {
-      router.push(`/products?search=${encodeURIComponent(search.trim())}`);
-    }
-  };
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const handleLogout = async () => {
     setAccountAnchor(null);
@@ -300,87 +289,6 @@ export function SiteHeader({
       ref={headerRef}
       sx={{ position: "sticky", top: 0, zIndex: 10 }}
     >
-      {/* نوار باریک بالا - فقط دسکتاپ */}
-      <Box
-        sx={{
-          bgcolor: "secondary.main",
-          color: "#fff",
-          display: { xs: "none", md: "block" },
-        }}
-      >
-        <Container maxWidth="lg">
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              py: 0.75,
-              fontSize: "0.8rem",
-            }}
-          >
-            <Stack direction="row" spacing={3} sx={{ alignItems: "center" }}>
-              <Stack
-                direction="row"
-                spacing={0.5}
-                sx={{ alignItems: "center", opacity: 0.9 }}
-              >
-                <Phone sx={{ fontSize: 15 }} />
-                <Typography variant="caption">
-                  پشتیبانی: ۰۲۱-۹۱۰۰۰۰۰۰
-                </Typography>
-              </Stack>
-              <Stack
-                direction="row"
-                spacing={0.5}
-                sx={{ alignItems: "center", opacity: 0.9 }}
-              >
-                <LocalShipping sx={{ fontSize: 15 }} />
-                <Typography variant="caption">ارسال به سراسر کشور</Typography>
-              </Stack>
-            </Stack>
-            <Stack direction="row" spacing={2.5}>
-              <Box
-                component={NextLink}
-                href="/about"
-                sx={{
-                  color: "#fff",
-                  opacity: 0.85,
-                  textDecoration: "none",
-                  fontSize: "0.8rem",
-                }}
-              >
-                درباره‌ی ما
-              </Box>
-              <Box
-                component={NextLink}
-                href="/articles"
-                sx={{
-                  color: "#fff",
-                  opacity: 0.85,
-                  textDecoration: "none",
-                  fontSize: "0.8rem",
-                }}
-              >
-                بلاگ
-              </Box>
-              <Box
-                component={NextLink}
-                href="/contact"
-                sx={{
-                  color: "#fff",
-                  opacity: 0.85,
-                  textDecoration: "none",
-                  fontSize: "0.8rem",
-                }}
-              >
-                تماس با ما
-              </Box>
-            </Stack>
-          </Box>
-        </Container>
-      </Box>
-
-      {/* نوار اصلی */}
       <Box
         sx={{
           bgcolor: "background.paper",
@@ -409,55 +317,51 @@ export function SiteHeader({
               headerRef={headerRef}
             />
 
-            <Stack
-              direction="row"
-              spacing={0.5}
-              sx={{ display: { xs: "none", md: "flex" } }}
-            >
-              <Button
-                component={NextLink}
-                href="/products"
-                color="inherit"
-                size="small"
+            <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                sx={{ display: { xs: "none", md: "flex" } }}
               >
-               فروشگاه
-              </Button>
-              <Button
-                component={NextLink}
-                href="/articles"
-                color="inherit"
-                size="small"
-              >
-                مقالات
-              </Button>
-            </Stack>
-
-            <Box
-              component="form"
-              onSubmit={handleSearchSubmit}
-              sx={{ flex: 1, maxWidth: 440, mx: "auto" }}
-            >
-              <TextField
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="جستجوی قطعه، برند، خودرو..."
-                size="small"
-                fullWidth
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton type="submit" size="small">
-                          <Search fontSize="small" />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
+                <Button
+                  component={NextLink}
+                  href="/products"
+                  color="inherit"
+                  size="small"
+                >
+                  فروشگاه
+                </Button>
+                <Button
+                  component={NextLink}
+                  href="/articles"
+                  color="inherit"
+                  size="small"
+                >
+                  بلاگ
+                </Button>
+                <Button
+                  component={NextLink}
+                  href="/about"
+                  color="inherit"
+                  size="small"
+                >
+                  درباره‌ی ما
+                </Button>
+                <Button
+                  component={NextLink}
+                  href="/contact"
+                  color="inherit"
+                  size="small"
+                >
+                  تماس با ما
+                </Button>
+              </Stack>
             </Box>
 
-            {/* دسکتاپ: سبد و حساب کاربری همینجا. موبایل: هر دو توی نوار پایین هستن */}
+            <IconButton onClick={() => setSearchOpen(true)}>
+              <Search />
+            </IconButton>
+
             <Box
               sx={{
                 display: { xs: "none", md: "flex" },
@@ -540,6 +444,8 @@ export function SiteHeader({
           </Box>
         </Container>
       </Box>
+
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </Box>
   );
 }
