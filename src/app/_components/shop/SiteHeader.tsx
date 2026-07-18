@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,25 +14,18 @@ import {
   Menu,
   MenuItem,
   Avatar,
-  Drawer,
   Stack,
   Badge,
   Typography,
   Divider,
-  Collapse,
-  Popper,
-  Fade,
 } from "@mui/material";
 import {
   Search,
   ShoppingCart,
-  Menu as MenuIcon,
-  Close,
   KeyboardArrowDown,
   Category,
   Phone,
   LocalShipping,
-  ExpandMore,
 } from "@mui/icons-material";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useCartStore } from "@/lib/store/cartStore";
@@ -41,19 +35,13 @@ import { ServerCategory } from "@/lib/serverApi";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/SiteHeader.tsx
 |--------------------------------------------------------------------------
-| دسکتاپ: منوی دسته‌بندی با هاور باز می‌شه (نه کلیک) + پس‌زمینه‌ی مات
-| (backdrop-blur) پشتش.
-| موبایل: دسته‌بندی‌ها به‌صورت آکاردئون تودرتو (بازگشتی) توی Drawer.
-| کلیک روی هر دسته (توی هر دو حالت) می‌بره به /category/[slug].
+
 */
 
 function getChildren(categories: ServerCategory[], parentId: number | null) {
   return categories.filter((c) => c.parent_id === parentId);
 }
 
-// ------------------------------------------------------------------
-// مگامنوی دسکتاپ - هاور + پس‌زمینه‌ی مات
-// ------------------------------------------------------------------
 function CategoryColumn({
   items,
   categories,
@@ -68,72 +56,85 @@ function CategoryColumn({
   onNavigate: () => void;
 }) {
   return (
-    <Fade in timeout={180}>
-      <Box
-        sx={{
-          width: 220,
-          flexShrink: 0,
-          py: 1,
-          borderInlineEnd: "1px solid",
-          borderColor: "divider",
-          maxHeight: 420,
-          overflowY: "auto",
-        }}
-      >
-        {items.map((item) => {
-          const hasChildren = getChildren(categories, item.id).length > 0;
-          const isActive = activeId === item.id;
+    <Box
+      sx={{
+        width: 220,
+        flexShrink: 0,
+        py: 1,
+        borderInlineEnd: "1px solid",
+        borderColor: "divider",
+        maxHeight: 420,
+        overflowY: "auto",
+      }}
+    >
+      {items.map((item, idx) => {
+        const hasChildren = getChildren(categories, item.id).length > 0;
+        const isActive = activeId === item.id;
 
-          return (
-            <Box
-              key={item.id}
-              component={NextLink}
-              href={`/category/${item.slug}`}
-              onClick={onNavigate}
-              onMouseEnter={() => onHoverItem(item)}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                px: 2,
-                py: 1,
-                textDecoration: "none",
-                color: isActive ? "primary.main" : "text.primary",
-                bgcolor: isActive ? "rgba(30,58,138,0.06)" : "transparent",
-                fontWeight: isActive ? 700 : 400,
-                fontSize: "0.875rem",
-                transition: "background-color .15s, color .15s",
-              }}
-            >
-              {item.name}
-              {hasChildren && (
-                <KeyboardArrowDown
-                  fontSize="small"
-                  sx={{ transform: "rotate(90deg)", opacity: 0.5 }}
-                />
-              )}
-            </Box>
-          );
-        })}
-      </Box>
-    </Fade>
+        return (
+          <Box
+            key={item.id}
+            component={NextLink}
+            href={`/category/${item.slug}`}
+            onClick={onNavigate}
+            onMouseEnter={() => onHoverItem(item)}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              px: 2,
+              py: 1,
+              textDecoration: "none",
+              color: isActive ? "primary.main" : "text.primary",
+              bgcolor: isActive ? "rgba(30,58,138,0.06)" : "transparent",
+              fontWeight: isActive ? 700 : 400,
+              fontSize: "0.875rem",
+              transition: "background-color .15s, color .15s",
+              borderBottom: idx < items.length - 1 ? "1px solid" : "none",
+              borderColor: "divider",
+            }}
+          >
+            {item.name}
+            {hasChildren && (
+              <KeyboardArrowDown
+                fontSize="small"
+                sx={{ transform: "rotate(90deg)", opacity: 0.5 }}
+              />
+            )}
+          </Box>
+        );
+      })}
+    </Box>
   );
 }
 
 function DesktopCategoriesMegaMenu({
   categories,
+  headerRef,
 }: {
   categories: ServerCategory[];
+  headerRef: React.RefObject<HTMLElement>;
 }) {
   const [open, setOpen] = useState(false);
-  // مسیر آیتم‌های هاورشده از سطح ۱ به بعد - مثلاً [سیستم ترمز, لنت ترمز]
   const [hoverPath, setHoverPath] = useState<ServerCategory[]>([]);
+  const [anchorRect, setAnchorRect] = useState<{
+    top: number;
+    start: number;
+    headerBottom: number;
+  } | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const roots = getChildren(categories, null);
 
   const handleEnter = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
+    if (anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      const startOffset = document.documentElement.clientWidth - rect.right;
+      const headerBottom =
+        headerRef.current?.getBoundingClientRect().bottom ?? rect.bottom;
+      setAnchorRect({ top: rect.bottom + 8, start: startOffset, headerBottom });
+    }
     setOpen(true);
   };
   const handleLeave = () => {
@@ -142,12 +143,10 @@ function DesktopCategoriesMegaMenu({
       setHoverPath([]);
     }, 150);
   };
-
   const handleClose = () => {
     setOpen(false);
     setHoverPath([]);
   };
-
   const handleHoverAtLevel = (level: number, category: ServerCategory) => {
     setHoverPath((prev) => [...prev.slice(0, level), category]);
   };
@@ -173,7 +172,7 @@ function DesktopCategoriesMegaMenu({
   return (
     <Box
       ref={anchorRef}
-      sx={{ display: { xs: "none", md: "block" }, position: "relative" }}
+      sx={{ display: { xs: "none", md: "block" } }}
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
     >
@@ -193,132 +192,74 @@ function DesktopCategoriesMegaMenu({
         size="small"
         sx={{ borderColor: "divider", color: "text.primary" }}
       >
-        دسته‌بندی
+        دسته‌بندی محصولات
       </Button>
 
-      {/* پس‌زمینه‌ی مات - فقط پشتِ صفحه */}
-      {open && (
-        <Box
-          onClick={handleClose}
-          sx={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1250,
-            bgcolor: "rgba(255,255,255,0.4)",
-            backdropFilter: "blur(6px)",
-          }}
-        />
-      )}
-
-      {/* ⚠️ از Popper استفاده می‌کنیم (نه Collapse+absolute) چون Popper
-          محتواش رو با یه portal واقعی مستقیم به body می‌بره - یعنی کاملاً
-          بیرون از هر stacking context محلی می‌شینه، پس دیگه ممکن نیست
-          پشتِ پس‌زمینه‌ی مات گیر بیفته یا توسط اون تار بشه. */}
-      <Popper
-        open={open}
-        anchorEl={anchorRef.current}
-        placement="bottom-start"
-        sx={{ zIndex: 1251 }}
-        onMouseEnter={handleEnter}
-        onMouseLeave={handleLeave}
-        modifiers={[{ name: "offset", options: { offset: [0, 8] } }]}
-        transition
-      >
-        {({ TransitionProps }) => (
-          <Fade {...TransitionProps} timeout={220}>
+      {open &&
+        anchorRect &&
+        createPortal(
+          <Box
+            sx={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1250,
+              pointerEvents: "none",
+            }}
+          >
             <Box
+              onClick={handleClose}
               sx={{
-                display: "flex",
-                bgcolor: "background.paper",
-                borderRadius: 3,
-                boxShadow: "0 12px 32px rgba(0,0,0,0.18)",
-                border: "1px solid",
-                borderColor: "divider",
-                overflow: "hidden",
-                maxWidth: "90vw",
-              }}
-            >
-              {columns.map((col) => (
-                <CategoryColumn
-                  key={col.level}
-                  items={col.items}
-                  categories={categories}
-                  activeId={col.activeId}
-                  onHoverItem={(item) => handleHoverAtLevel(col.level, item)}
-                  onNavigate={handleClose}
-                />
-              ))}
-            </Box>
-          </Fade>
-        )}
-      </Popper>
-    </Box>
-  );
-}
-
-// ------------------------------------------------------------------
-// آکاردئون موبایل - بازگشتی (هر عمقی رو پشتیبانی می‌کنه)
-// ------------------------------------------------------------------
-function MobileCategoryAccordionItem({
-  category,
-  categories,
-  depth,
-  onNavigate,
-}: {
-  category: ServerCategory;
-  categories: ServerCategory[];
-  depth: number;
-  onNavigate: () => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const children = getChildren(categories, category.id);
-  const hasChildren = children.length > 0;
-
-  return (
-    <Box>
-      <Box sx={{ display: "flex", alignItems: "center" }}>
-        {depth > 0 && <Box sx={{ width: depth * 16, flexShrink: 0 }} />}
-        <Button
-          component={NextLink}
-          href={`/category/${category.slug}`}
-          onClick={onNavigate}
-          color="inherit"
-          sx={{
-            flex: 1,
-            justifyContent: "flex-start",
-            fontWeight: depth === 0 ? 700 : 400,
-          }}
-        >
-          {category.name}
-        </Button>
-        {hasChildren && (
-          <IconButton size="small" onClick={() => setExpanded((v) => !v)}>
-            <ExpandMore
-              fontSize="small"
-              sx={{
-                transition: "transform .2s",
-                transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
+                position: "fixed",
+                top: anchorRect.headerBottom,
+                insetInline: 0,
+                bottom: 0,
+                bgcolor: "rgba(255,255,255,0.4)",
+                backdropFilter: "blur(6px)",
+                pointerEvents: "auto",
               }}
             />
-          </IconButton>
+            <Box
+              onMouseEnter={handleEnter}
+              onMouseLeave={handleLeave}
+              style={{
+                position: "absolute",
+                top: anchorRect.top,
+                right: anchorRect.start,
+                pointerEvents: "auto",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  bgcolor: "background.paper",
+                  borderRadius: 3,
+                  boxShadow: "0 12px 32px rgba(0,0,0,0.18)",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  overflow: "hidden",
+                  maxWidth: "90vw",
+                  animation: "megaMenuFadeIn .2s ease-out",
+                  "@keyframes megaMenuFadeIn": {
+                    from: { opacity: 0, transform: "translateY(-6px)" },
+                    to: { opacity: 1, transform: "translateY(0)" },
+                  },
+                }}
+              >
+                {columns.map((col) => (
+                  <CategoryColumn
+                    key={col.level}
+                    items={col.items}
+                    categories={categories}
+                    activeId={col.activeId}
+                    onHoverItem={(item) => handleHoverAtLevel(col.level, item)}
+                    onNavigate={handleClose}
+                  />
+                ))}
+              </Box>
+            </Box>
+          </Box>,
+          document.body,
         )}
-      </Box>
-
-      {hasChildren && (
-        <Collapse in={expanded}>
-          <Box>
-            {children.map((child) => (
-              <MobileCategoryAccordionItem
-                key={child.id}
-                category={child}
-                categories={categories}
-                depth={depth + 1}
-                onNavigate={onNavigate}
-              />
-            ))}
-          </Box>
-        </Collapse>
-      )}
     </Box>
   );
 }
@@ -332,13 +273,13 @@ export function SiteHeader({
   const logout = useAuthStore((s) => s.logout);
   const cartItemTypesCount = useCartStore((s) => s.items.length);
   const router = useRouter();
+  const headerRef = useRef<HTMLElement>(null);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
   const [search, setSearch] = useState("");
   const [accountAnchor, setAccountAnchor] = useState<HTMLElement | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -353,11 +294,13 @@ export function SiteHeader({
     router.push("/");
   };
 
-  const roots = getChildren(categories, null);
-
   return (
-    <Box component="header" sx={{ position: "sticky", top: 0, zIndex: 10 }}>
-      {/* نوار باریک بالا */}
+    <Box
+      component="header"
+      ref={headerRef}
+      sx={{ position: "sticky", top: 0, zIndex: 10 }}
+    >
+      {/* نوار باریک بالا - فقط دسکتاپ */}
       <Box
         sx={{
           bgcolor: "secondary.main",
@@ -447,13 +390,6 @@ export function SiteHeader({
       >
         <Container maxWidth="lg">
           <Box sx={{ display: "flex", alignItems: "center", gap: 2, py: 1.75 }}>
-            <IconButton
-              onClick={() => setMobileMenuOpen(true)}
-              sx={{ display: { xs: "flex", md: "none" } }}
-            >
-              <MenuIcon />
-            </IconButton>
-
             <Box
               component={NextLink}
               href="/"
@@ -468,7 +404,10 @@ export function SiteHeader({
               یدکی
             </Box>
 
-            <DesktopCategoriesMegaMenu categories={categories} />
+            <DesktopCategoriesMegaMenu
+              categories={categories}
+              headerRef={headerRef}
+            />
 
             <Stack
               direction="row"
@@ -481,7 +420,7 @@ export function SiteHeader({
                 color="inherit"
                 size="small"
               >
-                محصولات
+               فروشگاه
               </Button>
               <Button
                 component={NextLink}
@@ -518,148 +457,89 @@ export function SiteHeader({
               />
             </Box>
 
-            <IconButton component={NextLink} href="/cart">
-              <Badge
-                badgeContent={mounted ? cartItemTypesCount : 0}
-                color="primary"
-              >
-                <ShoppingCart />
-              </Badge>
-            </IconButton>
-
-            {user ? (
-              <>
-                <IconButton onClick={(e) => setAccountAnchor(e.currentTarget)}>
-                  <Avatar
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      bgcolor: "primary.main",
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    {user.name?.[0]}
-                  </Avatar>
-                </IconButton>
-                <Menu
-                  anchorEl={accountAnchor}
-                  open={!!accountAnchor}
-                  onClose={() => setAccountAnchor(null)}
+            {/* دسکتاپ: سبد و حساب کاربری همینجا. موبایل: هر دو توی نوار پایین هستن */}
+            <Box
+              sx={{
+                display: { xs: "none", md: "flex" },
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <IconButton component={NextLink} href="/cart">
+                <Badge
+                  badgeContent={mounted ? cartItemTypesCount : 0}
+                  color="primary"
                 >
-                  <MenuItem
-                    component={NextLink}
-                    href="/account/profile"
-                    onClick={() => setAccountAnchor(null)}
+                  <ShoppingCart />
+                </Badge>
+              </IconButton>
+
+              {user ? (
+                <>
+                  <IconButton
+                    onClick={(e) => setAccountAnchor(e.currentTarget)}
                   >
-                    پروفایل من
-                  </MenuItem>
-                  <MenuItem
-                    component={NextLink}
-                    href="/account/orders"
-                    onClick={() => setAccountAnchor(null)}
+                    <Avatar
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        bgcolor: "primary.main",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      {user.name?.[0]}
+                    </Avatar>
+                  </IconButton>
+                  <Menu
+                    anchorEl={accountAnchor}
+                    open={!!accountAnchor}
+                    onClose={() => setAccountAnchor(null)}
                   >
-                    سفارش‌های من
-                  </MenuItem>
-                  <MenuItem
-                    component={NextLink}
-                    href="/account/favorites"
-                    onClick={() => setAccountAnchor(null)}
-                  >
-                    علاقه‌مندی‌های من
-                  </MenuItem>
-                  <Divider />
-                  <MenuItem onClick={handleLogout} sx={{ color: "error.main" }}>
-                    خروج از حساب
-                  </MenuItem>
-                </Menu>
-              </>
-            ) : (
-              <Button
-                component={NextLink}
-                href="/login"
-                variant="contained"
-                disableElevation
-                size="small"
-              >
-                ورود / ثبت‌نام
-              </Button>
-            )}
+                    <MenuItem
+                      component={NextLink}
+                      href="/account/profile"
+                      onClick={() => setAccountAnchor(null)}
+                    >
+                      پروفایل من
+                    </MenuItem>
+                    <MenuItem
+                      component={NextLink}
+                      href="/account/orders"
+                      onClick={() => setAccountAnchor(null)}
+                    >
+                      سفارش‌های من
+                    </MenuItem>
+                    <MenuItem
+                      component={NextLink}
+                      href="/account/favorites"
+                      onClick={() => setAccountAnchor(null)}
+                    >
+                      علاقه‌مندی‌های من
+                    </MenuItem>
+                    <Divider />
+                    <MenuItem
+                      onClick={handleLogout}
+                      sx={{ color: "error.main" }}
+                    >
+                      خروج از حساب
+                    </MenuItem>
+                  </Menu>
+                </>
+              ) : (
+                <Button
+                  component={NextLink}
+                  href="/login"
+                  variant="contained"
+                  disableElevation
+                  size="small"
+                >
+                  ورود / ثبت‌نام
+                </Button>
+              )}
+            </Box>
           </Box>
         </Container>
       </Box>
-
-      {/* منوی موبایل */}
-      <Drawer
-        anchor="right"
-        open={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-      >
-        <Box sx={{ width: 280, p: 2 }}>
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-            <IconButton onClick={() => setMobileMenuOpen(false)}>
-              <Close />
-            </IconButton>
-          </Box>
-          <Stack spacing={0.5}>
-            <Button
-              component={NextLink}
-              href="/products"
-              color="inherit"
-              onClick={() => setMobileMenuOpen(false)}
-              sx={{ justifyContent: "flex-start" }}
-            >
-              محصولات
-            </Button>
-            <Button
-              component={NextLink}
-              href="/articles"
-              color="inherit"
-              onClick={() => setMobileMenuOpen(false)}
-              sx={{ justifyContent: "flex-start" }}
-            >
-              مقالات
-            </Button>
-
-            <Divider sx={{ my: 1 }} />
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ px: 1.5, mb: 0.5 }}
-            >
-              دسته‌بندی‌ها
-            </Typography>
-            {roots.map((root) => (
-              <MobileCategoryAccordionItem
-                key={root.id}
-                category={root}
-                categories={categories}
-                depth={0}
-                onNavigate={() => setMobileMenuOpen(false)}
-              />
-            ))}
-
-            <Divider sx={{ my: 1 }} />
-            <Button
-              component={NextLink}
-              href="/about"
-              color="inherit"
-              onClick={() => setMobileMenuOpen(false)}
-              sx={{ justifyContent: "flex-start" }}
-            >
-              درباره‌ی ما
-            </Button>
-            <Button
-              component={NextLink}
-              href="/contact"
-              color="inherit"
-              onClick={() => setMobileMenuOpen(false)}
-              sx={{ justifyContent: "flex-start" }}
-            >
-              تماس با ما
-            </Button>
-          </Stack>
-        </Box>
-      </Drawer>
     </Box>
   );
 }
