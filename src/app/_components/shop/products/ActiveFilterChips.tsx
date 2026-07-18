@@ -53,12 +53,19 @@ function getDescendantIds(
 export function ActiveFilterChips({
   categories,
   brands,
+  showCategoryFilter = true,
+  basePath,
 }: {
   categories: CategoryOption[];
   brands: Option[];
+  showCategoryFilter?: boolean;
+  basePath?: string;
 }) {
   const { filters, updateFilters, clearFilters, removeFromArrayFilter } =
-    useProductFilters();
+    useProductFilters({
+      basePath,
+      includeCategoryFilter: showCategoryFilter,
+    });
 
   const chips: { key: string; label: React.ReactNode; onDelete: () => void }[] =
     [

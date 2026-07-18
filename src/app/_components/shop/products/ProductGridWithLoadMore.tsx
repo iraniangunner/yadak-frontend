@@ -8,8 +8,8 @@ import {
   ProductCard,
   ProductCardData,
 } from "@/app/_components/shop/ProductCard";
-import { useProductFilters } from "@/hooks/useProductFilters";
 import { ProductCardSkeleton } from "./ProductCardSkeleton";
+import { useProductFilters } from "@/hooks/useProductFilters";
 
 /*
 |--------------------------------------------------------------------------
@@ -25,12 +25,21 @@ export function ProductGridWithLoadMore({
   initialProducts,
   initialTotal,
   initialLastPage,
+  fixedCategoryIds,
+  basePath,
+  showCategoryFilter = true,
 }: {
   initialProducts: ProductCardData[];
   initialTotal: number;
   initialLastPage: number;
+  fixedCategoryIds?: number[];
+  basePath?: string;
+  showCategoryFilter?: boolean;
 }) {
-  const { search, vehicleId, filters, sort, perPage } = useProductFilters();
+  const { search, vehicleId, filters, sort, perPage } = useProductFilters({
+    basePath,
+    includeCategoryFilter: showCategoryFilter,
+  });
   const filtersKey = JSON.stringify(filters);
 
   const [products, setProducts] = useState(initialProducts);
@@ -50,7 +59,9 @@ export function ProductGridWithLoadMore({
       .list({
         search: search || undefined,
         vehicle_id: vehicleId ? Number(vehicleId) : undefined,
-        category_id: filters.category_ids.length
+        category_id: fixedCategoryIds?.length
+          ? fixedCategoryIds.join(",")
+          : filters.category_ids.length
           ? filters.category_ids.join(",")
           : undefined,
         brand_id: filters.brand_ids.length

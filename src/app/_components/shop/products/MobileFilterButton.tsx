@@ -17,9 +17,6 @@ import { ProductFilterPanel } from "@/app/_components/shop/ProductFilterPanel";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/products/MobileFilterButton.tsx
 |--------------------------------------------------------------------------
-| Drawer با تیک زدن هر چک‌باکس بسته نمی‌شه - کاربر می‌تونه چندتا فیلتر
-| رو پشت سر هم انتخاب کنه و در آخر با دکمه‌ی «مشاهده‌ی نتایج» (ثابت
-| پایین Drawer) ببندتش.
 */
 
 type Option = { id: number; name: string };
@@ -28,12 +25,19 @@ type CategoryOption = Option & { parent_id: number | null };
 export function MobileFilterButton({
   categories,
   brands,
+  showCategoryFilter = true,
+  basePath,
 }: {
   categories: CategoryOption[];
   brands: Option[];
+  showCategoryFilter?: boolean;
+  basePath?: string;
 }) {
   const { filters, updateFilters, clearFilters, activeFilterCount } =
-    useProductFilters();
+    useProductFilters({
+      basePath,
+      includeCategoryFilter: showCategoryFilter,
+    });
   const [open, setOpen] = useState(false);
 
   return (
@@ -74,10 +78,10 @@ export function MobileFilterButton({
               brands={brands}
               onChange={updateFilters}
               onClear={clearFilters}
+              showCategoryFilter={showCategoryFilter}
             />
           </Box>
 
-          {/* دکمه‌ی ثابت پایین - فقط همین‌جا Drawer بسته می‌شه */}
           <Box
             sx={{
               p: 2,

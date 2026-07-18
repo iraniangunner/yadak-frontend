@@ -8,12 +8,16 @@ import { getCategories } from "@/lib/serverApi";
 |--------------------------------------------------------------------------
 */
 
-export default async function ShopLayout({ children }: { children: React.ReactNode }) {
+export default async function ShopLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const categories = await getCategories();
 
   return (
     <>
-      <SiteHeader/>
+      <SiteHeader categories={categories} />
       <main>{children}</main>
       <SiteFooter />
     </>

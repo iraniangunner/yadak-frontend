@@ -30,9 +30,38 @@ async function serverFetch<T>(
 export type ServerCategory = {
   id: number;
   name: string;
+  slug: string;
   thumbnail_url: string | null;
   parent_id: number | null;
 };
+
+/**
+ * پیدا کردن یه دسته با slug، از بین کل لیست دسته‌بندی‌ها (چون بک‌اند
+ * endpoint جدای «یه دسته با slug» نداره - و چون تعداد دسته‌ها معمولاً کمه،
+ * فیلتر کردن سمت سرور روی خروجی /categories کاملاً کافیه).
+ */
+export function findCategoryBySlug(
+  categories: ServerCategory[],
+  slug: string
+): ServerCategory | null {
+  return categories.find((c) => c.slug === slug) || null;
+}
+
+/**
+ * همه‌ی شناسه‌های زیرمجموعه (تا هر عمقی) + خودِ دسته - برای اینکه صفحه‌ی
+ * دسته‌بندی محصولات زیرمجموعه‌ها رو هم نشون بده، نه فقط همون یه دسته‌ی دقیق.
+ */
+export function getCategoryAndDescendantIds(
+  categories: ServerCategory[],
+  categoryId: number
+): number[] {
+  const children = categories.filter((c) => c.parent_id === categoryId);
+  let ids = [categoryId];
+  for (const child of children) {
+    ids = ids.concat(getCategoryAndDescendantIds(categories, child.id));
+  }
+  return ids;
+}
 export type ServerBrand = {
   id: number;
   name: string;
@@ -69,6 +98,34 @@ export type ServerVehicle = {
   year_from: number | null;
   year_to: number | null;
 };
+
+export type ServerProductDetail = {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  price: number;
+  final_price: number;
+  compare_price: number | null;
+  stock_status: string;
+  thumbnail_url: string | null;
+  average_rating: number | null;
+  reviews_count: number;
+  category: { id: number; name: string } | null;
+  brand: { id: number; name: string } | null;
+  images: { id: number; url: string }[];
+  product_attributes: { id: number; name: string; value: string }[];
+};
+
+export async function getProduct(
+  slug: string
+): Promise<ServerProductDetail | null> {
+  const res = await serverFetch<{ product: ServerProductDetail }>(
+    `/products/${slug}`,
+    30
+  );
+  return res?.product || null;
+}
 
 export async function getCategories() {
   const res = await serverFetch<{ data: ServerCategory[] }>("/categories", 300);

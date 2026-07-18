@@ -196,7 +196,7 @@ function CategoryNode({
               fontSize="small"
               sx={{
                 transition: "transform .2s",
-                transform: expanded ? "rotate(0deg)" : "rotate(90deg)",
+                transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
               }}
             />
           </IconButton>
@@ -258,12 +258,14 @@ export function ProductFilterPanel({
   brands,
   onChange,
   onClear,
+  showCategoryFilter = true,
 }: {
   filters: ProductFilters;
   categories: CategoryOption[];
   brands: Option[];
   onChange: (filters: ProductFilters) => void;
   onClear: () => void;
+  showCategoryFilter?: boolean;
 }) {
   // چون این صفحه SSR ـه، هر تغییر فیلتر یه رفت‌وبرگشت واقعی به سرور داره
   // که یه لحظه طول می‌کشه. برای فیدبک فوری، یه نسخه‌ی محلی خوش‌بینانه از
@@ -297,16 +299,19 @@ export function ProductFilterPanel({
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       <Typography sx={{ fontWeight: 700, mb: 0.5 }}>فیلترها</Typography>
 
-      <Typography variant="body2" sx={{ fontWeight: 600, mt: 1 }}>
-        دسته‌بندی
-      </Typography>
-      <CategoryTree
-        categories={categories}
-        selectedIds={optimisticCategoryIds}
-        onChange={handleCategoryChange}
-      />
-
-      <Divider sx={{ my: 1 }} />
+      {showCategoryFilter && (
+        <>
+          <Typography variant="body2" sx={{ fontWeight: 600, mt: 1 }}>
+            دسته‌بندی
+          </Typography>
+          <CategoryTree
+            categories={categories}
+            selectedIds={optimisticCategoryIds}
+            onChange={handleCategoryChange}
+          />
+          <Divider sx={{ my: 1 }} />
+        </>
+      )}
 
       <Typography variant="body2" sx={{ fontWeight: 600 }}>
         برند

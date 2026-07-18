@@ -19,14 +19,20 @@ const sortOptions = [
 
 const perPageOptions = [12, 24, 48];
 
-export function SortAndPerPageControls() {
-  const { sort, perPage, setParam } = useProductFilters();
+export function SortAndPerPageControls({
+  basePath,
+}: { basePath?: string } = {}) {
+  const { sort, perPage, setParam } = useProductFilters({ basePath });
 
   return (
     <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
       <FormControl size="small" sx={{ minWidth: 150 }}>
         <InputLabel>مرتب‌سازی</InputLabel>
-        <Select label="مرتب‌سازی" value={sort} onChange={(e) => setParam("sort", e.target.value)}>
+        <Select
+          label="مرتب‌سازی"
+          value={sort}
+          onChange={(e) => setParam("sort", e.target.value)}
+        >
           {sortOptions.map((opt) => (
             <MenuItem key={opt.value} value={opt.value}>
               {opt.label}
@@ -37,7 +43,11 @@ export function SortAndPerPageControls() {
 
       <FormControl size="small" sx={{ minWidth: 130 }}>
         <InputLabel>تعداد در صفحه</InputLabel>
-        <Select label="تعداد در صفحه" value={String(perPage)} onChange={(e) => setParam("per_page", e.target.value)}>
+        <Select
+          label="تعداد در صفحه"
+          value={String(perPage)}
+          onChange={(e) => setParam("per_page", e.target.value)}
+        >
           {perPageOptions.map((n) => (
             <MenuItem key={n} value={String(n)}>
               {n} محصول

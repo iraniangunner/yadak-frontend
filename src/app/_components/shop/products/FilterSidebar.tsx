@@ -16,11 +16,18 @@ type CategoryOption = Option & { parent_id: number | null };
 export function FilterSidebar({
   categories,
   brands,
+  showCategoryFilter = true,
+  basePath,
 }: {
   categories: CategoryOption[];
   brands: Option[];
+  showCategoryFilter?: boolean;
+  basePath?: string;
 }) {
-  const { filters, updateFilters, clearFilters } = useProductFilters();
+  const { filters, updateFilters, clearFilters } = useProductFilters({
+    basePath,
+    includeCategoryFilter: showCategoryFilter,
+  });
 
   return (
     <Box
@@ -44,6 +51,7 @@ export function FilterSidebar({
         brands={brands}
         onChange={updateFilters}
         onClear={clearFilters}
+        showCategoryFilter={showCategoryFilter}
       />
     </Box>
   );
