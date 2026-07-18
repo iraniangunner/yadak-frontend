@@ -31,7 +31,17 @@ import { SearchModal } from "@/app/_components/shop/SearchModal";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/SiteHeader.tsx
 |--------------------------------------------------------------------------
-
+| دسکتاپ: منوی دسته‌بندی با هاور باز می‌شه، چندستونه‌ی آبشاری (هر عمقی).
+| پس‌زمینه‌ی مات و پنل منو دو تا sibling کاملاً جدا هستن (نه تودرتو)، تا
+| هیچ‌وقت پنل زیر بلور گیر نیفته.
+|
+| موبایل: منوی همبرگری قدیمی حذف شد - ناوبری اصلی و دسته‌بندی‌ها الان
+| توی MobileBottomNav.tsx (نوار پایین ثابت) هست.
+|
+| ⚠️ نکته‌ی مهم: چون stylis-plugin-rtl حتی مقدار عددی left/right رو هم
+| بر اساس اسم property برعکس می‌کنه (نه مقدارش)، برای موقعیت‌دهی پیکسلی
+| دقیق از style خام React استفاده می‌کنیم (نه sx)، چون style خام از
+| پردازش emotion/stylis رد نمی‌شه.
 */
 
 function getChildren(categories: ServerCategory[], parentId: number | null) {
@@ -188,9 +198,12 @@ function DesktopCategoriesMegaMenu({
         size="small"
         sx={{ borderColor: "divider", color: "text.primary" }}
       >
-        دسته‌بندی محصولات 
+        دسته‌بندی محصولات
       </Button>
 
+      {/* ⚠️ پس‌زمینه‌ی مات و پنل، دو sibling کاملاً جدا داخل یه wrapper مستقل
+          (نه تودرتو با position:relative روی دکمه) - این ساختار سادهٔ
+          مطمئنیه که دیگه محل نداره پنل زیر بلور گیر بیفته. */}
       {open &&
         anchorRect &&
         createPortal(
@@ -289,6 +302,7 @@ export function SiteHeader({
       ref={headerRef}
       sx={{ position: "sticky", top: 0, zIndex: 10 }}
     >
+      {/* نوار اصلی - همه‌چیز یه‌جا */}
       <Box
         sx={{
           bgcolor: "background.paper",
@@ -312,17 +326,19 @@ export function SiteHeader({
               یدکی
             </Box>
 
-            <DesktopCategoriesMegaMenu
-              categories={categories}
-              headerRef={headerRef}
-            />
-
             <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
               <Stack
                 direction="row"
                 spacing={0.5}
-                sx={{ display: { xs: "none", md: "flex" } }}
+                sx={{
+                  display: { xs: "none", md: "flex" },
+                  alignItems: "center",
+                }}
               >
+                <DesktopCategoriesMegaMenu
+                  categories={categories}
+                  headerRef={headerRef}
+                />
                 <Button
                   component={NextLink}
                   href="/products"
@@ -358,10 +374,12 @@ export function SiteHeader({
               </Stack>
             </Box>
 
+            {/* آیکون جستجو - کنار سبد خرید، مودال باز می‌کنه */}
             <IconButton onClick={() => setSearchOpen(true)}>
               <Search />
             </IconButton>
 
+            {/* دسکتاپ: سبد و حساب کاربری همینجا. موبایل: هر دو توی نوار پایین هستن */}
             <Box
               sx={{
                 display: { xs: "none", md: "flex" },

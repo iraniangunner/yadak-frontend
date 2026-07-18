@@ -8,7 +8,7 @@ import {
   Home,
   Apps,
   ShoppingCart,
-  Article,
+  Storefront,
   Person,
   Close,
   ChevronLeft,
@@ -316,13 +316,13 @@ export function MobileBottomNav({
 
         <Box
           component={NextLink}
-          href="/articles"
-          sx={itemSx(isActive("/articles"))}
+          href="/products"
+          sx={itemSx(isActive("/products"))}
         >
-          <Indicator active={isActive("/articles")} />
-          <Article fontSize="small" />
+          <Indicator active={isActive("/products")} />
+          <Storefront fontSize="small" />
           <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1 }}>
-            مقالات
+            فروشگاه
           </Typography>
         </Box>
 

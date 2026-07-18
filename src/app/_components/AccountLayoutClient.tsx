@@ -22,7 +22,6 @@ export default function AccountLayoutClient({
 }) {
   return (
     <>
-      <SiteHeader />
       <Box
         sx={{
           bgcolor: "background.default",
@@ -46,8 +45,6 @@ export default function AccountLayoutClient({
           </Box>
         </Container>
       </Box>
-     
-      <SiteFooter />
     </>
   );
 }
