@@ -56,14 +56,14 @@ const ratingOptions = [4, 3, 2, 1];
 
 function getChildren(
   categories: CategoryOption[],
-  parentId: number
+  parentId: number,
 ): CategoryOption[] {
   return categories.filter((c) => c.parent_id === parentId);
 }
 
 function getDescendantIds(
   categories: CategoryOption[],
-  nodeId: number
+  nodeId: number,
 ): string[] {
   const children = getChildren(categories, nodeId);
   let ids: string[] = [];
@@ -76,7 +76,7 @@ function getDescendantIds(
 
 function getAncestorIds(
   categories: CategoryOption[],
-  nodeId: number
+  nodeId: number,
 ): string[] {
   const node = categories.find((c) => c.id === nodeId);
   if (!node || !node.parent_id) return [];
@@ -114,19 +114,18 @@ function CategoryNode({
     const nodeId = String(category.id);
     const descendantIds = getDescendantIds(categories, category.id);
 
-    // ⚠️ تصمیم بر اساس isChecked (وضعیت نمایشی)، نه صرفاً حضور خام آیدی
-    // توی آرایه - چون آیدی زیرمجموعه‌ها حتی وقتی نمایشش unchecked ـه،
-    // ممکنه (به‌خاطر والدشون) از قبل توی آرایه باشه.
     if (isChecked) {
       onChange(
-        selectedIds.filter((id) => id !== nodeId && !descendantIds.includes(id))
+        selectedIds.filter(
+          (id) => id !== nodeId && !descendantIds.includes(id),
+        ),
       );
     } else {
       const cleaned = selectedIds.filter(
         (id) =>
           id !== nodeId &&
           !descendantIds.includes(id) &&
-          !ancestorIds.includes(id)
+          !ancestorIds.includes(id),
       );
       onChange([...cleaned, nodeId, ...descendantIds]);
     }
@@ -134,7 +133,6 @@ function CategoryNode({
 
   return (
     <Box sx={{ position: "relative" }}>
-      {/* خط عمودی اتصال درختی برای سطوح تودرتو */}
       {depth > 0 && (
         <Box
           sx={{
@@ -196,7 +194,7 @@ function CategoryNode({
               fontSize="small"
               sx={{
                 transition: "transform .2s",
-                transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
+                transform: expanded ? "rotate(0deg)" : "rotate(90deg)",
               }}
             />
           </IconButton>
@@ -267,16 +265,12 @@ export function ProductFilterPanel({
   onClear: () => void;
   showCategoryFilter?: boolean;
 }) {
-  // چون این صفحه SSR ـه، هر تغییر فیلتر یه رفت‌وبرگشت واقعی به سرور داره
-  // که یه لحظه طول می‌کشه. برای فیدبک فوری، یه نسخه‌ی محلی خوش‌بینانه از
-  // category_ids نگه می‌داریم که همون لحظه‌ی کلیک آپدیت می‌شه.
   const [optimisticCategoryIds, setOptimisticCategoryIds] = useState(
-    filters.category_ids
+    filters.category_ids,
   );
 
   useEffect(() => {
     setOptimisticCategoryIds(filters.category_ids);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.category_ids.join(",")]);
 
   const handleCategoryChange = (nextCategoryIds: string[]) => {
@@ -286,7 +280,7 @@ export function ProductFilterPanel({
 
   const toggleInArray = (
     key: "brand_ids" | "stock_statuses",
-    value: string
+    value: string,
   ) => {
     const current = filters[key] as string[];
     const next = current.includes(value)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -21,6 +22,8 @@ import {
   ShoppingCart,
   Add,
   Remove,
+  Check,
+  ArrowBackIosNew,
   VerifiedUser,
   LocalShipping,
   AssignmentReturn,
@@ -51,6 +54,9 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const addToCart = useCartStore((s) => s.addItem);
+  const isInCart = useCartStore((s) =>
+    s.items.some((i) => i.product_id === product.id),
+  );
 
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(product.final_price);
@@ -82,7 +88,7 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
     ? Math.round(
         ((product.compare_price! - product.final_price) /
           product.compare_price!) *
-          100
+          100,
       )
     : 0;
 
@@ -115,7 +121,7 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
         brand_name: product.brand?.name,
         average_rating: product.average_rating,
       },
-      quantity
+      quantity,
     );
     setToast("به سبد خرید اضافه شد");
   };
@@ -263,72 +269,113 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
       </Box>
 
       {isPurchasable && (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-            mb: 2,
-            flexWrap: "wrap",
-          }}
-        >
+        <Box sx={{ mb: 2 }}>
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 999,
-              overflow: "hidden",
-              bgcolor: "background.default",
+              gap: 2,
+              flexWrap: "wrap",
             }}
           >
-            <IconButton
-              size="small"
-              onClick={() => setQuantity((q) => q + 1)}
+            <Box
               sx={{
-                borderRadius: 0,
-                width: 40,
-                height: 40,
-                "&:hover": { bgcolor: "rgba(30,58,138,0.08)" },
+                display: "flex",
+                alignItems: "center",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 999,
+                overflow: "hidden",
+                bgcolor: "background.default",
               }}
             >
-              <Add fontSize="small" />
-            </IconButton>
-            <Typography
-              sx={{
-                width: 40,
-                textAlign: "center",
-                fontWeight: 700,
-                userSelect: "none",
-              }}
-            >
-              {quantity}
-            </Typography>
-            <IconButton
-              size="small"
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              sx={{
-                borderRadius: 0,
-                width: 40,
-                height: 40,
-                "&:hover": { bgcolor: "rgba(30,58,138,0.08)" },
-              }}
-            >
-              <Remove fontSize="small" />
-            </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => setQuantity((q) => q + 1)}
+                sx={{
+                  borderRadius: 0,
+                  width: 40,
+                  height: 40,
+                  "&:hover": { bgcolor: "rgba(30,58,138,0.08)" },
+                }}
+              >
+                <Add fontSize="small" />
+              </IconButton>
+              <Typography
+                sx={{
+                  width: 40,
+                  textAlign: "center",
+                  fontWeight: 700,
+                  userSelect: "none",
+                }}
+              >
+                {quantity}
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                sx={{
+                  borderRadius: 0,
+                  width: 40,
+                  height: 40,
+                  "&:hover": { bgcolor: "rgba(30,58,138,0.08)" },
+                }}
+              >
+                <Remove fontSize="small" />
+              </IconButton>
+            </Box>
+
+            {isInCart ? (
+              <Button
+                variant="outlined"
+                color="success"
+                disableElevation
+                size="large"
+                disabled
+                startIcon={<Check />}
+                sx={{ flex: "1 1 180px", fontWeight: 700 }}
+              >
+                در سبد
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                disableElevation
+                size="large"
+                startIcon={<ShoppingCart />}
+                onClick={handleAddToCart}
+                sx={{ flex: "1 1 180px", fontWeight: 700 }}
+              >
+                افزودن به سبد خرید
+              </Button>
+            )}
           </Box>
 
-          <Button
-            variant="contained"
-            disableElevation
-            size="large"
-            startIcon={<ShoppingCart />}
-            onClick={handleAddToCart}
-            sx={{ flex: "1 1 180px", fontWeight: 700 }}
-          >
-            افزودن به سبد خرید
-          </Button>
+          {isInCart && (
+            <Box
+              component={NextLink}
+              href="/cart"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 0.75,
+                mt: 1.5,
+                py: 1,
+                borderRadius: 999,
+                bgcolor: "rgba(30,58,138,0.06)",
+                color: "primary.main",
+                fontWeight: 700,
+                fontSize: "0.875rem",
+                textDecoration: "none",
+                transition: "background-color .15s, gap .15s",
+                "&:hover": { bgcolor: "rgba(30,58,138,0.12)", gap: 1.25 },
+              }}
+            >
+              مشاهده‌ی سبد خرید
+              <ArrowBackIosNew sx={{ fontSize: 13 }} />
+            </Box>
+          )}
         </Box>
       )}
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useState } from "react";
 import { Box, IconButton } from "@mui/material";
 import { ChevronRight, ChevronLeft } from "@mui/icons-material";
+import useEmblaCarousel from "embla-carousel-react";
 import {
   ProductCard,
   ProductCardData,
@@ -12,6 +13,7 @@ import {
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/RelatedProductsCarousel.tsx
 |--------------------------------------------------------------------------
+
 */
 
 export function RelatedProductsCarousel({
@@ -19,68 +21,78 @@ export function RelatedProductsCarousel({
 }: {
   products: ProductCardData[];
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: false,
+    direction: "rtl",
+    align: "start",
+    dragFree: true,
+  });
+  const [canScroll, setCanScroll] = useState(false);
 
-  const scrollBy = (amount: number) => {
-    scrollRef.current?.scrollBy({ left: amount, behavior: "smooth" });
-  };
+  useEffect(() => {
+    if (!emblaApi) return;
+
+    const updateCanScroll = () =>
+      setCanScroll(emblaApi.scrollSnapList().length > 1);
+
+    updateCanScroll();
+    emblaApi.on("reInit", updateCanScroll);
+    emblaApi.on("resize", updateCanScroll);
+
+    return () => {
+      emblaApi.off("reInit", updateCanScroll);
+      emblaApi.off("resize", updateCanScroll);
+    };
+  }, [emblaApi]);
 
   if (products.length === 0) return null;
 
   return (
     <Box sx={{ position: "relative" }}>
-      <Box
-        ref={scrollRef}
-        sx={{
-          display: "flex",
-          gap: 2,
-          overflowX: "auto",
-          scrollSnapType: "x mandatory",
-          pb: 1,
-          "&::-webkit-scrollbar": { height: 6 },
-          "&::-webkit-scrollbar-thumb": { bgcolor: "divider", borderRadius: 3 },
-        }}
-      >
-        {products.map((product) => (
-          <Box
-            key={product.id}
-            sx={{ minWidth: 180, maxWidth: 180, scrollSnapAlign: "start" }}
-          >
-            <ProductCard product={product} />
-          </Box>
-        ))}
+      <Box ref={emblaRef} sx={{ overflow: "hidden" }}>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          {products.map((product) => (
+            <Box key={product.id} sx={{ flex: "0 0 auto", width: 230 }}>
+              <ProductCard product={product} />
+            </Box>
+          ))}
+        </Box>
       </Box>
 
-      <IconButton
-        onClick={() => scrollBy(300)}
-        sx={{
-          display: { xs: "none", sm: "flex" },
-          position: "absolute",
-          top: "35%",
-          right: -18,
-          bgcolor: "background.paper",
-          boxShadow: 2,
-          "&:hover": { bgcolor: "background.paper" },
-        }}
-        size="small"
-      >
-        <ChevronRight fontSize="small" />
-      </IconButton>
-      <IconButton
-        onClick={() => scrollBy(-300)}
-        sx={{
-          display: { xs: "none", sm: "flex" },
-          position: "absolute",
-          top: "35%",
-          left: -18,
-          bgcolor: "background.paper",
-          boxShadow: 2,
-          "&:hover": { bgcolor: "background.paper" },
-        }}
-        size="small"
-      >
-        <ChevronLeft fontSize="small" />
-      </IconButton>
+      {canScroll && (
+        <>
+          <IconButton
+            onClick={() => emblaApi?.scrollNext()}
+            size="small"
+            sx={{
+              display: "flex",
+              position: "absolute",
+              top: "35%",
+              insetInlineStart: -8,
+              bgcolor: "background.paper",
+              boxShadow: 2,
+              "&:hover": { bgcolor: "background.paper" },
+            }}
+          >
+            <ChevronRight fontSize="small" />
+          </IconButton>
+          <IconButton
+            onClick={() => emblaApi?.scrollPrev()}
+            size="small"
+            sx={{
+              display: "flex",
+              position: "absolute",
+              top: "35%",
+              insetInlineEnd: -8,
+              bgcolor: "background.paper",
+              boxShadow: 2,
+              "&:hover": { bgcolor: "background.paper" },
+            }}
+          >
+            <ChevronLeft fontSize="small" />
+          </IconButton>
+        </>
+      )}
     </Box>
   );
 }
