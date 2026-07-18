@@ -7,11 +7,16 @@ import { useProductFilters } from "@/hooks/useProductFilters";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/products/ActiveFilterChips.tsx
 |--------------------------------------------------------------------------
-| چیپ فقط وقتی برای یه دسته/برند ساخته می‌شه که اسم واقعیش موجود باشه -
-| تا هیچ‌وقت عدد ID خام (fallback) نمایش داده نشه.
+| برای دسته‌بندی‌ها: چون درختی هستن، وقتی یه والد تیک می‌خوره، آیدی همه‌ی
+| زیرمجموعه‌هاش هم (برای فیلتر واقعی) داخل category_ids قرار می‌گیره. اگه
+| برای هرکدوم جدا چیپ می‌ساختیم، چیپ‌های تکراری/گیج‌کننده می‌دیدید. برای
+| همین فقط برای «ریشه‌ی انتخاب» (دسته‌ای که هیچ‌کدوم از اجدادش هم انتخاب
+| نشده) چیپ می‌سازیم - دقیقاً همون چیزی که توی درخت هم تیک‌خورده نشون داده
+| می‌شه.
 */
 
 type Option = { id: number; name: string };
+type CategoryOption = Option & { parent_id: number | null };
 
 const stockStatusLabels: Record<string, string> = {
   available: "موجود",
@@ -20,11 +25,36 @@ const stockStatusLabels: Record<string, string> = {
   out_of_stock: "ناموجود",
 };
 
+function getAncestorIds(
+  categories: CategoryOption[],
+  nodeId: number
+): string[] {
+  const node = categories.find((c) => c.id === nodeId);
+  if (!node || !node.parent_id) return [];
+  return [
+    String(node.parent_id),
+    ...getAncestorIds(categories, node.parent_id),
+  ];
+}
+
+function getDescendantIds(
+  categories: CategoryOption[],
+  nodeId: number
+): string[] {
+  const children = categories.filter((c) => c.parent_id === nodeId);
+  let ids: string[] = [];
+  for (const child of children) {
+    ids.push(String(child.id));
+    ids = ids.concat(getDescendantIds(categories, child.id));
+  }
+  return ids;
+}
+
 export function ActiveFilterChips({
   categories,
   brands,
 }: {
-  categories: Option[];
+  categories: CategoryOption[];
   brands: Option[];
 }) {
   const { filters, updateFilters, clearFilters, removeFromArrayFilter } =
@@ -36,10 +66,29 @@ export function ActiveFilterChips({
         .map((id) => {
           const category = categories.find((c) => String(c.id) === id);
           if (!category) return null;
+
+          // فقط اگه هیچ‌کدوم از اجدادش هم انتخاب نشده باشن، این «ریشه‌ی
+          // انتخاب»ـه و چیپ مستقل می‌گیره.
+          const ancestorIds = getAncestorIds(categories, category.id);
+          if (
+            ancestorIds.some((ancestorId) =>
+              filters.category_ids.includes(ancestorId)
+            )
+          )
+            return null;
+
           return {
             key: `cat-${id}`,
             label: category.name,
-            onDelete: () => removeFromArrayFilter("category_ids", id),
+            onDelete: () => {
+              const descendantIds = getDescendantIds(categories, category.id);
+              updateFilters({
+                ...filters,
+                category_ids: filters.category_ids.filter(
+                  (cid) => cid !== id && !descendantIds.includes(cid)
+                ),
+              });
+            },
           };
         })
         .filter((c): c is NonNullable<typeof c> => c !== null),

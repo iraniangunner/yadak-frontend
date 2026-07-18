@@ -29,7 +29,12 @@ import {
   Alert,
   Avatar,
 } from "@mui/material";
-import { Add, Edit, Delete, Category as CategoryIcon } from "@mui/icons-material";
+import {
+  Add,
+  Edit,
+  Delete,
+  Category as CategoryIcon,
+} from "@mui/icons-material";
 import { adminAPI, categoriesAPI } from "@/lib/api";
 
 /*
@@ -66,9 +71,11 @@ export function AdminCategoriesContent() {
 
   const loadCategories = () => {
     setCategories(null);
-    categoriesAPI.list({ with_inactive: true, per_page: 100 } as any).then((res) => {
-      setCategories(res.data.data);
-    });
+    categoriesAPI
+      .list({ with_inactive: true, per_page: 100 } as any)
+      .then((res) => {
+        setCategories(res.data.data);
+      });
   };
 
   useEffect(() => {
@@ -102,7 +109,7 @@ export function AdminCategoriesContent() {
 
     const fd = new FormData();
     fd.append("name", form.name);
-    if (form.parent_id) fd.append("parent_id", form.parent_id);
+    fd.append("parent_id", form.parent_id || "");
     fd.append("is_active", form.is_active ? "1" : "0");
     fd.append("sort_order", form.sort_order);
     if (thumbnailFile) fd.append("thumbnail", thumbnailFile);
@@ -116,7 +123,11 @@ export function AdminCategoriesContent() {
       setDialogOpen(false);
       loadCategories();
     } catch (err: any) {
-      setErrors(err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی دسته‌بندی."] });
+      setErrors(
+        err?.response?.data?.errors || {
+          general: ["خطا در ذخیره‌ی دسته‌بندی."],
+        }
+      );
     } finally {
       setIsSaving(false);
     }
@@ -134,7 +145,8 @@ export function AdminCategoriesContent() {
   // محصول (در حالت ویرایش) رو نشون بده.
   const thumbnailPreviewUrl = useMemo(() => {
     if (thumbnailFile) return URL.createObjectURL(thumbnailFile);
-    if (editingId) return categories?.find((c) => c.id === editingId)?.thumbnail_url || null;
+    if (editingId)
+      return categories?.find((c) => c.id === editingId)?.thumbnail_url || null;
     return null;
   }, [thumbnailFile, editingId, categories]);
 
@@ -147,16 +159,31 @@ export function AdminCategoriesContent() {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 3,
+        }}
+      >
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
           دسته‌بندی‌ها
         </Typography>
-        <Button variant="contained" disableElevation startIcon={<Add />} onClick={openCreateDialog}>
+        <Button
+          variant="contained"
+          disableElevation
+          startIcon={<Add />}
+          onClick={openCreateDialog}
+        >
           افزودن دسته‌بندی
         </Button>
       </Box>
 
-      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+      <TableContainer
+        component={Paper}
+        sx={{ borderRadius: 3, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+      >
         <Table>
           <TableHead>
             <TableRow>
@@ -178,7 +205,9 @@ export function AdminCategoriesContent() {
             ) : categories.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                  <Typography color="text.secondary">دسته‌بندی‌ای یافت نشد</Typography>
+                  <Typography color="text.secondary">
+                    دسته‌بندی‌ای یافت نشد
+                  </Typography>
                 </TableCell>
               </TableRow>
             ) : (
@@ -188,7 +217,11 @@ export function AdminCategoriesContent() {
                     <Avatar
                       variant="rounded"
                       src={category.thumbnail_url || undefined}
-                      sx={{ width: 36, height: 36, bgcolor: "background.default" }}
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        bgcolor: "background.default",
+                      }}
                     >
                       <CategoryIcon fontSize="small" />
                     </Avatar>
@@ -196,7 +229,8 @@ export function AdminCategoriesContent() {
                   <TableCell>{category.name}</TableCell>
                   <TableCell>
                     {category.parent_id
-                      ? categories.find((c) => c.id === category.parent_id)?.name || "—"
+                      ? categories.find((c) => c.id === category.parent_id)
+                          ?.name || "—"
                       : "—"}
                   </TableCell>
                   <TableCell>{category.sort_order}</TableCell>
@@ -208,10 +242,16 @@ export function AdminCategoriesContent() {
                     />
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton size="small" onClick={() => openEditDialog(category)}>
+                    <IconButton
+                      size="small"
+                      onClick={() => openEditDialog(category)}
+                    >
                       <Edit fontSize="small" />
                     </IconButton>
-                    <IconButton size="small" onClick={() => handleDelete(category.id)}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDelete(category.id)}
+                    >
                       <Delete fontSize="small" color="error" />
                     </IconButton>
                   </TableCell>
@@ -222,7 +262,12 @@ export function AdminCategoriesContent() {
         </Table>
       </TableContainer>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>
           {editingId ? "ویرایش دسته‌بندی" : "افزودن دسته‌بندی"}
         </DialogTitle>
@@ -248,7 +293,9 @@ export function AdminCategoriesContent() {
               <Select
                 label="زیرمجموعه‌ی (اختیاری)"
                 value={form.parent_id}
-                onChange={(e) => setForm({ ...form, parent_id: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, parent_id: e.target.value })
+                }
               >
                 <MenuItem value="">بدون والد (دسته‌ی اصلی)</MenuItem>
                 {parentOptions.map((c) => (
@@ -278,12 +325,18 @@ export function AdminCategoriesContent() {
                 </Avatar>
               )}
               <Button variant="outlined" component="label">
-                {thumbnailFile ? thumbnailFile.name : editingId ? "تعویض تصویر" : "انتخاب تصویر"}
+                {thumbnailFile
+                  ? thumbnailFile.name
+                  : editingId
+                  ? "تعویض تصویر"
+                  : "انتخاب تصویر"}
                 <input
                   type="file"
                   accept="image/*"
                   hidden
-                  onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                  onChange={(e) =>
+                    setThumbnailFile(e.target.files?.[0] || null)
+                  }
                 />
               </Button>
             </Box>
@@ -292,7 +345,9 @@ export function AdminCategoriesContent() {
               control={
                 <Switch
                   checked={form.is_active}
-                  onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                  onChange={(e) =>
+                    setForm({ ...form, is_active: e.target.checked })
+                  }
                 />
               }
               label="فعال"
@@ -300,10 +355,19 @@ export function AdminCategoriesContent() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button color="inherit" onClick={() => setDialogOpen(false)} disabled={isSaving}>
+          <Button
+            color="inherit"
+            onClick={() => setDialogOpen(false)}
+            disabled={isSaving}
+          >
             انصراف
           </Button>
-          <Button variant="contained" disableElevation onClick={handleSave} disabled={isSaving}>
+          <Button
+            variant="contained"
+            disableElevation
+            onClick={handleSave}
+            disabled={isSaving}
+          >
             {isSaving ? "در حال ذخیره..." : "ذخیره"}
           </Button>
         </DialogActions>

@@ -31,6 +31,7 @@ export type ServerCategory = {
   id: number;
   name: string;
   thumbnail_url: string | null;
+  parent_id: number | null;
 };
 export type ServerBrand = {
   id: number;

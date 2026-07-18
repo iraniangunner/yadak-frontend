@@ -11,12 +11,13 @@ import { ProductFilterPanel } from "@/app/_components/shop/ProductFilterPanel";
 */
 
 type Option = { id: number; name: string };
+type CategoryOption = Option & { parent_id: number | null };
 
 export function FilterSidebar({
   categories,
   brands,
 }: {
-  categories: Option[];
+  categories: CategoryOption[];
   brands: Option[];
 }) {
   const { filters, updateFilters, clearFilters } = useProductFilters();
