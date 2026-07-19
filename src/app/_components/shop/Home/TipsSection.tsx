@@ -3,7 +3,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
-import { Build, ArrowForward } from "@mui/icons-material";
+import { Build, ArrowForward, ArrowBack } from "@mui/icons-material";
 import type { getArticles } from "@/lib/serverApi";
 
 /*
@@ -71,7 +71,7 @@ export function TipsSection({ articles }: { articles: Article[] }) {
                   flexShrink: 0,
                 }}
               >
-                <ArrowForward sx={{ fontSize: 16, transform: "scaleX(-1)" }} />
+                <ArrowBack sx={{ fontSize: 16, transform: "scaleX(-1)" }} />
               </Box>
               <Typography variant="body2">{article.title}</Typography>
             </Box>

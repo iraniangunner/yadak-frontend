@@ -1,31 +1,54 @@
 import NextLink from "next/link";
-import Box from "@mui/material/Box";
-import Container from "@mui/material/Container";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
+
+import { Telegram, Instagram, WhatsApp, Twitter } from "@mui/icons-material";
 import { getCategories } from "@/lib/serverApi";
-import { Instagram, Telegram, Twitter, WhatsApp } from "@mui/icons-material";
+import Container from "@mui/material/Container";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Stack from "@mui/material/Stack";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/SiteFooter.tsx
 |--------------------------------------------------------------------------
+| Server Component async - دسته‌بندی‌ها رو مستقیم سمت سرور fetch می‌کنه
+| (همون الگوی SSR بقیه‌ی هومپیج).
 */
 
 export async function SiteFooter() {
   const categories = await getCategories();
- 
+
   return (
-    <Box component="footer" sx={{ bgcolor: "background.paper", borderTop: "1px solid", borderColor: "divider", mt: 4 }}>
+    <Box
+      component="footer"
+      sx={{
+        bgcolor: "background.paper",
+        borderTop: "1px solid",
+        borderColor: "divider",
+        mt: 4,
+      }}
+    >
       <Container maxWidth="lg" sx={{ py: 5 }}>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4, mb: 4 }}>
           {/* درباره‌ی برند */}
           <Box sx={{ flex: "2 1 240px" }}>
-            <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: "primary.main", mb: 1 }}>
+            <Typography
+              sx={{
+                fontWeight: 800,
+                fontSize: "1.1rem",
+                color: "primary.main",
+                mb: 1,
+              }}
+            >
               یدکی
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 320 }}>
-              فروشگاه اینترنتی تخصصی قطعات یدکی خودرو - قطعات اصلی، گارانتی‌دار، با ارسال سریع به سراسر کشور.
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: 2, maxWidth: 320 }}
+            >
+              فروشگاه اینترنتی تخصصی قطعات یدکی خودرو - قطعات اصلی، گارانتی‌دار،
+              با ارسال سریع به سراسر کشور.
             </Typography>
             <Stack direction="row" spacing={1}>
               {[Telegram, Instagram, WhatsApp, Twitter].map((Icon, idx) => (
@@ -47,10 +70,12 @@ export async function SiteFooter() {
               ))}
             </Stack>
           </Box>
- 
+
           {/* لینک‌های مهم */}
           <Box sx={{ flex: "1 1 160px" }}>
-            <Typography sx={{ fontWeight: 700, mb: 1.5 }}>لینک‌های مهم</Typography>
+            <Typography sx={{ fontWeight: 700, mb: 1.5 }}>
+              لینک‌های مهم
+            </Typography>
             <Stack spacing={1}>
               <FooterLink href="/articles">مقالات</FooterLink>
               <FooterLink href="/products">محصولات</FooterLink>
@@ -58,14 +83,19 @@ export async function SiteFooter() {
               <FooterLink href="/contact">تماس با ما</FooterLink>
             </Stack>
           </Box>
- 
+
           {/* دسته‌بندی‌ها */}
           {categories.length > 0 && (
             <Box sx={{ flex: "1 1 160px" }}>
-              <Typography sx={{ fontWeight: 700, mb: 1.5 }}>دسته‌بندی محصولات</Typography>
+              <Typography sx={{ fontWeight: 700, mb: 1.5 }}>
+                دسته‌بندی محصولات
+              </Typography>
               <Stack spacing={1}>
                 {categories.slice(0, 5).map((category) => (
-                  <FooterLink key={category.id} href={`/products?category_id=${category.id}`}>
+                  <FooterLink
+                    key={category.id}
+                    href={`/category/${category.slug}`}
+                  >
                     {category.name}
                   </FooterLink>
                 ))}
@@ -73,8 +103,15 @@ export async function SiteFooter() {
             </Box>
           )}
         </Box>
- 
-        <Box sx={{ borderTop: "1px solid", borderColor: "divider", pt: 3, textAlign: "center" }}>
+
+        <Box
+          sx={{
+            borderTop: "1px solid",
+            borderColor: "divider",
+            pt: 3,
+            textAlign: "center",
+          }}
+        >
           <Typography variant="body2" color="text.secondary">
             © {new Date().getFullYear()} یدکی — تمامی حقوق محفوظ است
           </Typography>
@@ -83,13 +120,24 @@ export async function SiteFooter() {
     </Box>
   );
 }
- 
-function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+
+function FooterLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
   return (
     <Box
       component={NextLink}
       href={href}
-      sx={{ color: "text.secondary", fontSize: "0.875rem", textDecoration: "none", "&:hover": { color: "primary.main" } }}
+      sx={{
+        color: "text.secondary",
+        fontSize: "0.875rem",
+        textDecoration: "none",
+        "&:hover": { color: "primary.main" },
+      }}
     >
       {children}
     </Box>

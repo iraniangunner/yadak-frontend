@@ -2,7 +2,24 @@
 
 import { useState } from "react";
 import NextLink from "next/link";
-import { Card, CardMedia, CardContent, CardActionArea, CardActions, Typography, Button, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert, CircularProgress, Rating } from "@mui/material";
+import {
+  Card,
+  CardMedia,
+  CardContent,
+  CardActionArea,
+  CardActions,
+  Typography,
+  Button,
+  Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Alert,
+  CircularProgress,
+  Rating,
+} from "@mui/material";
 import { NotificationsActive, Check, ShoppingCart } from "@mui/icons-material";
 import { productsAPI } from "@/lib/api";
 import { useCartStore } from "@/lib/store/cartStore";
@@ -32,7 +49,10 @@ export type ProductCardData = {
 
 type StockColor = "success" | "error" | "warning" | "info" | "default";
 
-const stockStatusLabels: Record<string, { label: string; color: StockColor; dot: string }> = {
+const stockStatusLabels: Record<
+  string,
+  { label: string; color: StockColor; dot: string }
+> = {
   available: { label: "موجود", color: "success", dot: "#1FA97D" },
   stopped: { label: "متوقف‌شده", color: "warning", dot: "#D99B3D" },
   out_of_stock: { label: "ناموجود", color: "error", dot: "#D9534F" },
@@ -40,7 +60,9 @@ const stockStatusLabels: Record<string, { label: string; color: StockColor; dot:
 };
 
 export function ProductCard({ product }: { product: ProductCardData }) {
-  const cartItem = useCartStore((s) => s.items.find((i) => i.product_id === product.id));
+  const cartItem = useCartStore((s) =>
+    s.items.find((i) => i.product_id === product.id)
+  );
   const addToCart = useCartStore((s) => s.addItem);
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -54,12 +76,20 @@ export function ProductCard({ product }: { product: ProductCardData }) {
     color: "default" as StockColor,
     dot: "#9AA0A6",
   };
-  const hasDiscount = !!product.compare_price && product.compare_price > product.final_price;
+  const hasDiscount =
+    !!product.compare_price && product.compare_price > product.final_price;
   const discountPercent = hasDiscount
-    ? Math.round(((product.compare_price! - product.final_price) / product.compare_price!) * 100)
+    ? Math.round(
+        ((product.compare_price! - product.final_price) /
+          product.compare_price!) *
+          100
+      )
     : 0;
-  const isOutOfStock = product.stock_status === "out_of_stock" || product.stock_status === "stopped";
-  const isPurchasable = product.stock_status === "available" || product.stock_status === "incoming";
+  const isOutOfStock =
+    product.stock_status === "out_of_stock" ||
+    product.stock_status === "stopped";
+  const isPurchasable =
+    product.stock_status === "available" || product.stock_status === "incoming";
 
   const handleSubscribe = async () => {
     if (!/^09[0-9]{9}$/.test(mobile)) {
@@ -97,6 +127,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
     <Card
       elevation={0}
       sx={{
+        height: "100%",
         borderRadius: 2,
         border: "1px solid",
         borderColor: "rgba(0,0,0,0.06)",
@@ -105,7 +136,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         flexDirection: "column",
         overflow: "hidden",
         bgcolor: "background.paper",
-        transition: "border-color .2s ease, box-shadow .2s ease, transform .2s ease",
+        transition:
+          "border-color .2s ease, box-shadow .2s ease, transform .2s ease",
         "&:hover": {
           borderColor: "rgba(0,0,0,0.1)",
           boxShadow: "0 12px 28px -12px rgba(20,20,20,0.18)",
@@ -125,7 +157,9 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           "& .MuiCardActionArea-focusHighlight": { opacity: 0 },
         }}
       >
-        <Box sx={{ position: "relative", overflow: "hidden", bgcolor: "#F7F7F5" }}>
+        <Box
+          sx={{ position: "relative", overflow: "hidden", bgcolor: "#F7F7F5" }}
+        >
           <CardMedia
             component="img"
             className="product-card-media"
@@ -189,12 +223,32 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               flexWrap: "wrap",
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap" }}>
-              <Typography variant="body1" sx={{ fontWeight: 800, color: "text.primary", letterSpacing: -0.2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: 1,
+                flexWrap: "wrap",
+              }}
+            >
+              <Typography
+                variant="body1"
+                sx={{
+                  fontWeight: 800,
+                  color: "text.primary",
+                  letterSpacing: -0.2,
+                }}
+              >
                 {formatPrice(product.final_price)}
               </Typography>
               {hasDiscount && (
-                <Typography variant="caption" sx={{ textDecoration: "line-through", color: "text.disabled" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    textDecoration: "line-through",
+                    color: "text.disabled",
+                  }}
+                >
                   {formatPrice(product.compare_price!)}
                 </Typography>
               )}
@@ -202,7 +256,12 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
             {product.average_rating != null && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                <Rating value={product.average_rating} precision={0.1} readOnly size="small" />
+                <Rating
+                  value={product.average_rating}
+                  precision={0.1}
+                  readOnly
+                  size="small"
+                />
                 {product.reviews_count != null && (
                   <Typography variant="caption" color="text.secondary">
                     ({product.reviews_count})
@@ -213,8 +272,19 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-            <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: stock.dot, flexShrink: 0 }} />
-            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                bgcolor: stock.dot,
+                flexShrink: 0,
+              }}
+            />
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary", fontWeight: 500 }}
+            >
               {stock.label}
             </Typography>
           </Box>
@@ -262,14 +332,28 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       )}
 
       {isOutOfStock && (
-        <CardActions sx={{ px: 1.75, pb: 1.75, pt: 0, mt: "auto", flexDirection: "column", alignItems: "stretch" }}>
+        <CardActions
+          sx={{
+            px: 1.75,
+            pb: 1.75,
+            pt: 0,
+            mt: "auto",
+            flexDirection: "column",
+            alignItems: "stretch",
+          }}
+        >
           {subscribed ? (
             <Button
               size="small"
               fullWidth
               disabled
               startIcon={<Check fontSize="small" />}
-              sx={{ py: 0.9, fontWeight: 600, color: "success.main", "&.Mui-disabled": { color: "success.main" } }}
+              sx={{
+                py: 0.9,
+                fontWeight: 600,
+                color: "success.main",
+                "&.Mui-disabled": { color: "success.main" },
+              }}
             >
               اطلاع‌رسانی ثبت شد
             </Button>
@@ -285,14 +369,21 @@ export function ProductCard({ product }: { product: ProductCardData }) {
                 fontWeight: 600,
                 borderColor: "rgba(0,0,0,0.14)",
                 color: "text.primary",
-                "&:hover": { borderColor: "rgba(0,0,0,0.28)", bgcolor: "rgba(0,0,0,0.02)" },
+                "&:hover": {
+                  borderColor: "rgba(0,0,0,0.28)",
+                  bgcolor: "rgba(0,0,0,0.02)",
+                },
               }}
             >
               اطلاع بده وقتی موجود شد
             </Button>
           )}
           {error && !dialogOpen && (
-            <Typography variant="caption" color="error" sx={{ display: "block", mt: 0.75 }}>
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{ display: "block", mt: 0.75 }}
+            >
               {error}
             </Typography>
           )}
@@ -313,7 +404,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             </Alert>
           )}
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            شماره موبایلتون رو وارد کنید تا وقتی «{product.title}» موجود شد بهتون پیامک بدیم.
+            شماره موبایلتون رو وارد کنید تا وقتی «{product.title}» موجود شد
+            بهتون پیامک بدیم.
           </Typography>
           <TextField
             label="شماره موبایل"
@@ -326,7 +418,11 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           />
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button color="inherit" onClick={() => setDialogOpen(false)} disabled={isSaving}>
+          <Button
+            color="inherit"
+            onClick={() => setDialogOpen(false)}
+            disabled={isSaving}
+          >
             انصراف
           </Button>
           <Button
@@ -334,7 +430,11 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             disableElevation
             onClick={handleSubscribe}
             disabled={isSaving}
-            startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : undefined}
+            startIcon={
+              isSaving ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : undefined
+            }
             sx={{ fontWeight: 600 }}
           >
             ثبت

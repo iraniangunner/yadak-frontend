@@ -30,7 +30,7 @@ export async function HomeContent() {
     getBrands(),
     getBanners(),
     getProducts("per_page=20", 60),
-    getProducts("per_page=10&page=2", 60),
+    getProducts("per_page=10&sort=best_selling", 60),
     getArticles(6),
     getVehicles(),
   ]);
@@ -45,11 +45,11 @@ export async function HomeContent() {
       <VehicleFinderSection vehicles={vehicles} categories={categories} />
       <IntroText />
       <SpecialOffers products={discountedProducts} />
-      <FeaturedBanner banner={banners[0]} />
+      <FeaturedBanner banners={banners} />
       <BestSellers products={bestSellers.data} />
       <BrandsSection brands={brands} />
       <TipsSection articles={articles} />
-      <TrustFeatures />
+      {/* <TrustFeatures /> */}
     </Box>
   );
 }

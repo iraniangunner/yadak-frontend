@@ -1,21 +1,53 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import NextLink from "next/link";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
-import { ArrowBackIos } from "@mui/icons-material";
+import IconButton from "@mui/material/IconButton";
+import { ArrowBackIos, ChevronRight, ChevronLeft } from "@mui/icons-material";
+import useEmblaCarousel from "embla-carousel-react";
 import { ProductCard } from "@/app/_components/shop/ProductCard";
-import { HorizontalCarousel } from "./HorizontalCarousel";
 import type { getProducts } from "@/lib/serverApi";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/Home/BestSellers.tsx
 |--------------------------------------------------------------------------
+| ⚠️ "use client" شد (قبلاً سرور بود) چون embla-carousel نیاز به
+| هوک‌های کلاینتی داره. products همچنان prop ـه که از والدِ سرور میاد -
+| خودِ داده هنوز SSR ـه، فقط چیدمانِ اسکرول‌شونده کلاینتیه.
 */
+
 type Product = Awaited<ReturnType<typeof getProducts>>["data"][number];
 
 export function BestSellers({ products }: { products: Product[] }) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: false,
+    direction: "rtl",
+    align: "start",
+    dragFree: true,
+  });
+  const [canScroll, setCanScroll] = useState(false);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+
+    const updateCanScroll = () =>
+      setCanScroll(emblaApi.scrollSnapList().length > 1);
+
+    updateCanScroll();
+    emblaApi.on("reInit", updateCanScroll);
+    emblaApi.on("resize", updateCanScroll);
+
+    return () => {
+      emblaApi.off("reInit", updateCanScroll);
+      emblaApi.off("resize", updateCanScroll);
+    };
+  }, [emblaApi]);
+
   if (products.length === 0) return null;
 
   return (
@@ -48,16 +80,52 @@ export function BestSellers({ products }: { products: Product[] }) {
         </Button>
       </Box>
 
-      <HorizontalCarousel>
-        {products.map((product) => (
-          <Box
-            key={product.id}
-            sx={{ minWidth: 200, maxWidth: 200, scrollSnapAlign: "start" }}
-          >
-            <ProductCard product={product} />
+      <Box sx={{ position: "relative" }}>
+        <Box ref={emblaRef} sx={{ overflow: "hidden" }}>
+          <Box sx={{ display: "flex", gap: 2 }}>
+            {products.map((product) => (
+              <Box key={product.id} sx={{ flex: "0 0 auto", width: 200 }}>
+                <ProductCard product={product} />
+              </Box>
+            ))}
           </Box>
-        ))}
-      </HorizontalCarousel>
+        </Box>
+
+        {canScroll && (
+          <>
+            <IconButton
+              onClick={() => emblaApi?.scrollNext()}
+              size="small"
+              sx={{
+                display: "flex",
+                position: "absolute",
+                top: "35%",
+                insetInlineStart: -8,
+                bgcolor: "background.paper",
+                boxShadow: 2,
+                "&:hover": { bgcolor: "background.paper" },
+              }}
+            >
+              <ChevronRight fontSize="small" />
+            </IconButton>
+            <IconButton
+              onClick={() => emblaApi?.scrollPrev()}
+              size="small"
+              sx={{
+                display: "flex",
+                position: "absolute",
+                top: "35%",
+                insetInlineEnd: -8,
+                bgcolor: "background.paper",
+                boxShadow: 2,
+                "&:hover": { bgcolor: "background.paper" },
+              }}
+            >
+              <ChevronLeft fontSize="small" />
+            </IconButton>
+          </>
+        )}
+      </Box>
     </Container>
   );
 }
