@@ -1,16 +1,16 @@
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { getArticlesFiltered } from "@/lib/serverApi";
-import { BlogFilterAndGrid } from "@/app/_components/shop/blog/BlogFilterAndGrid";
+import { BlogFilterBar } from "@/app/_components/shop/blog/BlogFilterBar";
+import { BlogGridWithLoadMore } from "@/app/_components/shop/blog/BlogGridWithLoadMore";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/(shop)/articles/page.tsx
 |--------------------------------------------------------------------------
-| Server Component async - صفحه‌ی اول مقالات مستقیم سمت سرور (SSR) fetch
-| می‌شه. فیلتر+گرید توی یه کامپوننت کلاینتی واحد (BlogFilterAndGrid) هستن
-| تا هم Skeleton (با useTransition) هم داده‌ی همیشه‌تازه (با key) درست
-| کار کنن.
+| دقیقاً هم‌الگو با /products: Server Component async، بدون loading.tsx،
+| بدون useTransition. فقط با key (بر اساس search/sort) کامپوننت گرید رو
+| موقع تغییر فیلتر مجبور به remount می‌کنه تا داده‌ی تازه‌ی SSR بگیره.
 */
 
 export const metadata = {
@@ -50,8 +50,9 @@ export default async function ArticlesPage({
         نکات نگهداری خودرو، راهنمای خرید قطعات، و آموزش‌های کاربردی
       </Typography>
 
-      <BlogFilterAndGrid
-        key={`${sp.search || ""}-${sp.sort || ""}`}
+      <BlogFilterBar />
+
+      <BlogGridWithLoadMore
         initialArticles={articles.data}
         initialTotal={articles.total}
         initialLastPage={articles.lastPage}
