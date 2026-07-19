@@ -7,15 +7,15 @@ import {
   getArticles,
   getVehicles,
 } from "@/lib/serverApi";
-import { Hero } from "./Home/Hero";
-import { VehicleFinderSection } from "./Home/VehicleFinderSection";
-import { IntroText } from "./Home/IntroText";
-import { SpecialOffers } from "./Home/SpecialOffers";
-import { FeaturedBanner } from "./Home/FeaturedBanner";
-import { BestSellers } from "./Home/BestSellers";
-import { BrandsSection } from "./Home/BrandsSection";
-import { TipsSection } from "./Home/TipsSection";
-import { TrustFeatures } from "./Home/TrustFeatures";
+import { Hero } from "./home/Hero";
+import { VehicleFinderSection } from "./home/VehicleFinderSection";
+import { IntroText } from "./home/IntroText";
+import { SpecialOffers } from "./home/SpecialOffers";
+import { FeaturedBanner } from "./home/FeaturedBanner";
+import { BestSellers } from "./home/BestSellers";
+import { BrandsSection } from "./home/BrandsSection";
+import { TipsSection } from "./home/TipsSection";
+import { TrustFeatures } from "./home/TrustFeatures";
 
 /*
 |--------------------------------------------------------------------------

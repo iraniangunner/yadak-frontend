@@ -88,7 +88,13 @@ export type ServerArticle = {
   id: number;
   slug: string;
   title: string;
+  excerpt: string | null;
+  content: string | null;
   thumbnail_url: string | null;
+  published_at: string | null;
+  created_at: string;
+  author?: { id: number; name: string } | null;
+  products?: ServerProduct[];
 };
 export type ServerVehicle = {
   id: number;
@@ -169,6 +175,34 @@ export async function getArticles(perPage = 3) {
     300
   );
   return res?.data || [];
+}
+
+/**
+ * برای صفحه‌ی لیست کامل مقالات (/articles) - با جستجو/مرتب‌سازی/صفحه‌بندی،
+ * دقیقاً هم‌الگو با getProducts.
+ */
+export async function getArticlesFiltered(
+  params: string,
+  revalidateSeconds = 60
+) {
+  const res = await serverFetch<{
+    data: ServerArticle[];
+    total: number;
+    last_page: number;
+  }>(`/articles?${params}`, revalidateSeconds);
+  return {
+    data: res?.data || [],
+    total: res?.total || 0,
+    lastPage: res?.last_page || 1,
+  };
+}
+
+export async function getArticle(slug: string): Promise<ServerArticle | null> {
+  const res = await serverFetch<{ article: ServerArticle }>(
+    `/articles/${slug}`,
+    60
+  );
+  return res?.article || null;
 }
 
 export async function getVehicles() {

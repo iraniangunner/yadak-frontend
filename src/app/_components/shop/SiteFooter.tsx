@@ -77,8 +77,8 @@ export async function SiteFooter() {
               لینک‌های مهم
             </Typography>
             <Stack spacing={1}>
-              <FooterLink href="/articles">مقالات</FooterLink>
-              <FooterLink href="/products">محصولات</FooterLink>
+              <FooterLink href="/blog">مقالات</FooterLink>
+              <FooterLink href="/products">فروشگاه</FooterLink>
               <FooterLink href="/about">درباره‌ی ما</FooterLink>
               <FooterLink href="/contact">تماس با ما</FooterLink>
             </Stack>

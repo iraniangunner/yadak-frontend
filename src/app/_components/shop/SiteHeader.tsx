@@ -358,7 +358,7 @@ export function SiteHeader({
                 />
                 {[
                   { href: "/products", label: "فروشگاه" },
-                  { href: "/articles", label: "بلاگ" },
+                  { href: "/blog", label: "بلاگ" },
                   { href: "/about", label: "درباره‌ی ما" },
                   { href: "/contact", label: "تماس با ما" },
                 ].map((link) => (

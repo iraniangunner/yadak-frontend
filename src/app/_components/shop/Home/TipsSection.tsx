@@ -43,7 +43,7 @@ export function TipsSection({ articles }: { articles: Article[] }) {
             <Box
               key={article.id}
               component={NextLink}
-              href={`/articles/${article.slug}`}
+              href={`/blog/${article.slug}`}
               sx={{
                 display: "flex",
                 alignItems: "center",
@@ -112,7 +112,7 @@ export function TipsSection({ articles }: { articles: Article[] }) {
             <Box
               key={article.id}
               component={NextLink}
-              href={`/articles/${article.slug}`}
+              href={`/blog/${article.slug}`}
               sx={{
                 display: "flex",
                 gap: 1.5,
@@ -151,7 +151,7 @@ export function TipsSection({ articles }: { articles: Article[] }) {
       <Box sx={{ textAlign: "center", mt: 4 }}>
         <Button
           component={NextLink}
-          href="/articles"
+          href="/blog"
           variant="contained"
           disableElevation
         >

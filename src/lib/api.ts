@@ -183,7 +183,12 @@ export const productReviewsAPI = {
 // مقالات و بنر
 // ----------------------
 export const articlesAPI = {
-  list: (params?: { per_page?: number }) => api.get("/articles", { params }),
+  list: (params?: {
+    per_page?: number;
+    page?: number;
+    search?: string;
+    sort?: string;
+  }) => api.get("/articles", { params }),
   show: (slug: string) => api.get(`/articles/${slug}`),
 };
 
@@ -624,6 +629,8 @@ export const adminAPI = {
   articles: {
     list: (params?: { is_published?: boolean; per_page?: number }) =>
       api.get("/admin/articles", { params, requiresAuth: true }),
+    show: (id: number) =>
+      api.get(`/admin/articles/${id}`, { requiresAuth: true }),
     create: (payload: FormData) =>
       api.post("/admin/articles", payload, { requiresAuth: true }),
     update: (id: number, payload: FormData) =>

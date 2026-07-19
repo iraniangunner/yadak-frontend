@@ -1,6 +1,4 @@
-import NextLink from "next/link";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { DirectionsCar, VerifiedUser } from "@mui/icons-material";
@@ -13,18 +11,41 @@ import { DirectionsCar, VerifiedUser } from "@mui/icons-material";
 export function Hero({ productCount }: { productCount: number }) {
   return (
     <Box
-      sx={{ position: "relative", pt: { xs: 4, md: 6 }, pb: { xs: 8, md: 10 } }}
+      sx={{
+        position: "relative",
+        pt: { xs: 5, md: 7 },
+        pb: { xs: 8, md: 11 },
+        overflow: "hidden",
+      }}
     >
-      <Container maxWidth="lg">
+      <Box
+        sx={{
+          position: "absolute",
+          top: -120,
+          insetInlineStart: "50%",
+          transform: "translateX(-50%)",
+          width: 600,
+          height: 600,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(30,58,138,0.08) 0%, transparent 70%)",
+        }}
+      />
+
+      <Container maxWidth="lg" sx={{ position: "relative" }}>
         <Box sx={{ textAlign: "center", maxWidth: 640, mx: "auto", mb: 5 }}>
           <Typography
             variant="overline"
             sx={{
-              display: "block",
+              display: "inline-block",
               color: "accent.main",
-              fontWeight: 700,
-              letterSpacing: 2,
-              mb: 1.5,
+              fontWeight: 800,
+              letterSpacing: 3,
+              mb: 2,
+              px: 2,
+              py: 0.5,
+              borderRadius: 999,
+              bgcolor: "rgba(249,115,22,0.08)",
             }}
           >
             یدکی · قطعات اصلی و گارانتی‌دار
@@ -33,34 +54,35 @@ export function Hero({ productCount }: { productCount: number }) {
             variant="h3"
             sx={{
               fontWeight: 800,
-              mb: 2,
-              fontSize: { xs: "1.7rem", md: "2.4rem" },
+              lineHeight: 1.35,
+              fontSize: { xs: "1.9rem", md: "2.7rem" },
+              letterSpacing: "-0.02em",
             }}
           >
             سفرت رو ادامه بده،{" "}
-            <Box component="span" sx={{ color: "accent.main" }}>
+            <Box
+              component="span"
+              sx={{
+                background: "linear-gradient(90deg, #F97316, #FB923C)",
+                backgroundClip: "text",
+                WebkitBackgroundClip: "text",
+                color: "transparent",
+              }}
+            >
               قطعه‌ش
             </Box>{" "}
             رو داریم!
           </Typography>
-          <Button
-            component={NextLink}
-            href="/products"
-            variant="contained"
-            disableElevation
-            size="large"
-            sx={{ px: 4 }}
-          >
-            مشاهده‌ی محصولات
-          </Button>
         </Box>
 
-        {/* پنل بصری هیرو - خط راهنمای جاده */}
         <Box sx={{ position: "relative", maxWidth: 640, mx: "auto" }}>
           <Box
             sx={{
               position: "relative",
-              bgcolor: "rgba(30,58,138,0.06)",
+              background:
+                "linear-gradient(145deg, rgba(30,58,138,0.08), rgba(249,115,22,0.05))",
+              border: "1px solid",
+              borderColor: "rgba(30,58,138,0.08)",
               borderRadius: 6,
               py: 8,
               overflow: "hidden",
@@ -89,26 +111,35 @@ export function Hero({ productCount }: { productCount: number }) {
                 strokeLinecap="round"
               />
             </Box>
-            <DirectionsCar
+
+            <Box
               sx={{
-                fontSize: { xs: 90, md: 130 },
-                color: "primary.main",
+                width: { xs: 150, md: 200 },
+                height: { xs: 150, md: 200 },
+                borderRadius: "50%",
+                bgcolor: "rgba(255,255,255,0.6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 position: "relative",
               }}
-            />
+            >
+              <DirectionsCar
+                sx={{ fontSize: { xs: 80, md: 110 }, color: "primary.main" }}
+              />
+            </Box>
           </Box>
 
-          {/* پلاک - اصالت کالا */}
           <Box
             sx={{
               position: "absolute",
               top: 16,
-              left: { xs: 8, md: -24 },
+              insetInlineEnd: { xs: 8, md: -24 },
               bgcolor: "background.paper",
               borderRadius: 2,
               border: "1px solid",
               borderColor: "rgba(30,58,138,0.12)",
-              boxShadow: "0 6px 20px rgba(15,23,42,0.08)",
+              boxShadow: "0 8px 24px rgba(15,23,42,0.1)",
               px: 1.75,
               py: 1,
               display: "flex",
@@ -137,16 +168,15 @@ export function Hero({ productCount }: { productCount: number }) {
             </Box>
           </Box>
 
-          {/* پلاک - تعداد محصول */}
           <Box
             sx={{
               position: "absolute",
               bottom: 16,
-              right: { xs: 8, md: -24 },
+              insetInlineStart: { xs: 8, md: -24 },
               bgcolor: "primary.main",
               color: "#fff",
               borderRadius: 2,
-              boxShadow: "0 6px 20px rgba(30,58,138,0.35)",
+              boxShadow: "0 8px 24px rgba(30,58,138,0.35)",
               px: 2.25,
               py: 1.1,
             }}
@@ -170,7 +200,7 @@ export function Hero({ productCount }: { productCount: number }) {
         sx={{
           position: "absolute",
           bottom: -1,
-          left: 0,
+          insetInlineStart: 0,
           width: "100%",
           height: 60,
           display: "block",

@@ -62,7 +62,11 @@ export function AdminArticlesContent() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [existingThumbnailUrl, setExistingThumbnailUrl] = useState<
+    string | null
+  >(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -89,24 +93,49 @@ export function AdminArticlesContent() {
   const openCreateDialog = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setExistingThumbnailUrl(null);
     setThumbnailFile(null);
     setSelectedProducts([]);
     setErrors({});
     setDialogOpen(true);
   };
 
-  const openEditDialog = (article: Article) => {
+  // ⚠️ قبلاً اینجا excerpt/content/selectedProducts رو مستقیم از آیتم
+  // لیست (که این فیلدها رو اصلاً نداره) خالی می‌ذاشت. الان یه fetch
+  // واقعی برای خودِ همون مقاله می‌زنیم تا مقادیر واقعی‌ش پر بشه.
+  const openEditDialog = async (article: Article) => {
     setEditingId(article.id);
-    setForm({
-      title: article.title,
-      excerpt: "",
-      content: "",
-      is_published: article.is_published,
-    });
-    setThumbnailFile(null);
-    setSelectedProducts([]);
-    setErrors({});
     setDialogOpen(true);
+    setIsLoadingEdit(true);
+    setErrors({});
+    setThumbnailFile(null);
+
+    try {
+      const res = await adminAPI.articles.show(article.id);
+      const full = res.data.article;
+
+      setForm({
+        title: full.title,
+        excerpt: full.excerpt || "",
+        content: full.content || "",
+        is_published: full.is_published,
+      });
+      setExistingThumbnailUrl(full.thumbnail_url);
+
+      const relatedProducts: ProductOption[] = (full.products || []).map(
+        (p: any) => ({
+          id: p.id,
+          title: p.title,
+          sku: p.sku,
+        })
+      );
+      setSelectedProducts(relatedProducts);
+      setProductOptions(relatedProducts); // تا Autocomplete موقع باز شدن، خودشون رو نشون بده
+    } catch {
+      setErrors({ general: ["خطا در دریافت اطلاعات کامل مقاله."] });
+    } finally {
+      setIsLoadingEdit(false);
+    }
   };
 
   const handleProductSearch = (query: string) => {
@@ -158,10 +187,9 @@ export function AdminArticlesContent() {
 
   const thumbnailPreviewUrl = useMemo(() => {
     if (thumbnailFile) return URL.createObjectURL(thumbnailFile);
-    if (editingId)
-      return articles?.find((a) => a.id === editingId)?.thumbnail_url || null;
+    if (editingId) return existingThumbnailUrl;
     return null;
-  }, [thumbnailFile, editingId, articles]);
+  }, [thumbnailFile, editingId, existingThumbnailUrl]);
 
   useEffect(() => {
     return () => {
@@ -281,98 +309,116 @@ export function AdminArticlesContent() {
           {editingId ? "ویرایش مقاله" : "افزودن مقاله"}
         </DialogTitle>
         <DialogContent>
-          {errors.general && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {errors.general[0]}
-            </Alert>
-          )}
-
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-            <TextField
-              label="عنوان مقاله"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              error={!!errors.title}
-              helperText={errors.title?.[0]}
-              fullWidth
-            />
-            <TextField
-              label="خلاصه (اختیاری)"
-              value={form.excerpt}
-              onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
-              fullWidth
-              multiline
-              rows={2}
-            />
-            <TextField
-              label="متن کامل مقاله"
-              value={form.content}
-              onChange={(e) => setForm({ ...form, content: e.target.value })}
-              error={!!errors.content}
-              helperText={errors.content?.[0]}
-              fullWidth
-              multiline
-              rows={6}
-            />
-
-            <Autocomplete
-              multiple
-              options={productOptions}
-              loading={productSearchLoading}
-              getOptionLabel={(p) => `${p.title} (${p.sku})`}
-              isOptionEqualToValue={(a, b) => a.id === b.id}
-              value={selectedProducts}
-              onChange={(_, newValue) => setSelectedProducts(newValue)}
-              onInputChange={(_, newInput) => handleProductSearch(newInput)}
-              noOptionsText="محصولی پیدا نشد"
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="محصولات مرتبط (اختیاری)"
-                  placeholder="جستجو..."
-                />
-              )}
-            />
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              {thumbnailPreviewUrl && (
-                <Avatar
-                  variant="rounded"
-                  src={thumbnailPreviewUrl}
-                  sx={{ width: 56, height: 56, bgcolor: "background.default" }}
-                >
-                  <ArticleIcon fontSize="small" />
-                </Avatar>
-              )}
-              <Button variant="outlined" component="label">
-                {thumbnailFile
-                  ? thumbnailFile.name
-                  : editingId
-                  ? "تعویض تصویر شاخص"
-                  : "انتخاب تصویر شاخص"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(e) =>
-                    setThumbnailFile(e.target.files?.[0] || null)
-                  }
-                />
-              </Button>
+          {isLoadingEdit ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress size={28} />
             </Box>
+          ) : (
+            <>
+              {errors.general && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {errors.general[0]}
+                </Alert>
+              )}
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={form.is_published}
-                  onChange={(e) =>
-                    setForm({ ...form, is_published: e.target.checked })
-                  }
+              <Box
+                sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+              >
+                <TextField
+                  label="عنوان مقاله"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  error={!!errors.title}
+                  helperText={errors.title?.[0]}
+                  fullWidth
                 />
-              }
-              label="منتشر شود"
-            />
-          </Box>
+                <TextField
+                  label="خلاصه (اختیاری)"
+                  value={form.excerpt}
+                  onChange={(e) =>
+                    setForm({ ...form, excerpt: e.target.value })
+                  }
+                  fullWidth
+                  multiline
+                  rows={2}
+                />
+                <TextField
+                  label="متن کامل مقاله"
+                  value={form.content}
+                  onChange={(e) =>
+                    setForm({ ...form, content: e.target.value })
+                  }
+                  error={!!errors.content}
+                  helperText={errors.content?.[0]}
+                  fullWidth
+                  multiline
+                  rows={6}
+                />
+
+                <Autocomplete
+                  multiple
+                  options={productOptions}
+                  loading={productSearchLoading}
+                  getOptionLabel={(p) => `${p.title} (${p.sku})`}
+                  isOptionEqualToValue={(a, b) => a.id === b.id}
+                  value={selectedProducts}
+                  onChange={(_, newValue) => setSelectedProducts(newValue)}
+                  onInputChange={(_, newInput) => handleProductSearch(newInput)}
+                  noOptionsText="محصولی پیدا نشد"
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="محصولات مرتبط (اختیاری)"
+                      placeholder="جستجو..."
+                    />
+                  )}
+                />
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  {thumbnailPreviewUrl && (
+                    <Avatar
+                      variant="rounded"
+                      src={thumbnailPreviewUrl}
+                      sx={{
+                        width: 56,
+                        height: 56,
+                        bgcolor: "background.default",
+                      }}
+                    >
+                      <ArticleIcon fontSize="small" />
+                    </Avatar>
+                  )}
+                  <Button variant="outlined" component="label">
+                    {thumbnailFile
+                      ? thumbnailFile.name
+                      : editingId
+                      ? "تعویض تصویر شاخص"
+                      : "انتخاب تصویر شاخص"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={(e) =>
+                        setThumbnailFile(e.target.files?.[0] || null)
+                      }
+                    />
+                  </Button>
+                </Box>
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={form.is_published}
+                      onChange={(e) =>
+                        setForm({ ...form, is_published: e.target.checked })
+                      }
+                    />
+                  }
+                  label="منتشر شود"
+                />
+              </Box>
+            </>
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
           <Button
@@ -386,7 +432,7 @@ export function AdminArticlesContent() {
             variant="contained"
             disableElevation
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || isLoadingEdit}
           >
             {isSaving ? "در حال ذخیره..." : "ذخیره"}
           </Button>
