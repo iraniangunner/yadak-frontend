@@ -2,15 +2,27 @@
 
 import { useEffect, useState } from "react";
 import NextLink from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Box,
   Typography,
   Chip,
-  Stack,
   Button,
   CircularProgress,
   Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TablePagination,
+  LinearProgress,
 } from "@mui/material";
 import { ChevronLeft } from "@mui/icons-material";
 import { ordersAPI } from "@/lib/api";
@@ -19,6 +31,12 @@ import { ordersAPI } from "@/lib/api";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/account/_components/OrdersContent.tsx
 |--------------------------------------------------------------------------
+| فیلتر وضعیت + صفحه‌بندی، هر دو سمت سرور. برخلاف نسخه‌ی قبلی، دیگه هیچ
+| تشخیص جدایی بین «هیچ‌وقت سفارش نداشته» و «فیلتر فعلی خالیه» نمی‌دیم -
+| چون همون منطق باعث یه race condition می‌شد (یه لحظه با total قدیمیِ
+| فیلتر قبلی، پیام غلط «هیچ‌وقت سفارش نداشتید» فلش می‌زد). الان همیشه
+| فیلتر+جدول نمایش داده می‌شه؛ خالی بودن فقط داخل خودِ جدول نشون داده
+| می‌شه، مستقل از دلیلش.
 */
 
 type Order = {
@@ -45,53 +63,63 @@ function formatPrice(amount: number) {
 }
 
 function formatDate(dateStr: string) {
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(dateStr));
+  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(
+    new Date(dateStr)
+  );
 }
 
 export function OrdersContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const justCreatedId = searchParams.get("created");
 
   const [orders, setOrders] = useState<Order[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [loadedStatusFilter, setLoadedStatusFilter] = useState("all");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const loadOrders = () => {
+    setIsLoading(true);
+    ordersAPI
+      .list({
+        page: page + 1,
+        per_page: rowsPerPage,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+      })
+      .then((res) => {
+        setOrders(res.data.data);
+        setTotal(res.data.total);
+        // این فیلتر رو همزمان با خودِ داده آپدیت می‌کنیم - نه statusFilter
+        // زنده رو مستقیم بخونیم - چون ممکنه data قدیمی (از فیلتر قبلی)
+        // هنوز روی صفحه باشه درحالی‌که statusFilter از قبل عوض شده.
+        setLoadedStatusFilter(statusFilter);
+      })
+      .catch(() => setError("خطا در دریافت سفارش‌ها. دوباره تلاش کنید."))
+      .finally(() => {
+        setIsLoading(false);
+        setIsFirstLoad(false);
+      });
+  };
 
   useEffect(() => {
-    ordersAPI
-      .list()
-      .then((res) => setOrders(res.data.data))
-      .catch(() => setError("خطا در دریافت سفارش‌ها. دوباره تلاش کنید."));
-  }, []);
+    loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, rowsPerPage, statusFilter]);
 
   if (error) {
     return <Typography color="error">{error}</Typography>;
   }
 
-  if (orders === null) {
+  // فقط موقع اولین بارگذاری صفحه (قبل از هر داده‌ای)، یه Spinner تمام‌عرض نشون بده
+  if (isFirstLoad) {
     return (
       <Box sx={{ textAlign: "center", py: 6 }}>
         <CircularProgress size={28} />
-      </Box>
-    );
-  }
-
-  if (orders.length === 0) {
-    return (
-      <Box
-        sx={{
-          bgcolor: "background.paper",
-          border: "1px solid",
-          borderColor: "divider",
-          borderRadius: 3,
-          p: 5,
-          textAlign: "center",
-        }}
-      >
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
-          هنوز سفارشی ثبت نکرده‌اید
-        </Typography>
-        <Button component={NextLink} href="/" variant="contained" disableElevation>
-          مشاهده‌ی محصولات
-        </Button>
       </Box>
     );
   }
@@ -104,50 +132,146 @@ export function OrdersContent() {
         </Alert>
       )}
 
-      <Stack spacing={2}>
-        {orders.map((order) => {
-          const status = statusLabels[order.status] || { label: order.status, color: "default" as const };
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel>وضعیت سفارش</InputLabel>
+          <Select
+            label="وضعیت سفارش"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(0);
+            }}
+          >
+            <MenuItem value="all">همه</MenuItem>
+            {Object.entries(statusLabels).map(([value, { label }]) => (
+              <MenuItem key={value} value={value}>
+                {label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
-          return (
-            <Box
-              key={order.id}
-              component={NextLink}
-              href={`/account/orders/${order.id}`}
-              sx={{
-                bgcolor: "background.paper",
-                border: "1px solid",
-                borderColor: justCreatedId === String(order.id) ? "primary.main" : "divider",
-                borderRadius: 3,
-                p: 3,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 2,
-                textDecoration: "none",
-                color: "text.primary",
-                transition: "box-shadow .15s",
-                "&:hover": { boxShadow: "0 2px 8px rgba(0,0,0,0.08)" },
-              }}
-            >
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  سفارش #{order.id}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {formatDate(order.created_at)}
-                </Typography>
-              </Box>
+      <TableContainer
+        component={Paper}
+        sx={{
+          borderRadius: 3,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          position: "relative",
+        }}
+      >
+        {isLoading && (
+          <LinearProgress
+            sx={{ position: "absolute", top: 0, insetInline: 0, zIndex: 1 }}
+          />
+        )}
 
-              <Chip label={status.label} color={status.color} size="small" />
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>شماره سفارش</TableCell>
+              <TableCell>تاریخ ثبت</TableCell>
+              <TableCell>وضعیت</TableCell>
+              <TableCell>مبلغ</TableCell>
+              <TableCell align="center">جزئیات</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {orders && orders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
+                  <Typography
+                    color="text.secondary"
+                    sx={{ mb: loadedStatusFilter === "all" ? 2 : 0 }}
+                  >
+                    {loadedStatusFilter === "all"
+                      ? "هنوز سفارشی ثبت نکرده‌اید"
+                      : "سفارشی با این وضعیت پیدا نشد"}
+                  </Typography>
+                  {loadedStatusFilter === "all" && (
+                    <Button
+                      component={NextLink}
+                      href="/"
+                      variant="contained"
+                      disableElevation
+                      size="small"
+                    >
+                      مشاهده‌ی محصولات
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ) : (
+              orders?.map((order) => {
+                const status = statusLabels[order.status] || {
+                  label: order.status,
+                  color: "default" as const,
+                };
+                const isNew = justCreatedId === String(order.id);
 
-              <Typography sx={{ fontWeight: 700 }}>{formatPrice(order.total_amount)}</Typography>
+                return (
+                  <TableRow
+                    key={order.id}
+                    hover
+                    onClick={() => router.push(`/account/orders/${order.id}`)}
+                    sx={{
+                      cursor: "pointer",
+                      bgcolor: isNew ? "rgba(30,58,138,0.04)" : "transparent",
+                      "& td": {
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                      },
+                    }}
+                  >
+                    <TableCell sx={{ color: "text.primary", fontWeight: 600 }}>
+                      #{order.id}
+                    </TableCell>
+                    <TableCell sx={{ color: "text.secondary" }}>
+                      {formatDate(order.created_at)}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={status.label}
+                        color={status.color}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ color: "text.primary", fontWeight: 700 }}>
+                      {formatPrice(order.total_amount)}
+                    </TableCell>
+                    <TableCell align="center">
+                      <ChevronLeft
+                        fontSize="small"
+                        sx={{ color: "text.secondary" }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
 
-              <ChevronLeft fontSize="small" sx={{ color: "text.secondary" }} />
-            </Box>
-          );
-        })}
-      </Stack>
+        {total > 0 && (
+          <TablePagination
+            component="div"
+            count={total}
+            page={page}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[10, 20, 50]}
+            labelRowsPerPage="ردیف در صفحه"
+            labelDisplayedRows={({ from, to, count }) =>
+              `${from}–${to} از ${count}`
+            }
+          />
+        )}
+      </TableContainer>
     </Box>
   );
 }

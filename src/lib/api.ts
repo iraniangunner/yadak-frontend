@@ -83,7 +83,6 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      // مسیر واقعی: app/api/refresh/route.ts
       const res = await fetch("/api/refresh-token", { method: "POST" });
       const data = await res.json();
 
@@ -247,7 +246,7 @@ export const myVehiclesAPI = {
 // سفارش‌ها (نیاز به لاگین)
 // ----------------------
 export const ordersAPI = {
-  list: (params?: { per_page?: number; page?: number }) =>
+  list: (params?: { per_page?: number; page?: number; status?: string }) =>
     api.get("/orders", { params, requiresAuth: true }),
   show: (id: number) => api.get(`/orders/${id}`, { requiresAuth: true }),
   create: (payload: {

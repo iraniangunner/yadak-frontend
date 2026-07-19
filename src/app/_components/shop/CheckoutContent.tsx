@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Snackbar,
 } from "@mui/material";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useCartStore } from "@/lib/store/cartStore";
@@ -34,12 +35,7 @@ import { Check, Close } from "@mui/icons-material";
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/CheckoutContent.tsx
-|--------------------------------------------------------------------------
-| فرض‌های این فایل (چون منبع اصلی این endpoint ها جلوم نبود، اگه فرق
-| داشت فقط اسم فیلدها رو بگید تا اصلاح کنم):
-| - پاسخ shippingAPI.options یه آرایه data با فیلدهای
-|   {carrier, service_name, cost, eta_days} برمی‌گردونه.
-| - پاسخ ordersAPI.create یه فیلد order (با id) برمی‌گردونه.
+
 */
 
 type Address = {
@@ -78,13 +74,13 @@ export function CheckoutContent() {
   const [mounted, setMounted] = useState(false);
   const [addresses, setAddresses] = useState<Address[] | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(
-    null,
+    null
   );
 
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const [addressForm, setAddressForm] = useState(emptyAddressForm);
   const [addressErrors, setAddressErrors] = useState<Record<string, string[]>>(
-    {},
+    {}
   );
   const [isSavingAddress, setIsSavingAddress] = useState(false);
 
@@ -114,10 +110,13 @@ export function CheckoutContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
+  const [orderJustPlaced, setOrderJustPlaced] = useState(false);
+  const [successToast, setSuccessToast] = useState("");
+
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (!mounted || authLoading) return;
+    if (!mounted || authLoading || orderJustPlaced) return;
     if (!user) {
       router.replace("/login?redirect=/checkout");
       return;
@@ -125,11 +124,11 @@ export function CheckoutContent() {
     if (items.length === 0) {
       router.replace("/cart");
     }
-  }, [mounted, authLoading, user, items.length, router]);
+  }, [mounted, authLoading, user, items.length, router, orderJustPlaced]);
 
   useEffect(() => {
     if (!user) return;
-    addressesAPI.list().then((res:any) => {
+    addressesAPI.list().then((res: any) => {
       const list: Address[] = res.data.data;
       setAddresses(list);
       const defaultAddr = list.find((a) => a.is_default) || list[0];
@@ -158,7 +157,6 @@ export function CheckoutContent() {
       })
       .catch(() => setShippingOptions([]))
       .finally(() => setIsLoadingShipping(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAddressId, addresses]);
 
   const handleSaveAddress = async () => {
@@ -173,7 +171,7 @@ export function CheckoutContent() {
       setAddressForm(emptyAddressForm);
     } catch (err: any) {
       setAddressErrors(
-        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی آدرس."] },
+        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی آدرس."] }
       );
     } finally {
       setIsSavingAddress(false);
@@ -251,13 +249,23 @@ export function CheckoutContent() {
         customer_note: customerNote || undefined,
       });
 
+      setOrderJustPlaced(true);
       clearCart();
+
       const orderId = res.data.order?.id;
-      router.push(
+      setSuccessToast(
         orderId
-          ? `/account/orders?created=${orderId}`
-          : "/account/orders?created=1",
+          ? `سفارش #${orderId} با موفقیت ثبت شد!`
+          : "سفارش با موفقیت ثبت شد!"
       );
+
+      setTimeout(() => {
+        router.push(
+          orderId
+            ? `/account/orders?created=${orderId}`
+            : "/account/orders?created=1"
+        );
+      }, 1200);
     } catch (err: any) {
       const errors: Record<string, string[]> | undefined =
         err?.response?.data?.errors;
@@ -268,9 +276,8 @@ export function CheckoutContent() {
       setSubmitError(
         err?.response?.data?.message ||
           firstFieldError ||
-          "ثبت سفارش ناموفق بود.",
+          "ثبت سفارش ناموفق بود."
       );
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -509,7 +516,9 @@ export function CheckoutContent() {
                   color={couponCheck.valid ? "success.main" : "error.main"}
                 >
                   {couponCheck.valid
-                    ? `${couponCheck.message} (${formatPrice(couponCheck.discount_amount || 0)} تخفیف)`
+                    ? `${couponCheck.message} (${formatPrice(
+                        couponCheck.discount_amount || 0
+                      )} تخفیف)`
                     : couponCheck.message}
                 </Typography>
               </Box>
@@ -742,6 +751,15 @@ export function CheckoutContent() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={!!successToast}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert severity="success" variant="filled" sx={{ fontWeight: 600 }}>
+          {successToast}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

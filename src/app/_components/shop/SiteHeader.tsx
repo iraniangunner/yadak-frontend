@@ -15,6 +15,7 @@ import {
   Stack,
   Badge,
   Divider,
+  Typography,
 } from "@mui/material";
 import {
   Search,
@@ -31,17 +32,7 @@ import { SearchModal } from "@/app/_components/shop/SearchModal";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/SiteHeader.tsx
 |--------------------------------------------------------------------------
-| دسکتاپ: منوی دسته‌بندی با هاور باز می‌شه، چندستونه‌ی آبشاری (هر عمقی).
-| پس‌زمینه‌ی مات و پنل منو دو تا sibling کاملاً جدا هستن (نه تودرتو)، تا
-| هیچ‌وقت پنل زیر بلور گیر نیفته.
-|
-| موبایل: منوی همبرگری قدیمی حذف شد - ناوبری اصلی و دسته‌بندی‌ها الان
-| توی MobileBottomNav.tsx (نوار پایین ثابت) هست.
-|
-| ⚠️ نکته‌ی مهم: چون stylis-plugin-rtl حتی مقدار عددی left/right رو هم
-| بر اساس اسم property برعکس می‌کنه (نه مقدارش)، برای موقعیت‌دهی پیکسلی
-| دقیق از style خام React استفاده می‌کنیم (نه sx)، چون style خام از
-| پردازش emotion/stylis رد نمی‌شه.
+| 
 */
 
 function getChildren(categories: ServerCategory[], parentId: number | null) {
@@ -193,17 +184,20 @@ function DesktopCategoriesMegaMenu({
           />
         }
         startIcon={<Category fontSize="small" />}
-        variant="outlined"
-        color="inherit"
         size="small"
-        sx={{ borderColor: "divider", color: "text.primary" }}
+        sx={{
+          borderRadius: 999,
+          px: 2,
+          fontWeight: 700,
+          bgcolor: open ? "primary.main" : "rgba(30,58,138,0.08)",
+          color: open ? "#fff" : "primary.main",
+          transition: "background-color .2s, color .2s",
+          "&:hover": { bgcolor: "primary.main", color: "#fff" },
+        }}
       >
         دسته‌بندی محصولات
       </Button>
 
-      {/* ⚠️ پس‌زمینه‌ی مات و پنل، دو sibling کاملاً جدا داخل یه wrapper مستقل
-          (نه تودرتو با position:relative روی دکمه) - این ساختار سادهٔ
-          مطمئنیه که دیگه محل نداره پنل زیر بلور گیر بیفته. */}
       {open &&
         anchorRect &&
         createPortal(
@@ -267,7 +261,7 @@ function DesktopCategoriesMegaMenu({
               </Box>
             </Box>
           </Box>,
-          document.body,
+          document.body
         )}
     </Box>
   );
@@ -306,24 +300,47 @@ export function SiteHeader({
       <Box
         sx={{
           bgcolor: "background.paper",
-          borderBottom: "1px solid",
-          borderColor: "divider",
+          boxShadow: "0 1px 12px rgba(17,24,39,0.06)",
         }}
       >
         <Container maxWidth="lg">
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, py: 1.75 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, py: 2 }}>
             <Box
               component={NextLink}
               href="/"
               sx={{
-                fontWeight: 800,
-                fontSize: "1.35rem",
-                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                gap: 0.75,
                 textDecoration: "none",
                 flexShrink: 0,
               }}
             >
-              یدکی
+              <Box
+                sx={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 2,
+                  background: "linear-gradient(135deg, #1E3A8A, #3B5FC7)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: "1.05rem",
+                }}
+              >
+                ی
+              </Box>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  fontSize: "1.3rem",
+                  color: "text.primary",
+                }}
+              >
+                یدکی
+              </Typography>
             </Box>
 
             <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
@@ -339,43 +356,40 @@ export function SiteHeader({
                   categories={categories}
                   headerRef={headerRef}
                 />
-                <Button
-                  component={NextLink}
-                  href="/products"
-                  color="inherit"
-                  size="small"
-                >
-                  فروشگاه
-                </Button>
-                <Button
-                  component={NextLink}
-                  href="/articles"
-                  color="inherit"
-                  size="small"
-                >
-                  بلاگ
-                </Button>
-                <Button
-                  component={NextLink}
-                  href="/about"
-                  color="inherit"
-                  size="small"
-                >
-                  درباره‌ی ما
-                </Button>
-                <Button
-                  component={NextLink}
-                  href="/contact"
-                  color="inherit"
-                  size="small"
-                >
-                  تماس با ما
-                </Button>
+                {[
+                  { href: "/products", label: "فروشگاه" },
+                  { href: "/articles", label: "بلاگ" },
+                  { href: "/about", label: "درباره‌ی ما" },
+                  { href: "/contact", label: "تماس با ما" },
+                ].map((link) => (
+                  <Button
+                    key={link.href}
+                    component={NextLink}
+                    href={link.href}
+                    color="inherit"
+                    size="small"
+                    sx={{
+                      borderRadius: 999,
+                      px: 2,
+                      fontWeight: 500,
+                      color: "text.secondary",
+                      "&:hover": {
+                        bgcolor: "rgba(30,58,138,0.06)",
+                        color: "primary.main",
+                      },
+                    }}
+                  >
+                    {link.label}
+                  </Button>
+                ))}
               </Stack>
             </Box>
 
             {/* آیکون جستجو - کنار سبد خرید، مودال باز می‌کنه */}
-            <IconButton onClick={() => setSearchOpen(true)}>
+            <IconButton
+              onClick={() => setSearchOpen(true)}
+              sx={{ "&:hover": { bgcolor: "rgba(30,58,138,0.06)" } }}
+            >
               <Search />
             </IconButton>
 
@@ -387,7 +401,11 @@ export function SiteHeader({
                 gap: 1,
               }}
             >
-              <IconButton component={NextLink} href="/cart">
+              <IconButton
+                component={NextLink}
+                href="/cart"
+                sx={{ "&:hover": { bgcolor: "rgba(30,58,138,0.06)" } }}
+              >
                 <Badge
                   badgeContent={mounted ? cartItemTypesCount : 0}
                   color="primary"

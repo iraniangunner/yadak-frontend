@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+
 import {
   getCategories,
   getBrands,
@@ -64,7 +65,7 @@ export default async function CategoryPage({
   }
 
   const categoryIds = getCategoryAndDescendantIds(categories, category.id);
-  const brands = await getBrands();
+  const brands = await getBrands(categoryIds);
 
   const queryString = buildQueryString({
     category_id: categoryIds.join(","),

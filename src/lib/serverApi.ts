@@ -132,8 +132,14 @@ export async function getCategories() {
   return res?.data || [];
 }
 
-export async function getBrands() {
-  const res = await serverFetch<{ data: ServerBrand[] }>("/brands", 300);
+export async function getBrands(categoryIds?: number[]) {
+  const query = categoryIds?.length
+    ? `?category_id=${categoryIds.join(",")}`
+    : "";
+  const res = await serverFetch<{ data: ServerBrand[] }>(
+    `/brands${query}`,
+    300
+  );
   return res?.data || [];
 }
 

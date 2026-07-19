@@ -56,14 +56,14 @@ const ratingOptions = [4, 3, 2, 1];
 
 function getChildren(
   categories: CategoryOption[],
-  parentId: number,
+  parentId: number
 ): CategoryOption[] {
   return categories.filter((c) => c.parent_id === parentId);
 }
 
 function getDescendantIds(
   categories: CategoryOption[],
-  nodeId: number,
+  nodeId: number
 ): string[] {
   const children = getChildren(categories, nodeId);
   let ids: string[] = [];
@@ -76,7 +76,7 @@ function getDescendantIds(
 
 function getAncestorIds(
   categories: CategoryOption[],
-  nodeId: number,
+  nodeId: number
 ): string[] {
   const node = categories.find((c) => c.id === nodeId);
   if (!node || !node.parent_id) return [];
@@ -114,18 +114,19 @@ function CategoryNode({
     const nodeId = String(category.id);
     const descendantIds = getDescendantIds(categories, category.id);
 
+    // ⚠️ تصمیم بر اساس isChecked (وضعیت نمایشی)، نه صرفاً حضور خام آیدی
+    // توی آرایه - چون آیدی زیرمجموعه‌ها حتی وقتی نمایشش unchecked ـه،
+    // ممکنه (به‌خاطر والدشون) از قبل توی آرایه باشه.
     if (isChecked) {
       onChange(
-        selectedIds.filter(
-          (id) => id !== nodeId && !descendantIds.includes(id),
-        ),
+        selectedIds.filter((id) => id !== nodeId && !descendantIds.includes(id))
       );
     } else {
       const cleaned = selectedIds.filter(
         (id) =>
           id !== nodeId &&
           !descendantIds.includes(id) &&
-          !ancestorIds.includes(id),
+          !ancestorIds.includes(id)
       );
       onChange([...cleaned, nodeId, ...descendantIds]);
     }
@@ -133,6 +134,7 @@ function CategoryNode({
 
   return (
     <Box sx={{ position: "relative" }}>
+      {/* خط عمودی اتصال درختی برای سطوح تودرتو */}
       {depth > 0 && (
         <Box
           sx={{
@@ -265,28 +267,47 @@ export function ProductFilterPanel({
   onClear: () => void;
   showCategoryFilter?: boolean;
 }) {
-  const [optimisticCategoryIds, setOptimisticCategoryIds] = useState(
-    filters.category_ids,
-  );
+  // چون این صفحه SSR ـه، هر تغییر فیلتر یه رفت‌وبرگشت واقعی به سرور داره
+  // که یه لحظه طول می‌کشه. برای فیدبک فوری روی *همه‌ی* فیلترها (دسته‌بندی،
+  // برند، موجودی، امتیاز)، یه نسخه‌ی محلی خوش‌بینانه از کل filters نگه
+  // می‌داریم که همون لحظه‌ی کلیک آپدیت می‌شه.
+  const [optimisticFilters, setOptimisticFilters] = useState(filters);
 
   useEffect(() => {
-    setOptimisticCategoryIds(filters.category_ids);
-  }, [filters.category_ids.join(",")]);
+    setOptimisticFilters(filters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    filters.category_ids.join(","),
+    filters.brand_ids.join(","),
+    filters.stock_statuses.join(","),
+    filters.min_rating,
+  ]);
+
+  const applyChange = (next: ProductFilters) => {
+    setOptimisticFilters(next); // فوری، همون لحظه
+    onChange(next); // ناوبری واقعی (کمی طول می‌کشه)
+  };
 
   const handleCategoryChange = (nextCategoryIds: string[]) => {
-    setOptimisticCategoryIds(nextCategoryIds);
-    onChange({ ...filters, category_ids: nextCategoryIds });
+    applyChange({ ...optimisticFilters, category_ids: nextCategoryIds });
   };
 
   const toggleInArray = (
     key: "brand_ids" | "stock_statuses",
-    value: string,
+    value: string
   ) => {
-    const current = filters[key] as string[];
+    const current = optimisticFilters[key] as string[];
     const next = current.includes(value)
       ? current.filter((v) => v !== value)
       : [...current, value];
-    onChange({ ...filters, [key]: next });
+    applyChange({ ...optimisticFilters, [key]: next });
+  };
+
+  const toggleRating = (r: number) => {
+    applyChange({
+      ...optimisticFilters,
+      min_rating: optimisticFilters.min_rating === String(r) ? "" : String(r),
+    });
   };
 
   return (
@@ -300,7 +321,7 @@ export function ProductFilterPanel({
           </Typography>
           <CategoryTree
             categories={categories}
-            selectedIds={optimisticCategoryIds}
+            selectedIds={optimisticFilters.category_ids}
             onChange={handleCategoryChange}
           />
           <Divider sx={{ my: 1 }} />
@@ -317,7 +338,7 @@ export function ProductFilterPanel({
             control={
               <Checkbox
                 size="small"
-                checked={filters.brand_ids.includes(String(b.id))}
+                checked={optimisticFilters.brand_ids.includes(String(b.id))}
                 onChange={() => toggleInArray("brand_ids", String(b.id))}
               />
             }
@@ -338,7 +359,7 @@ export function ProductFilterPanel({
             control={
               <Checkbox
                 size="small"
-                checked={filters.stock_statuses.includes(s.value)}
+                checked={optimisticFilters.stock_statuses.includes(s.value)}
                 onChange={() => toggleInArray("stock_statuses", s.value)}
               />
             }
@@ -359,14 +380,8 @@ export function ProductFilterPanel({
             control={
               <Checkbox
                 size="small"
-                checked={filters.min_rating === String(r)}
-                onChange={() =>
-                  onChange({
-                    ...filters,
-                    min_rating:
-                      filters.min_rating === String(r) ? "" : String(r),
-                  })
-                }
+                checked={optimisticFilters.min_rating === String(r)}
+                onChange={() => toggleRating(r)}
               />
             }
             label={
@@ -383,7 +398,20 @@ export function ProductFilterPanel({
 
       <Divider sx={{ my: 1 }} />
 
-      <Button color="inherit" onClick={onClear} size="small" sx={{ mt: 1 }}>
+      <Button
+        color="inherit"
+        onClick={() => {
+          setOptimisticFilters({
+            category_ids: [],
+            brand_ids: [],
+            stock_statuses: [],
+            min_rating: "",
+          });
+          onClear();
+        }}
+        size="small"
+        sx={{ mt: 1 }}
+      >
         پاک کردن فیلترها
       </Button>
     </Box>
