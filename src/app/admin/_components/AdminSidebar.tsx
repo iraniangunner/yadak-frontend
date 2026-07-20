@@ -117,6 +117,12 @@ const sections: { title: string; items: NavItem[] }[] = [
         icon: <DirectionsCar fontSize="small" />,
         roles: ["admin", "warehouse"],
       },
+      {
+        href: "/admin/discounts",
+        label: "تخفیف‌ها",
+        icon: <LocalOffer fontSize="small" />,
+        roles: ["admin"],
+      },
     ],
   },
   {
@@ -214,7 +220,7 @@ export function AdminSidebar({ role }: { role: string }) {
 
       {sections.map((section, idx) => {
         const visibleItems = section.items.filter((item) =>
-          item.roles.includes(role)
+          item.roles.includes(role),
         );
         if (visibleItems.length === 0) return null;
 
