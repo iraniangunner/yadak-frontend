@@ -21,23 +21,37 @@ import { ProductFilterPanel } from "@/app/_components/shop/ProductFilterPanel";
 
 type Option = { id: number; name: string };
 type CategoryOption = Option & { parent_id: number | null };
+type VehicleOption = {
+  id: number;
+  brand: string;
+  model: string;
+  generation?: string | null;
+};
 
 export function MobileFilterButton({
   categories,
   brands,
+  vehicles,
   showCategoryFilter = true,
   basePath,
 }: {
   categories: CategoryOption[];
   brands: Option[];
+  vehicles?: VehicleOption[];
   showCategoryFilter?: boolean;
   basePath?: string;
 }) {
-  const { filters, updateFilters, clearFilters, activeFilterCount } =
-    useProductFilters({
-      basePath,
-      includeCategoryFilter: showCategoryFilter,
-    });
+  const {
+    filters,
+    vehicleId,
+    setParam,
+    updateFilters,
+    clearFilters,
+    activeFilterCount,
+  } = useProductFilters({
+    basePath,
+    includeCategoryFilter: showCategoryFilter,
+  });
   const [open, setOpen] = useState(false);
 
   return (
@@ -76,6 +90,9 @@ export function MobileFilterButton({
               filters={filters}
               categories={categories}
               brands={brands}
+              vehicles={vehicles}
+              vehicleId={vehicleId}
+              onVehicleChange={(id) => setParam("vehicle_id", id)}
               onChange={updateFilters}
               onClear={clearFilters}
               showCategoryFilter={showCategoryFilter}

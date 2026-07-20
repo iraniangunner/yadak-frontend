@@ -1,14 +1,15 @@
 import { notFound } from "next/navigation";
-
 import {
   getCategories,
   getBrands,
   getProducts,
+  getVehicles,
   findCategoryBySlug,
   getCategoryAndDescendantIds,
 } from "@/lib/serverApi";
 import { FilterSidebar } from "@/app/_components/shop/products/FilterSidebar";
 import { MobileFilterButton } from "@/app/_components/shop/products/MobileFilterButton";
+import { ProductSearchBar } from "@/app/_components/shop/products/ProductSearchBar";
 import { SortAndPerPageControls } from "@/app/_components/shop/products/SortAndPerPageControls";
 import { ActiveFilterChips } from "@/app/_components/shop/products/ActiveFilterChips";
 import { ProductGridWithLoadMore } from "@/app/_components/shop/products/ProductGridWithLoadMore";
@@ -20,9 +21,8 @@ import Box from "@mui/material/Box";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/(shop)/category/[slug]/page.tsx
 |--------------------------------------------------------------------------
-| صفحه‌ی مخصوص یه دسته‌بندی (از هدر یا آکاردئون موبایل بهش می‌رسیم).
-| برخلاف /products، اینجا فیلتر «دسته‌بندی» نشون داده نمی‌شه (چون خودِ
-| صفحه قبلاً مخصوص یه دسته‌ست) - فقط برند/وضعیت‌موجودی/امتیاز.
+| صفحه‌ی مخصوص یه دسته‌بندی. برخلاف /products، اینجا فیلتر «دسته‌بندی»
+| نشون داده نمی‌شه - فقط برند/وضعیت‌موجودی/امتیاز/خودرو.
 */
 
 export async function generateMetadata({
@@ -65,10 +65,14 @@ export default async function CategoryPage({
   }
 
   const categoryIds = getCategoryAndDescendantIds(categories, category.id);
-  const brands = await getBrands(categoryIds);
+  const [brands, vehicles] = await Promise.all([
+    getBrands(categoryIds),
+    getVehicles(categoryIds),
+  ]);
 
   const queryString = buildQueryString({
     category_id: categoryIds.join(","),
+    vehicle_id: sp.vehicle_id,
     brand_id: sp.brand_id,
     stock_status: sp.stock_status,
     min_rating: sp.min_rating,
@@ -90,11 +94,14 @@ export default async function CategoryPage({
         <FilterSidebar
           categories={categories}
           brands={brands}
+          vehicles={vehicles}
           showCategoryFilter={false}
           basePath={basePath}
         />
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
+          <ProductSearchBar basePath={basePath} />
+
           <Box
             sx={{
               bgcolor: "background.paper",
@@ -115,6 +122,7 @@ export default async function CategoryPage({
               <MobileFilterButton
                 categories={categories}
                 brands={brands}
+                vehicles={vehicles}
                 showCategoryFilter={false}
                 basePath={basePath}
               />
@@ -126,6 +134,7 @@ export default async function CategoryPage({
             <ActiveFilterChips
               categories={categories}
               brands={brands}
+              vehicles={vehicles}
               showCategoryFilter={false}
               basePath={basePath}
             />

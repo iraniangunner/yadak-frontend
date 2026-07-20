@@ -7,16 +7,17 @@ import { useProductFilters } from "@/hooks/useProductFilters";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/products/ActiveFilterChips.tsx
 |--------------------------------------------------------------------------
-| برای دسته‌بندی‌ها: چون درختی هستن، وقتی یه والد تیک می‌خوره، آیدی همه‌ی
-| زیرمجموعه‌هاش هم (برای فیلتر واقعی) داخل category_ids قرار می‌گیره. اگه
-| برای هرکدوم جدا چیپ می‌ساختیم، چیپ‌های تکراری/گیج‌کننده می‌دیدید. برای
-| همین فقط برای «ریشه‌ی انتخاب» (دسته‌ای که هیچ‌کدوم از اجدادش هم انتخاب
-| نشده) چیپ می‌سازیم - دقیقاً همون چیزی که توی درخت هم تیک‌خورده نشون داده
-| می‌شه.
+
 */
 
 type Option = { id: number; name: string };
 type CategoryOption = Option & { parent_id: number | null };
+type VehicleOption = {
+  id: number;
+  brand: string;
+  model: string;
+  generation?: string | null;
+};
 
 const stockStatusLabels: Record<string, string> = {
   available: "موجود",
@@ -53,29 +54,46 @@ function getDescendantIds(
 export function ActiveFilterChips({
   categories,
   brands,
+  vehicles,
   showCategoryFilter = true,
   basePath,
 }: {
   categories: CategoryOption[];
   brands: Option[];
+  vehicles?: VehicleOption[];
   showCategoryFilter?: boolean;
   basePath?: string;
 }) {
-  const { filters, updateFilters, clearFilters, removeFromArrayFilter } =
-    useProductFilters({
-      basePath,
-      includeCategoryFilter: showCategoryFilter,
-    });
+  const {
+    filters,
+    vehicleId,
+    setParam,
+    updateFilters,
+    clearFilters,
+    removeFromArrayFilter,
+  } = useProductFilters({
+    basePath,
+    includeCategoryFilter: showCategoryFilter,
+  });
+
+  const selectedVehicle = vehicles?.find((v) => String(v.id) === vehicleId);
 
   const chips: { key: string; label: React.ReactNode; onDelete: () => void }[] =
     [
+      ...(selectedVehicle
+        ? [
+            {
+              key: "vehicle",
+              label: `${selectedVehicle.brand} ${selectedVehicle.model}`,
+              onDelete: () => setParam("vehicle_id", ""),
+            },
+          ]
+        : []),
       ...filters.category_ids
         .map((id) => {
           const category = categories.find((c) => String(c.id) === id);
           if (!category) return null;
 
-          // فقط اگه هیچ‌کدوم از اجدادش هم انتخاب نشده باشن، این «ریشه‌ی
-          // انتخاب»ـه و چیپ مستقل می‌گیره.
           const ancestorIds = getAncestorIds(categories, category.id);
           if (
             ancestorIds.some((ancestorId) =>

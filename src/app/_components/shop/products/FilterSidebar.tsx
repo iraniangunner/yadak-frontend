@@ -12,22 +12,31 @@ import { ProductFilterPanel } from "@/app/_components/shop/ProductFilterPanel";
 
 type Option = { id: number; name: string };
 type CategoryOption = Option & { parent_id: number | null };
+type VehicleOption = {
+  id: number;
+  brand: string;
+  model: string;
+  generation?: string | null;
+};
 
 export function FilterSidebar({
   categories,
   brands,
+  vehicles,
   showCategoryFilter = true,
   basePath,
 }: {
   categories: CategoryOption[];
   brands: Option[];
+  vehicles?: VehicleOption[];
   showCategoryFilter?: boolean;
   basePath?: string;
 }) {
-  const { filters, updateFilters, clearFilters } = useProductFilters({
-    basePath,
-    includeCategoryFilter: showCategoryFilter,
-  });
+  const { filters, vehicleId, setParam, updateFilters, clearFilters } =
+    useProductFilters({
+      basePath,
+      includeCategoryFilter: showCategoryFilter,
+    });
 
   return (
     <Box
@@ -49,6 +58,9 @@ export function FilterSidebar({
         filters={filters}
         categories={categories}
         brands={brands}
+        vehicles={vehicles}
+        vehicleId={vehicleId}
+        onVehicleChange={(id) => setParam("vehicle_id", id)}
         onChange={updateFilters}
         onClear={clearFilters}
         showCategoryFilter={showCategoryFilter}

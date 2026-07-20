@@ -94,7 +94,7 @@ export function SearchModal({
           onKeyDown={(e) => {
             if (e.key === "Enter") goToFullResults();
           }}
-          placeholder="جستجوی قطعه، برند، خودرو..."
+          placeholder="جستجوی قطعه مورد نظر"
           slotProps={{
             input: {
               startAdornment: (

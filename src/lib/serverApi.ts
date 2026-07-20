@@ -121,6 +121,12 @@ export type ServerProductDetail = {
   brand: { id: number; name: string } | null;
   images: { id: number; url: string }[];
   product_attributes: { id: number; name: string; value: string }[];
+  price_tiers: {
+    id: number;
+    min_quantity: number;
+    max_quantity: number | null;
+    price: number;
+  }[];
 };
 
 export async function getProduct(
@@ -205,9 +211,12 @@ export async function getArticle(slug: string): Promise<ServerArticle | null> {
   return res?.article || null;
 }
 
-export async function getVehicles() {
+export async function getVehicles(categoryIds?: number[]) {
+  const categoryQuery = categoryIds?.length
+    ? `&category_id=${categoryIds.join(",")}`
+    : "";
   const res = await serverFetch<{ data: ServerVehicle[] }>(
-    "/vehicles?per_page=300",
+    `/vehicles?per_page=300${categoryQuery}`,
     300
   );
   return res?.data || [];

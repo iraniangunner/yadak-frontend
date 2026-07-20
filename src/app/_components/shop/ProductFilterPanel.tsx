@@ -11,24 +11,18 @@ import {
   Rating,
   IconButton,
   Collapse,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
-import { ExpandMore } from "@mui/icons-material";
+import { ExpandMore, Close } from "@mui/icons-material";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/ProductFilterPanel.tsx
 |--------------------------------------------------------------------------
-| دسته‌بندی چندسطحیه (parent_id)، کاملاً بازگشتی (هر عمقی رو پشتیبانی
-| می‌کنه). منطق تیک زدن:
-| - تیک زدن یه دسته: خودش + همه‌ی زیرمجموعه‌هاش (تا هر عمقی) برای فیلتر
-|   واقعی فعال می‌شن، ولی فقط خودِ همون دسته تیک نمایش داده می‌شه.
-| - تیک زدن یه زیرمجموعه‌ی خاص: همه‌ی اجدادش از حالت تیک خارج می‌شن، فقط
-|   همون زیرمجموعه (و زیرمجموعه‌های خودش) انتخاب می‌مونن.
-|
-| ⚠️ نکته‌ی مهم درباره‌ی باگ قبلی: تصمیم «تیک بزن یا بردار» باید بر اساس
-| وضعیت *نمایشی* (isChecked) باشه، نه صرفاً اینکه آیدی داخل آرایه هست یا
-| نه - چون آیدی زیرمجموعه‌ها حتی وقتی به‌خاطر والدشون مخفیانه تیک‌نخورده
-| نشون داده می‌شن، همچنان داخل آرایه هستن (برای فیلتر واقعی).
+
 */
 
 export type ProductFilters = {
@@ -40,6 +34,12 @@ export type ProductFilters = {
 
 type Option = { id: number; name: string };
 type CategoryOption = { id: number; name: string; parent_id: number | null };
+type VehicleOption = {
+  id: number;
+  brand: string;
+  model: string;
+  generation?: string | null;
+};
 
 const stockStatusOptions = [
   { value: "available", label: "موجود" },
@@ -114,9 +114,6 @@ function CategoryNode({
     const nodeId = String(category.id);
     const descendantIds = getDescendantIds(categories, category.id);
 
-    // ⚠️ تصمیم بر اساس isChecked (وضعیت نمایشی)، نه صرفاً حضور خام آیدی
-    // توی آرایه - چون آیدی زیرمجموعه‌ها حتی وقتی نمایشش unchecked ـه،
-    // ممکنه (به‌خاطر والدشون) از قبل توی آرایه باشه.
     if (isChecked) {
       onChange(
         selectedIds.filter((id) => id !== nodeId && !descendantIds.includes(id))
@@ -134,7 +131,6 @@ function CategoryNode({
 
   return (
     <Box sx={{ position: "relative" }}>
-      {/* خط عمودی اتصال درختی برای سطوح تودرتو */}
       {depth > 0 && (
         <Box
           sx={{
@@ -256,6 +252,9 @@ export function ProductFilterPanel({
   filters,
   categories,
   brands,
+  vehicles,
+  vehicleId,
+  onVehicleChange,
   onChange,
   onClear,
   showCategoryFilter = true,
@@ -263,19 +262,17 @@ export function ProductFilterPanel({
   filters: ProductFilters;
   categories: CategoryOption[];
   brands: Option[];
+  vehicles?: VehicleOption[];
+  vehicleId?: string;
+  onVehicleChange?: (vehicleId: string) => void;
   onChange: (filters: ProductFilters) => void;
   onClear: () => void;
   showCategoryFilter?: boolean;
 }) {
-  // چون این صفحه SSR ـه، هر تغییر فیلتر یه رفت‌وبرگشت واقعی به سرور داره
-  // که یه لحظه طول می‌کشه. برای فیدبک فوری روی *همه‌ی* فیلترها (دسته‌بندی،
-  // برند، موجودی، امتیاز)، یه نسخه‌ی محلی خوش‌بینانه از کل filters نگه
-  // می‌داریم که همون لحظه‌ی کلیک آپدیت می‌شه.
   const [optimisticFilters, setOptimisticFilters] = useState(filters);
 
   useEffect(() => {
     setOptimisticFilters(filters);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     filters.category_ids.join(","),
     filters.brand_ids.join(","),
@@ -284,9 +281,27 @@ export function ProductFilterPanel({
   ]);
 
   const applyChange = (next: ProductFilters) => {
-    setOptimisticFilters(next); // فوری، همون لحظه
-    onChange(next); // ناوبری واقعی (کمی طول می‌کشه)
+    setOptimisticFilters(next);
+    onChange(next);
   };
+
+  const currentVehicle = vehicles?.find((v) => String(v.id) === vehicleId);
+  const [vehicleBrand, setVehicleBrand] = useState(currentVehicle?.brand || "");
+
+  useEffect(() => {
+    setVehicleBrand(currentVehicle?.brand || "");
+  }, [vehicleId]);
+
+  const vehicleBrands = Array.from(
+    new Set((vehicles || []).map((v) => v.brand))
+  );
+  const modelsForVehicleBrand = (vehicles || []).filter(
+    (v) => v.brand === vehicleBrand
+  );
+
+  function vehicleModelLabel(v: VehicleOption) {
+    return v.generation ? `${v.model} (${v.generation})` : v.model;
+  }
 
   const handleCategoryChange = (nextCategoryIds: string[]) => {
     applyChange({ ...optimisticFilters, category_ids: nextCategoryIds });
@@ -313,6 +328,63 @@ export function ProductFilterPanel({
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       <Typography sx={{ fontWeight: 700, mb: 0.5 }}>فیلترها</Typography>
+
+      {vehicles && vehicles.length > 0 && onVehicleChange && (
+        <>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            خودروی من
+          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            <FormControl size="small" fullWidth>
+              <InputLabel>برند خودرو</InputLabel>
+              <Select
+                label="برند خودرو"
+                value={vehicleBrand}
+                onChange={(e) => {
+                  setVehicleBrand(e.target.value);
+                  onVehicleChange("");
+                }}
+              >
+                {vehicleBrands.map((b) => (
+                  <MenuItem key={b} value={b}>
+                    {b}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" fullWidth disabled={!vehicleBrand}>
+              <InputLabel>مدل</InputLabel>
+              <Select
+                label="مدل"
+                value={vehicleId || ""}
+                onChange={(e) => onVehicleChange(e.target.value)}
+              >
+                {modelsForVehicleBrand.map((v) => (
+                  <MenuItem key={v.id} value={String(v.id)}>
+                    {vehicleModelLabel(v)}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {vehicleId && (
+              <Button
+                size="small"
+                color="inherit"
+                startIcon={<Close fontSize="small" />}
+                onClick={() => {
+                  setVehicleBrand("");
+                  onVehicleChange("");
+                }}
+              >
+                پاک کردن خودرو
+              </Button>
+            )}
+          </Box>
+          <Divider sx={{ my: 1 }} />
+        </>
+      )}
 
       {showCategoryFilter && (
         <>

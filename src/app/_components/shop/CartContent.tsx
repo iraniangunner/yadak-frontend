@@ -64,6 +64,25 @@ export function CartContent() {
 
   useEffect(() => setMounted(true), []);
 
+  // ⚠️ تعداد رو عوض می‌کنه و بلافاصله قیمت واحد رو دوباره از سرور می‌گیره -
+  // چون ممکنه با تغییر تعداد، وارد یه پله‌ی دیگه‌ی تخفیف پلکانی بشیم.
+  const handleQuantityChange = (
+    item: (typeof items)[number],
+    newQuantity: number
+  ) => {
+    if (newQuantity < 1) return;
+    updateQuantity(item.product_id, newQuantity);
+
+    productsAPI
+      .priceForQuantity(item.product_id, newQuantity)
+      .then((res) => {
+        updateItemInfo(item.product_id, { unit_price: res.data.unit_price });
+      })
+      .catch(() => {
+        /* اگه fetch شکست خورد، همون قیمت قبلی می‌مونه - مهم نیست، چیزی خراب نمی‌شه */
+      });
+  };
+
   useEffect(() => {
     if (!mounted || items.length === 0) {
       setIsSyncing(false);
@@ -90,8 +109,8 @@ export function CartContent() {
             brand_name: showRes.data.product.brand?.name,
             average_rating: showRes.data.product.average_rating,
           });
-        }),
-      ),
+        })
+      )
     ).finally(() => setIsSyncing(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
@@ -123,7 +142,7 @@ export function CartContent() {
   }
 
   const hasUnavailableItems = items.some(
-    (i) => i.stock_status === "out_of_stock" || i.stock_status === "stopped",
+    (i) => i.stock_status === "out_of_stock" || i.stock_status === "stopped"
   );
   const subtotal = items.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
   const discountTotal = items.reduce(
@@ -132,7 +151,7 @@ export function CartContent() {
       (i.compare_price && i.compare_price > i.unit_price
         ? (i.compare_price - i.unit_price) * i.quantity
         : 0),
-    0,
+    0
   );
 
   return (
@@ -172,7 +191,7 @@ export function CartContent() {
               ? Math.round(
                   ((item.compare_price! - item.unit_price) /
                     item.compare_price!) *
-                    100,
+                    100
                 )
               : 0;
 
@@ -345,7 +364,7 @@ export function CartContent() {
                       <IconButton
                         size="small"
                         onClick={() =>
-                          updateQuantity(item.product_id, item.quantity + 1)
+                          handleQuantityChange(item, item.quantity + 1)
                         }
                         disabled={isUnavailable}
                         sx={{
@@ -370,7 +389,7 @@ export function CartContent() {
                       <IconButton
                         size="small"
                         onClick={() =>
-                          updateQuantity(item.product_id, item.quantity - 1)
+                          handleQuantityChange(item, item.quantity - 1)
                         }
                         disabled={isUnavailable}
                         sx={{

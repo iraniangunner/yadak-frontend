@@ -1,6 +1,12 @@
-import { getCategories, getBrands, getProducts } from "@/lib/serverApi";
+import {
+  getCategories,
+  getBrands,
+  getProducts,
+  getVehicles,
+} from "@/lib/serverApi";
 import { FilterSidebar } from "@/app/_components/shop/products/FilterSidebar";
 import { MobileFilterButton } from "@/app/_components/shop/products/MobileFilterButton";
+import { ProductSearchBar } from "@/app/_components/shop/products/ProductSearchBar";
 import { SortAndPerPageControls } from "@/app/_components/shop/products/SortAndPerPageControls";
 import { ActiveFilterChips } from "@/app/_components/shop/products/ActiveFilterChips";
 import { ProductGridWithLoadMore } from "@/app/_components/shop/products/ProductGridWithLoadMore";
@@ -49,54 +55,75 @@ export default async function ProductsPage({
     page: "1",
   });
 
-  const [categories, brands, products] = await Promise.all([
+  const [categories, brands, vehicles, products] = await Promise.all([
     getCategories(),
     getBrands(),
+    getVehicles(),
     // per_page/sort/filter عوض می‌شن، پس این fetch نباید طولانی کش بشه
     getProducts(queryString, 10),
   ]);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-    <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-      محصولات
-    </Typography>
-    {sp.search && (
-      <Typography color="text.secondary" sx={{ mb: 2 }}>
-        نتایج جستجو برای «{sp.search}»
+      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+        محصولات
       </Typography>
-    )}
+      {sp.search && (
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          نتایج جستجو برای «{sp.search}»
+        </Typography>
+      )}
 
-    <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
-      <FilterSidebar categories={categories} brands={brands} />
+      <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
+        <FilterSidebar
+          categories={categories}
+          brands={brands}
+          vehicles={vehicles}
+        />
 
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box
-          sx={{
-            bgcolor: "background.paper",
-            borderRadius: 3,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            p: 1.5,
-            mb: 2,
-          }}
-        >
-          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.5 }}>
-            <MobileFilterButton categories={categories} brands={brands} />
-            <Box sx={{ ml: "auto" }}>
-              <SortAndPerPageControls />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <ProductSearchBar />
+          <Box
+            sx={{
+              bgcolor: "background.paper",
+              borderRadius: 3,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              p: 1.5,
+              mb: 2,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 1.5,
+              }}
+            >
+              <MobileFilterButton
+                categories={categories}
+                brands={brands}
+                vehicles={vehicles}
+              />
+              <Box sx={{ ml: "auto" }}>
+                <SortAndPerPageControls />
+              </Box>
             </Box>
+
+            <ActiveFilterChips
+              categories={categories}
+              brands={brands}
+              vehicles={vehicles}
+            />
           </Box>
 
-          <ActiveFilterChips categories={categories} brands={brands} />
+          <ProductGridWithLoadMore
+            initialProducts={products.data}
+            initialTotal={products.total}
+            initialLastPage={products.lastPage}
+          />
         </Box>
-
-        <ProductGridWithLoadMore
-          initialProducts={products.data}
-          initialTotal={products.total}
-          initialLastPage={products.lastPage}
-        />
       </Box>
-    </Box>
-  </Container>
+    </Container>
   );
 }

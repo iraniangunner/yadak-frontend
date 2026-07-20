@@ -55,7 +55,7 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
   const user = useAuthStore((s) => s.user);
   const addToCart = useCartStore((s) => s.addItem);
   const isInCart = useCartStore((s) =>
-    s.items.some((i) => i.product_id === product.id),
+    s.items.some((i) => i.product_id === product.id)
   );
 
   const [quantity, setQuantity] = useState(1);
@@ -88,7 +88,7 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
     ? Math.round(
         ((product.compare_price! - product.final_price) /
           product.compare_price!) *
-          100,
+          100
       )
     : 0;
 
@@ -121,7 +121,7 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
         brand_name: product.brand?.name,
         average_rating: product.average_rating,
       },
-      quantity,
+      quantity
     );
     setToast("به سبد خرید اضافه شد");
   };
@@ -266,6 +266,45 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
         >
           {formatPrice(unitPrice)}
         </Typography>
+
+        {/* تخفیف پلکانی - فقط اگه محصول واقعاً قیمت پلکانی داشته باشه */}
+        {product.price_tiers && product.price_tiers.length > 0 && (
+          <Box
+            sx={{
+              mt: 1.5,
+              pt: 1.5,
+              borderTop: "1px dashed",
+              borderColor: "divider",
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 700, display: "block", mb: 0.75 }}
+            >
+              خرید عمده، صرفه‌ی بیشتر:
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+              {product.price_tiers
+                .slice()
+                .sort((a, b) => a.min_quantity - b.min_quantity)
+                .map((tier) => (
+                  <Box
+                    key={tier.id}
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <Typography variant="caption" color="text.secondary">
+                      {tier.max_quantity
+                        ? `${tier.min_quantity} تا ${tier.max_quantity} عدد`
+                        : `${tier.min_quantity} عدد به بالا`}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                      {formatPrice(tier.price)} / عدد
+                    </Typography>
+                  </Box>
+                ))}
+            </Box>
+          </Box>
+        )}
       </Box>
 
       {isPurchasable && (
