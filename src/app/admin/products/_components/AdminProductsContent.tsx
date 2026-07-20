@@ -31,6 +31,7 @@ import {
   Avatar,
   Tabs,
   Tab,
+  Autocomplete,
 } from "@mui/material";
 import {
   Add,
@@ -39,13 +40,14 @@ import {
   Inventory as InventoryIcon,
   Close,
 } from "@mui/icons-material";
-import { adminAPI, brandsAPI, categoriesAPI } from "@/lib/api";
+import { adminAPI, brandsAPI, categoriesAPI, vehiclesAPI } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/admin/_components/AdminProductsContent.tsx
 |--------------------------------------------------------------------------
+
 */
 
 const stockStatusLabels: Record<
@@ -87,6 +89,13 @@ type ProductAttribute = {
 
 type Option = { id: number; name: string };
 
+type Vehicle = { id: number; brand?: string; model?: string; name?: string };
+function vehicleLabel(v: Vehicle) {
+  return (
+    v.name || [v.brand, v.model].filter(Boolean).join(" ") || `خودرو #${v.id}`
+  );
+}
+
 const emptyForm = {
   title: "",
   sku: "",
@@ -111,6 +120,7 @@ export function AdminProductsContent() {
 
   const [categories, setCategories] = useState<Option[]>([]);
   const [brands, setBrands] = useState<Option[]>([]);
+  const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tab, setTab] = useState(0);
@@ -120,7 +130,6 @@ export function AdminProductsContent() {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  // گالری و قیمت پلکانی - فقط وقتی محصولی در حال ویرایشه معنی دارن
   const [images, setImages] = useState<ProductImage[]>([]);
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
@@ -131,6 +140,10 @@ export function AdminProductsContent() {
     price: "",
   });
   const [newAttribute, setNewAttribute] = useState({ name: "", value: "" });
+
+  // خودروهای سازگار
+  const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]);
+  const [isSavingVehicles, setIsSavingVehicles] = useState(false);
 
   const loadProducts = () => {
     setProducts(null);
@@ -148,12 +161,14 @@ export function AdminProductsContent() {
 
   useEffect(() => {
     loadProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage, search]);
 
   useEffect(() => {
     categoriesAPI.list().then((res) => setCategories(res.data.data));
     brandsAPI.list().then((res) => setBrands(res.data.data));
+    vehiclesAPI
+      .list({ per_page: 200 })
+      .then((res) => setAllVehicles(res.data.data));
   }, []);
 
   const loadProductDetails = (id: number) => {
@@ -161,6 +176,7 @@ export function AdminProductsContent() {
       setImages(res.data.product.images || []);
       setPriceTiers(res.data.product.price_tiers || []);
       setAttributes(res.data.product.product_attributes || []);
+      setSelectedVehicles(res.data.product.vehicles || []);
     });
   };
 
@@ -171,6 +187,7 @@ export function AdminProductsContent() {
     setImages([]);
     setPriceTiers([]);
     setAttributes([]);
+    setSelectedVehicles([]);
     setErrors({});
     setTab(0);
     setDialogOpen(true);
@@ -224,8 +241,6 @@ export function AdminProductsContent() {
         loadProducts();
       } else {
         const res = await adminAPI.products.create(fd);
-        // بعد از ساخت موفق، همون‌جا می‌مونیم و می‌ریم توی حالت ویرایش تا
-        // بشه گالری/قیمت پلکانی رو هم بدون بستن مودال اضافه کرد.
         setEditingId(res.data.product.id);
         loadProducts();
         loadProductDetails(res.data.product.id);
@@ -235,7 +250,7 @@ export function AdminProductsContent() {
       setDialogOpen(false);
     } catch (err: any) {
       setErrors(
-        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی محصول."] },
+        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی محصول."] }
       );
     } finally {
       setIsSaving(false);
@@ -259,7 +274,6 @@ export function AdminProductsContent() {
     return () => {
       if (thumbnailFile) URL.revokeObjectURL(thumbnailPreviewUrl!);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [thumbnailFile]);
 
   // ------------------------------------------------------------------
@@ -329,6 +343,26 @@ export function AdminProductsContent() {
     if (!editingId) return;
     await adminAPI.products.attributes.delete(editingId, attributeId);
     loadProductDetails(editingId);
+  };
+
+  // ------------------------------------------------------------------
+  // خودروهای سازگار
+  // ------------------------------------------------------------------
+
+  const handleSaveVehicles = async () => {
+    if (!editingId) return;
+
+    setIsSavingVehicles(true);
+    const fd = new FormData();
+    selectedVehicles.forEach((v) => fd.append("vehicle_ids[]", String(v.id)));
+    if (selectedVehicles.length === 0) fd.append("vehicle_ids", "");
+
+    try {
+      await adminAPI.products.update(editingId, fd);
+      loadProductDetails(editingId);
+    } finally {
+      setIsSavingVehicles(false);
+    }
   };
 
   return (
@@ -508,11 +542,14 @@ export function AdminProductsContent() {
           value={tab}
           onChange={(_, v) => setTab(v)}
           sx={{ px: 3, borderBottom: "1px solid", borderColor: "divider" }}
+          variant="scrollable"
+          scrollButtons="auto"
         >
           <Tab label="اطلاعات پایه" />
           <Tab label="گالری تصاویر" disabled={!editingId} />
           <Tab label="قیمت پلکانی" disabled={!editingId} />
           <Tab label="ویژگی‌ها" disabled={!editingId} />
+          <Tab label="خودروهای سازگار" disabled={!editingId} />
         </Tabs>
 
         <DialogContent>
@@ -590,7 +627,7 @@ export function AdminProductsContent() {
                         <MenuItem key={value} value={value}>
                           {label}
                         </MenuItem>
-                      ),
+                      )
                     )}
                   </Select>
                 </FormControl>
@@ -681,8 +718,8 @@ export function AdminProductsContent() {
                     {thumbnailFile
                       ? thumbnailFile.name
                       : editingId
-                        ? "تعویض تصویر شاخص"
-                        : "انتخاب تصویر شاخص"}
+                      ? "تعویض تصویر شاخص"
+                      : "انتخاب تصویر شاخص"}
                     <input
                       type="file"
                       accept="image/*"
@@ -718,8 +755,8 @@ export function AdminProductsContent() {
 
               {!editingId && (
                 <Alert severity="info">
-                  بعد از ذخیره‌ی اطلاعات پایه، تب‌های گالری و قیمت پلکانی فعال
-                  می‌شن.
+                  بعد از ذخیره‌ی اطلاعات پایه، تب‌های گالری، قیمت پلکانی،
+                  ویژگی‌ها و خودروهای سازگار فعال می‌شن.
                 </Alert>
               )}
             </Box>
@@ -962,6 +999,52 @@ export function AdminProductsContent() {
                   افزودن
                 </Button>
               </Box>
+            </Box>
+          )}
+
+          {/* ---------------- تب ۵: خودروهای سازگار ---------------- */}
+          {tab === 4 && editingId && (
+            <Box sx={{ pt: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                خودروهایی که این قطعه براشون سازگاره رو انتخاب کنید - مشتری با
+                انتخاب خودروش توی هومپیج، این محصول رو توی نتایج می‌بینه.
+              </Typography>
+
+              <Autocomplete
+                multiple
+                options={allVehicles}
+                value={selectedVehicles}
+                getOptionLabel={vehicleLabel}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                onChange={(_, newValue) => setSelectedVehicles(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="خودروهای سازگار"
+                    placeholder="جستجو و انتخاب..."
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      label={vehicleLabel(option)}
+                      size="small"
+                      {...getTagProps({ index })}
+                      key={option.id}
+                    />
+                  ))
+                }
+                sx={{ mb: 2 }}
+              />
+
+              <Button
+                variant="contained"
+                disableElevation
+                onClick={handleSaveVehicles}
+                disabled={isSavingVehicles}
+              >
+                {isSavingVehicles ? "در حال ذخیره..." : "ذخیره‌ی خودروها"}
+              </Button>
             </Box>
           )}
         </DialogContent>
