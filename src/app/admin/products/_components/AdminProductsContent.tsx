@@ -40,14 +40,24 @@ import {
   Inventory as InventoryIcon,
   Close,
 } from "@mui/icons-material";
-import { adminAPI, brandsAPI, categoriesAPI, vehiclesAPI } from "@/lib/api";
+import {
+  adminAPI,
+  brandsAPI,
+  categoriesAPI,
+  vehiclesAPI,
+  productsAPI,
+} from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/admin/_components/AdminProductsContent.tsx
 |--------------------------------------------------------------------------
-
+| تب «خودروهای سازگار» اضافه شد. برخلاف گالری/قیمت‌پلکانی/ویژگی‌ها (که
+| endpoint جدای خودشون رو دارن)، vehicle_ids از قبل روی خودِ
+| update() محصول پشتیبانی می‌شه - برای همین این تب یه دکمه‌ی «ذخیره»ی
+| مستقل داره که مستقیم adminAPI.products.update رو با vehicle_ids صدا
+| می‌زنه.
 */
 
 const stockStatusLabels: Record<
@@ -89,6 +99,9 @@ type ProductAttribute = {
 
 type Option = { id: number; name: string };
 
+// ⚠️ فرض کردم مدل Vehicle فیلدهای brand/model جدا داره (چون
+// VehicleFinderWidget همین‌جوری کار می‌کرد). اگه یه فیلد name ترکیبی
+// داره، فقط همین تابع vehicleLabel رو عوض کنید.
 type Vehicle = { id: number; brand?: string; model?: string; name?: string };
 function vehicleLabel(v: Vehicle) {
   return (
@@ -130,6 +143,7 @@ export function AdminProductsContent() {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [isSaving, setIsSaving] = useState(false);
 
+  // گالری و قیمت پلکانی - فقط وقتی محصولی در حال ویرایشه معنی دارن
   const [images, setImages] = useState<ProductImage[]>([]);
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
@@ -144,6 +158,18 @@ export function AdminProductsContent() {
   // خودروهای سازگار
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]);
   const [isSavingVehicles, setIsSavingVehicles] = useState(false);
+
+  // کالای مکمل
+  type ProductRef = { id: number; title: string; sku: string };
+  const [selectedComplementary, setSelectedComplementary] = useState<
+    ProductRef[]
+  >([]);
+  const [complementaryOptions, setComplementaryOptions] = useState<
+    ProductRef[]
+  >([]);
+  const [isSearchingComplementary, setIsSearchingComplementary] =
+    useState(false);
+  const [isSavingComplementary, setIsSavingComplementary] = useState(false);
 
   const loadProducts = () => {
     setProducts(null);
@@ -161,6 +187,7 @@ export function AdminProductsContent() {
 
   useEffect(() => {
     loadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage, search]);
 
   useEffect(() => {
@@ -177,6 +204,7 @@ export function AdminProductsContent() {
       setPriceTiers(res.data.product.price_tiers || []);
       setAttributes(res.data.product.product_attributes || []);
       setSelectedVehicles(res.data.product.vehicles || []);
+      setSelectedComplementary(res.data.product.complementary_products || []);
     });
   };
 
@@ -188,6 +216,7 @@ export function AdminProductsContent() {
     setPriceTiers([]);
     setAttributes([]);
     setSelectedVehicles([]);
+    setSelectedComplementary([]);
     setErrors({});
     setTab(0);
     setDialogOpen(true);
@@ -241,6 +270,8 @@ export function AdminProductsContent() {
         loadProducts();
       } else {
         const res = await adminAPI.products.create(fd);
+        // بعد از ساخت موفق، همون‌جا می‌مونیم و می‌ریم توی حالت ویرایش تا
+        // بشه گالری/قیمت پلکانی/خودروها رو هم بدون بستن مودال اضافه کرد.
         setEditingId(res.data.product.id);
         loadProducts();
         loadProductDetails(res.data.product.id);
@@ -274,6 +305,7 @@ export function AdminProductsContent() {
     return () => {
       if (thumbnailFile) URL.revokeObjectURL(thumbnailPreviewUrl!);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [thumbnailFile]);
 
   // ------------------------------------------------------------------
@@ -354,6 +386,10 @@ export function AdminProductsContent() {
 
     setIsSavingVehicles(true);
     const fd = new FormData();
+    // ⚠️ حتی وقتی آرایه خالیه هم باید بفرستیم - چون sync() توی بک‌اند
+    // با آرایه‌ی خالی یعنی «همه‌ی خودروهای قبلی رو پاک کن»، نه اینکه
+    // اصلاً دست نزنه (اگه فیلد اصلاً نره، update() بک‌اند vehicle_ids
+    // رو دست‌نخورده می‌ذاره).
     selectedVehicles.forEach((v) => fd.append("vehicle_ids[]", String(v.id)));
     if (selectedVehicles.length === 0) fd.append("vehicle_ids", "");
 
@@ -362,6 +398,47 @@ export function AdminProductsContent() {
       loadProductDetails(editingId);
     } finally {
       setIsSavingVehicles(false);
+    }
+  };
+
+  // ------------------------------------------------------------------
+  // کالای مکمل
+  // ------------------------------------------------------------------
+
+  const handleSearchComplementary = async (query: string) => {
+    if (!query.trim()) {
+      setComplementaryOptions([]);
+      return;
+    }
+    setIsSearchingComplementary(true);
+    try {
+      const res = await productsAPI.list({ search: query, per_page: 15 });
+      // خودِ محصولی که الان در حال ویرایششیم رو از نتایج جستجو حذف کن -
+      // یه محصول نباید مکمل خودش باشه
+      setComplementaryOptions(
+        res.data.data.filter((p: ProductRef) => p.id !== editingId)
+      );
+    } finally {
+      setIsSearchingComplementary(false);
+    }
+  };
+
+  const handleSaveComplementary = async () => {
+    if (!editingId) return;
+
+    setIsSavingComplementary(true);
+    const fd = new FormData();
+    selectedComplementary.forEach((p) =>
+      fd.append("complementary_product_ids[]", String(p.id))
+    );
+    if (selectedComplementary.length === 0)
+      fd.append("complementary_product_ids", "");
+
+    try {
+      await adminAPI.products.update(editingId, fd);
+      loadProductDetails(editingId);
+    } finally {
+      setIsSavingComplementary(false);
     }
   };
 
@@ -550,6 +627,7 @@ export function AdminProductsContent() {
           <Tab label="قیمت پلکانی" disabled={!editingId} />
           <Tab label="ویژگی‌ها" disabled={!editingId} />
           <Tab label="خودروهای سازگار" disabled={!editingId} />
+          <Tab label="کالای مکمل" disabled={!editingId} />
         </Tabs>
 
         <DialogContent>
@@ -1044,6 +1122,61 @@ export function AdminProductsContent() {
                 disabled={isSavingVehicles}
               >
                 {isSavingVehicles ? "در حال ذخیره..." : "ذخیره‌ی خودروها"}
+              </Button>
+            </Box>
+          )}
+
+          {/* ---------------- تب ۶: کالای مکمل ---------------- */}
+          {tab === 5 && editingId && (
+            <Box sx={{ pt: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                محصولاتی که معمولاً همراه این کالا خریداری/استفاده می‌شن رو
+                انتخاب کنید (مثلاً برای «روغن موتور»: فیلتر روغن، واشر درین).
+                وقتی مشتری فقط بخشی از این‌ها رو توی سبدش داشته باشه، بقیه توی
+                سبد خرید پیشنهاد می‌شن.
+              </Typography>
+
+              <Autocomplete
+                multiple
+                options={complementaryOptions}
+                value={selectedComplementary}
+                getOptionLabel={(p) => `${p.title} (${p.sku})`}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                loading={isSearchingComplementary}
+                onChange={(_, newValue) => setSelectedComplementary(newValue)}
+                onInputChange={(_, newInput) =>
+                  handleSearchComplementary(newInput)
+                }
+                filterOptions={(x) => x} // فیلتر سمت سرور انجام می‌شه، نه سمت کلاینت
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="کالای مکمل"
+                    placeholder="جستجوی محصول با نام یا SKU..."
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      label={option.title}
+                      size="small"
+                      {...getTagProps({ index })}
+                      key={option.id}
+                    />
+                  ))
+                }
+                sx={{ mb: 2 }}
+              />
+
+              <Button
+                variant="contained"
+                disableElevation
+                onClick={handleSaveComplementary}
+                disabled={isSavingComplementary}
+              >
+                {isSavingComplementary
+                  ? "در حال ذخیره..."
+                  : "ذخیره‌ی کالای مکمل"}
               </Button>
             </Box>
           )}

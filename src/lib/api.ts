@@ -159,6 +159,10 @@ export const productsAPI = {
     api.get(`/products/${id}/price-for-quantity`, { params: { quantity } }),
   subscribeStock: (id: number, payload?: { mobile?: string }) =>
     api.post(`/products/${id}/stock-subscribe`, payload ?? {}),
+  complementarySuggestions: (productIds: number[]) =>
+    api.get("/products/complementary-suggestions", {
+      params: { product_ids: productIds.join(",") },
+    }),
 };
 
 export const favoritesAPI = {
@@ -190,6 +194,16 @@ export const articlesAPI = {
     sort?: string;
   }) => api.get("/articles", { params }),
   show: (slug: string) => api.get(`/articles/${slug}`),
+};
+
+export const contactAPI = {
+  send: (payload: {
+    name: string;
+    phone?: string;
+    email?: string;
+    subject?: string;
+    message: string;
+  }) => api.post("/contact", payload),
 };
 
 export const bannersAPI = {
