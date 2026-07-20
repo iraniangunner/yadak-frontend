@@ -28,6 +28,7 @@ import {
   ordersAPI,
   couponCheckAPI,
   referralCodeCheckAPI,
+  cartDiscountRulesAPI,
 } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { Check, Close } from "@mui/icons-material";
@@ -35,7 +36,12 @@ import { Check, Close } from "@mui/icons-material";
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/CheckoutContent.tsx
-
+|--------------------------------------------------------------------------
+| فرض‌های این فایل (چون منبع اصلی این endpoint ها جلوم نبود، اگه فرق
+| داشت فقط اسم فیلدها رو بگید تا اصلاح کنم):
+| - پاسخ shippingAPI.options یه آرایه data با فیلدهای
+|   {carrier, service_name, cost, eta_days} برمی‌گردونه.
+| - پاسخ ordersAPI.create یه فیلد order (با id) برمی‌گردونه.
 */
 
 type Address = {
@@ -99,6 +105,20 @@ export function CheckoutContent() {
     message: string;
     discount_amount?: number;
   } | null>(null);
+  const [cartDiscountRules, setCartDiscountRules] = useState<
+    {
+      id: number;
+      min_amount: number;
+      type: "percentage" | "fixed";
+      value: number;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    cartDiscountRulesAPI
+      .active()
+      .then((res) => setCartDiscountRules(res.data.data));
+  }, []);
   const [referralCheck, setReferralCheck] = useState<{
     valid: boolean;
     message: string;
@@ -109,7 +129,9 @@ export function CheckoutContent() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-
+  // وقتی true بشه، یعنی سفارش با موفقیت ثبت شده و داریم عمداً از این صفحه
+  // خارج می‌شیم - پس نباید effect زیر (که با خالی شدن سبد، به /cart
+  // می‌فرسته) دیگه اجرا بشه و مسیر رو خراب کنه.
   const [orderJustPlaced, setOrderJustPlaced] = useState(false);
   const [successToast, setSuccessToast] = useState("");
 
@@ -157,6 +179,7 @@ export function CheckoutContent() {
       })
       .catch(() => setShippingOptions([]))
       .finally(() => setIsLoadingShipping(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAddressId, addresses]);
 
   const handleSaveAddress = async () => {
@@ -186,7 +209,25 @@ export function CheckoutContent() {
   const discountAmount = couponCheck?.valid
     ? couponCheck.discount_amount || 0
     : 0;
-  const estimatedTotal = subtotal + shippingCost - discountAmount;
+
+  // بالاترین پله‌ی فعالی که subtotal ازش رد شده
+  const qualifyingRules = cartDiscountRules
+    .filter((r) => subtotal >= r.min_amount)
+    .sort((a, b) => b.min_amount - a.min_amount);
+  const activeCartRule = qualifyingRules[0];
+  const cartDiscountAmount = activeCartRule
+    ? activeCartRule.type === "percentage"
+      ? Math.round((subtotal * activeCartRule.value) / 100)
+      : Math.min(activeCartRule.value, subtotal)
+    : 0;
+
+  // نزدیک‌ترین پله‌ی بعدی که هنوز بهش نرسیده - برای پیام «فلان تومان دیگه بخر»
+  const nextRule = cartDiscountRules
+    .filter((r) => subtotal < r.min_amount)
+    .sort((a, b) => a.min_amount - b.min_amount)[0];
+
+  const estimatedTotal =
+    subtotal + shippingCost - discountAmount - cartDiscountAmount;
 
   const handleCheckCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -249,6 +290,8 @@ export function CheckoutContent() {
         customer_note: customerNote || undefined,
       });
 
+      // ⚠️ اول این پرچم رو true می‌کنیم - تا effect بالا که با خالی شدن
+      // سبد به /cart می‌فرسته، دیگه دخالت نکنه.
       setOrderJustPlaced(true);
       clearCart();
 
@@ -259,6 +302,7 @@ export function CheckoutContent() {
           : "سفارش با موفقیت ثبت شد!"
       );
 
+      // یه مکث کوتاه تا کاربر واقعاً پیام موفقیت رو ببینه، بعد بره صفحه‌ی سفارش‌ها
       setTimeout(() => {
         router.push(
           orderId
@@ -624,6 +668,33 @@ export function CheckoutContent() {
                 {formatPrice(discountAmount)}-
               </Typography>
             </Box>
+          )}
+
+          {cartDiscountAmount > 0 && (
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                تخفیف خرید عمده
+              </Typography>
+              <Typography
+                variant="body2"
+                color="success.main"
+                sx={{ fontWeight: 600 }}
+              >
+                {formatPrice(cartDiscountAmount)}-
+              </Typography>
+            </Box>
+          )}
+
+          {nextRule && (
+            <Alert severity="info" sx={{ mb: 2, fontSize: "0.8rem" }}>
+              {formatPrice(nextRule.min_amount - subtotal)} دیگر خرید کنید و{" "}
+              {nextRule.type === "percentage"
+                ? `٪${nextRule.value}`
+                : formatPrice(nextRule.value)}{" "}
+              تخفیف بگیرید!
+            </Alert>
           )}
 
           <Divider sx={{ mb: 2 }} />

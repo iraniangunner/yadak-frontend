@@ -83,6 +83,7 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
+      // مسیر واقعی: app/api/refresh/route.ts
       const res = await fetch("/api/refresh-token", { method: "POST" });
       const data = await res.json();
 
@@ -322,7 +323,35 @@ export const myReferralAPI = {
   }) => api.get("/my/referral-commissions", { params, requiresAuth: true }),
 };
 
+export const cartDiscountRulesAPI = {
+  active: () => api.get("/cart-discount-rules/active"),
+};
+
 export const adminAPI = {
+  cartDiscountRules: {
+    list: () => api.get("/admin/cart-discount-rules", { requiresAuth: true }),
+    create: (payload: {
+      min_amount: number;
+      type: string;
+      value: number;
+      is_active: boolean;
+    }) =>
+      api.post("/admin/cart-discount-rules", payload, { requiresAuth: true }),
+    update: (
+      id: number,
+      payload: Partial<{
+        min_amount: number;
+        type: string;
+        value: number;
+        is_active: boolean;
+      }>
+    ) =>
+      api.post(`/admin/cart-discount-rules/${id}`, payload, {
+        requiresAuth: true,
+      }),
+    delete: (id: number) =>
+      api.delete(`/admin/cart-discount-rules/${id}`, { requiresAuth: true }),
+  },
   // جستجوی کاربر (برای فرم‌هایی مثل انتخاب صاحب کد معرف)
   users: {
     search: (query: string) =>

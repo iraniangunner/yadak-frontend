@@ -58,6 +58,7 @@ type OrderDetail = {
   status: string;
   subtotal: number;
   discount_amount: number;
+  cart_discount_amount: number;
   shipping_cost: number;
   total_amount: number;
   customer_note: string | null;
@@ -191,7 +192,7 @@ export function AdminOrderDetailContent({
       onChanged?.();
     } catch (err: any) {
       setActionError(
-        err?.response?.data?.message || "خطا در ذخیره‌ی تغییرات آیتم‌ها.",
+        err?.response?.data?.message || "خطا در ذخیره‌ی تغییرات آیتم‌ها."
       );
     } finally {
       setIsSaving(false);
@@ -434,6 +435,16 @@ export function AdminOrderDetailContent({
               {formatPrice(order.discount_amount)}
             </Typography>
           </Stack>
+          {order.cart_discount_amount > 0 && (
+            <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+              <Typography variant="body2" color="text.secondary">
+                تخفیف خرید عمده
+              </Typography>
+              <Typography variant="body2">
+                {formatPrice(order.cart_discount_amount)}
+              </Typography>
+            </Stack>
+          )}
           {order.referral_code && (
             <Stack direction="row" sx={{ justifyContent: "space-between" }}>
               <Typography variant="body2" color="text.secondary">

@@ -35,11 +35,11 @@ const links = [
     label: "آدرس‌های من",
     icon: <LocationOn fontSize="small" />,
   },
-  {
-    href: "/account/vehicles",
-    label: "خودروهای من",
-    icon: <DirectionsCar fontSize="small" />,
-  },
+  // {
+  //   href: "/account/vehicles",
+  //   label: "خودروهای من",
+  //   icon: <DirectionsCar fontSize="small" />,
+  // },
   {
     href: "/account/favorites",
     label: "علاقه مندی های من",

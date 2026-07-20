@@ -42,6 +42,7 @@ type OrderDetail = {
   status: string;
   subtotal: number;
   discount_amount: number;
+  cart_discount_amount: number;
   shipping_cost: number;
   total_amount: number;
   customer_note: string | null;
@@ -140,7 +141,7 @@ export function OrderDetailContent({ orderId }: { orderId: number }) {
       }
     } catch (err: any) {
       setActionError(
-        err?.response?.data?.message || "ساخت لینک پرداخت ناموفق بود.",
+        err?.response?.data?.message || "ساخت لینک پرداخت ناموفق بود."
       );
     } finally {
       setIsActing(false);
@@ -368,6 +369,16 @@ export function OrderDetailContent({ orderId }: { orderId: number }) {
             </Typography>
           </Box>
         )}
+        {order.cart_discount_amount > 0 && (
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              تخفیف خرید عمده
+            </Typography>
+            <Typography variant="body2" color="success.main">
+              {formatPrice(order.cart_discount_amount)}-
+            </Typography>
+          </Box>
+        )}
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
           <Typography variant="body2" color="text.secondary">
             هزینه‌ی ارسال
@@ -441,7 +452,9 @@ export function OrderDetailContent({ orderId }: { orderId: number }) {
                 >
                   <Typography variant="body2">
                     {h.from_status && h.from_status !== h.to_status
-                      ? `${statusLabels[h.from_status]?.label || h.from_status} ← `
+                      ? `${
+                          statusLabels[h.from_status]?.label || h.from_status
+                        } ← `
                       : ""}
                     {statusLabels[h.to_status]?.label || h.to_status}
                   </Typography>
