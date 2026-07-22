@@ -11,35 +11,47 @@ import {
   Rating,
   IconButton,
   Collapse,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  TextField,
+  Switch,
+  InputAdornment,
+  Slider,
 } from "@mui/material";
-import { ExpandMore, Close } from "@mui/icons-material";
+import { ExpandMore, Search } from "@mui/icons-material";
+import { productsAPI } from "@/lib/api";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/ProductFilterPanel.tsx
 |--------------------------------------------------------------------------
-
+| دسته‌بندی چندسطحیه (parent_id)، کاملاً بازگشتی (هر عمقی رو پشتیبانی
+| می‌کنه). منطق تیک زدن:
+| - تیک زدن یه دسته: خودش + همه‌ی زیرمجموعه‌هاش (تا هر عمقی) برای فیلتر
+|   واقعی فعال می‌شن، ولی فقط خودِ همون دسته تیک نمایش داده می‌شه.
+| - تیک زدن یه زیرمجموعه‌ی خاص: همه‌ی اجدادش از حالت تیک خارج می‌شن، فقط
+|   همون زیرمجموعه (و زیرمجموعه‌های خودش) انتخاب می‌مونن.
+|
+| ⚠️ فیلتر خودرو دیگه بر اساس رابطه‌ی قدیمی Vehicle نیست - دو تا لیست
+| کاملاً مستقل و مسطح (برند خودرو / مدل خودرو)، هرکدوم روی فیلد مستقیم
+| vehicle_brand/vehicle_model خودِ محصول عمل می‌کنن. اگه ترکیب انتخاب‌شده
+| (مثلاً پراید + ۲۰۶) روی هیچ محصولی نباشه، نتیجه خالیه - این طبیعیه.
 */
 
 export type ProductFilters = {
   category_ids: string[];
   brand_ids: string[];
+  vehicle_brands: string[];
+  vehicle_models: string[];
   stock_statuses: string[];
   min_rating: string;
+  attributes: Record<string, string>;
+  min_price: string;
+  max_price: string;
+  is_available: boolean;
+  is_discounted: boolean;
 };
 
 type Option = { id: number; name: string };
 type CategoryOption = { id: number; name: string; parent_id: number | null };
-type VehicleOption = {
-  id: number;
-  brand: string;
-  model: string;
-  generation?: string | null;
-};
 
 const stockStatusOptions = [
   { value: "available", label: "موجود" },
@@ -165,7 +177,7 @@ function CategoryNode({
             flex: 1,
             mr: 0,
             borderRadius: 1.5,
-            // bgcolor: isChecked ? "rgba(30,58,138,0.06)" : "transparent",
+            bgcolor: isChecked ? "rgba(30,58,138,0.06)" : "transparent",
             transition: "background-color .15s",
             pr: 0.5,
           }}
@@ -248,67 +260,208 @@ function CategoryTree({
   );
 }
 
+// ------------------------------------------------------------------
+// یه لیست چک‌باکسیِ قابل‌جستجو - برای وقتی گزینه‌ها زیادن (برند، برند/
+// مدل خودرو) و پیدا کردن یه مورد خاص با اسکرول کردن سخته.
+// ------------------------------------------------------------------
+function SearchableCheckboxList({
+  title,
+  options,
+  selected,
+  onToggle,
+  getLabel = (o) => o,
+  getKey = (o) => o,
+}: {
+  title: string;
+  options: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+  getLabel?: (option: string) => string;
+  getKey?: (option: string) => string;
+}) {
+  const [search, setSearch] = useState("");
+  const filtered = search.trim()
+    ? options.filter((o) => getLabel(o).includes(search.trim()))
+    : options;
+
+  return (
+    <>
+      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        {title}
+      </Typography>
+      {options.length > 5 && (
+        <TextField
+          size="small"
+          placeholder={`جستجو در ${title}...`}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          fullWidth
+          sx={{ mb: 0.5 }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search fontSize="small" sx={{ color: "text.disabled" }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+      )}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          maxHeight: 240,
+          overflowY: "auto",
+        }}
+      >
+        {filtered.length === 0 ? (
+          <Typography variant="caption" color="text.secondary" sx={{ py: 1 }}>
+            چیزی پیدا نشد
+          </Typography>
+        ) : (
+          filtered.map((option) => (
+            <FormControlLabel
+              key={getKey(option)}
+              control={
+                <Checkbox
+                  size="small"
+                  checked={selected.includes(getKey(option))}
+                  onChange={() => onToggle(getKey(option))}
+                />
+              }
+              label={
+                <Typography variant="body2">{getLabel(option)}</Typography>
+              }
+            />
+          ))
+        )}
+      </Box>
+    </>
+  );
+}
+
 export function ProductFilterPanel({
   filters,
   categories,
   brands,
-  vehicles,
-  vehicleId,
-  onVehicleChange,
+  vehicleBrandOptions,
+  vehicleModelOptions,
   onChange,
   onClear,
   showCategoryFilter = true,
+  filterableAttributes,
+  attributeCategoryIds,
 }: {
   filters: ProductFilters;
   categories: CategoryOption[];
   brands: Option[];
-  vehicles?: VehicleOption[];
-  vehicleId?: string;
-  onVehicleChange?: (vehicleId: string) => void;
+  vehicleBrandOptions?: string[];
+  vehicleModelOptions?: string[];
   onChange: (filters: ProductFilters) => void;
   onClear: () => void;
   showCategoryFilter?: boolean;
+  filterableAttributes?: { name: string; values: string[] }[];
+  attributeCategoryIds?: number[];
 }) {
-  const [optimisticFilters, setOptimisticFilters] = useState(filters);
+  // ⚠️ نرمال‌سازی امن: اگه هرجایی این کامپوننت رو با یه filters ناقص صدا
+  // بزنه، به‌جای کرش کردن، مقدار پیش‌فرض خالی می‌ذاریم.
+  const safeFilters: ProductFilters = {
+    category_ids: filters.category_ids || [],
+    brand_ids: filters.brand_ids || [],
+    vehicle_brands: filters.vehicle_brands || [],
+    vehicle_models: filters.vehicle_models || [],
+    stock_statuses: filters.stock_statuses || [],
+    min_rating: filters.min_rating || "",
+    attributes: filters.attributes || {},
+    min_price: filters.min_price || "",
+    max_price: filters.max_price || "",
+    is_available: filters.is_available || false,
+    is_discounted: filters.is_discounted || false,
+  };
+
+  // چون این صفحه SSR ـه، هر تغییر فیلتر یه رفت‌وبرگشت واقعی به سرور داره
+  // که یه لحظه طول می‌کشه. برای فیدبک فوری روی *همه‌ی* فیلترها، یه نسخه‌ی
+  // محلی خوش‌بینانه از کل filters نگه می‌داریم که همون لحظه‌ی کلیک آپدیت می‌شه.
+  const [optimisticFilters, setOptimisticFilters] = useState(safeFilters);
 
   useEffect(() => {
-    setOptimisticFilters(filters);
+    setOptimisticFilters(safeFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    filters.category_ids.join(","),
-    filters.brand_ids.join(","),
-    filters.stock_statuses.join(","),
-    filters.min_rating,
+    safeFilters.category_ids.join(","),
+    safeFilters.brand_ids.join(","),
+    safeFilters.vehicle_brands.join(","),
+    safeFilters.vehicle_models.join(","),
+    safeFilters.stock_statuses.join(","),
+    safeFilters.min_rating,
+    safeFilters.min_price,
+    safeFilters.max_price,
+    safeFilters.is_available,
+    safeFilters.is_discounted,
+  ]);
+
+  // فیلترهای دینامیک ویژگی - با تغییر برند/خودرو/قیمت/موجودی، دوباره از
+  // سرور می‌گیریم تا فقط ویژگی‌هایی که واقعاً بین محصولات باقی‌مونده
+  // وجود دارن نشون داده بشن (faceted filtering، مثل دیجی‌کالا).
+  const [liveFilterableAttributes, setLiveFilterableAttributes] = useState(
+    filterableAttributes || []
+  );
+
+  useEffect(() => {
+    setLiveFilterableAttributes(filterableAttributes || []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(filterableAttributes)]);
+
+  useEffect(() => {
+    if (!attributeCategoryIds || attributeCategoryIds.length === 0) return;
+
+    productsAPI
+      .filterableAttributes({
+        category_id: attributeCategoryIds.join(","),
+        brand_id: optimisticFilters.brand_ids.length
+          ? optimisticFilters.brand_ids.join(",")
+          : undefined,
+        vehicle_brand: optimisticFilters.vehicle_brands.length
+          ? optimisticFilters.vehicle_brands.join(",")
+          : undefined,
+        vehicle_model: optimisticFilters.vehicle_models.length
+          ? optimisticFilters.vehicle_models.join(",")
+          : undefined,
+        stock_status: optimisticFilters.stock_statuses.length
+          ? optimisticFilters.stock_statuses.join(",")
+          : undefined,
+        min_price: optimisticFilters.min_price
+          ? Number(optimisticFilters.min_price)
+          : undefined,
+        max_price: optimisticFilters.max_price
+          ? Number(optimisticFilters.max_price)
+          : undefined,
+      })
+      .then((res) => setLiveFilterableAttributes(res.data.data))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    optimisticFilters.brand_ids.join(","),
+    optimisticFilters.vehicle_brands.join(","),
+    optimisticFilters.vehicle_models.join(","),
+    optimisticFilters.stock_statuses.join(","),
+    optimisticFilters.min_price,
+    optimisticFilters.max_price,
   ]);
 
   const applyChange = (next: ProductFilters) => {
-    setOptimisticFilters(next);
-    onChange(next);
+    setOptimisticFilters(next); // فوری، همون لحظه
+    onChange(next); // ناوبری واقعی (کمی طول می‌کشه)
   };
-
-  const currentVehicle = vehicles?.find((v) => String(v.id) === vehicleId);
-  const [vehicleBrand, setVehicleBrand] = useState(currentVehicle?.brand || "");
-
-  useEffect(() => {
-    setVehicleBrand(currentVehicle?.brand || "");
-  }, [vehicleId]);
-
-  const vehicleBrands = Array.from(
-    new Set((vehicles || []).map((v) => v.brand))
-  );
-  const modelsForVehicleBrand = (vehicles || []).filter(
-    (v) => v.brand === vehicleBrand
-  );
-
-  function vehicleModelLabel(v: VehicleOption) {
-    return v.generation ? `${v.model} (${v.generation})` : v.model;
-  }
 
   const handleCategoryChange = (nextCategoryIds: string[]) => {
     applyChange({ ...optimisticFilters, category_ids: nextCategoryIds });
   };
 
   const toggleInArray = (
-    key: "brand_ids" | "stock_statuses",
+    key: "brand_ids" | "vehicle_brands" | "vehicle_models" | "stock_statuses",
     value: string
   ) => {
     const current = optimisticFilters[key] as string[];
@@ -318,6 +471,33 @@ export function ProductFilterPanel({
     applyChange({ ...optimisticFilters, [key]: next });
   };
 
+  // Slider قیمت - بازه‌ی ثابت ۰ تا ۵۰ میلیون تومان. یه state محلی جدا
+  // نگه می‌داریم تا حین کشیدن دسته‌ها، هر پیکسل حرکت باعث ناوبری واقعی
+  // نشه؛ فقط وقتی دست رو برمی‌دارید (onChangeCommitted) فیلتر واقعی
+  // اعمال می‌شه.
+  const PRICE_MIN = 0;
+  const PRICE_MAX = 50_000_000;
+  const [priceRange, setPriceRange] = useState<[number, number]>([
+    optimisticFilters.min_price
+      ? Number(optimisticFilters.min_price)
+      : PRICE_MIN,
+    optimisticFilters.max_price
+      ? Number(optimisticFilters.max_price)
+      : PRICE_MAX,
+  ]);
+
+  useEffect(() => {
+    setPriceRange([
+      optimisticFilters.min_price
+        ? Number(optimisticFilters.min_price)
+        : PRICE_MIN,
+      optimisticFilters.max_price
+        ? Number(optimisticFilters.max_price)
+        : PRICE_MAX,
+    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [optimisticFilters.min_price, optimisticFilters.max_price]);
+
   const toggleRating = (r: number) => {
     applyChange({
       ...optimisticFilters,
@@ -325,66 +505,81 @@ export function ProductFilterPanel({
     });
   };
 
+  const toggleAttribute = (name: string, value: string) => {
+    const current = optimisticFilters.attributes[name];
+    const nextAttributes = { ...optimisticFilters.attributes };
+    if (current === value) {
+      delete nextAttributes[name];
+    } else {
+      nextAttributes[name] = value;
+    }
+    applyChange({ ...optimisticFilters, attributes: nextAttributes });
+  };
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       <Typography sx={{ fontWeight: 700, mb: 0.5 }}>فیلترها</Typography>
 
-      {vehicles && vehicles.length > 0 && onVehicleChange && (
+      {/* برند خودرو و مدل خودرو - دو لیست کاملاً مستقل و مسطح، بدون
+          کاسکید. مستقل از هم AND می‌شن - یعنی اگه ترکیبی که وجود نداره
+          انتخاب بشه (مثلاً پراید + ۲۰۶)، نتیجه خالیه (طبیعیه، نه باگ). */}
+      {vehicleBrandOptions && vehicleBrandOptions.length > 0 && (
         <>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            خودروی من
-          </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            <FormControl size="small" fullWidth>
-              <InputLabel>برند خودرو</InputLabel>
-              <Select
-                label="برند خودرو"
-                value={vehicleBrand}
-                onChange={(e) => {
-                  setVehicleBrand(e.target.value);
-                  onVehicleChange("");
-                }}
-              >
-                {vehicleBrands.map((b) => (
-                  <MenuItem key={b} value={b}>
-                    {b}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl size="small" fullWidth disabled={!vehicleBrand}>
-              <InputLabel>مدل</InputLabel>
-              <Select
-                label="مدل"
-                value={vehicleId || ""}
-                onChange={(e) => onVehicleChange(e.target.value)}
-              >
-                {modelsForVehicleBrand.map((v) => (
-                  <MenuItem key={v.id} value={String(v.id)}>
-                    {vehicleModelLabel(v)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {vehicleId && (
-              <Button
-                size="small"
-                color="inherit"
-                startIcon={<Close fontSize="small" />}
-                onClick={() => {
-                  setVehicleBrand("");
-                  onVehicleChange("");
-                }}
-              >
-                پاک کردن خودرو
-              </Button>
-            )}
-          </Box>
+          <SearchableCheckboxList
+            title="برند خودرو"
+            options={vehicleBrandOptions}
+            selected={optimisticFilters.vehicle_brands}
+            onToggle={(v) => toggleInArray("vehicle_brands", v)}
+          />
           <Divider sx={{ my: 1 }} />
         </>
       )}
+
+      {vehicleModelOptions && vehicleModelOptions.length > 0 && (
+        <>
+          <SearchableCheckboxList
+            title="مدل خودرو"
+            options={vehicleModelOptions}
+            selected={optimisticFilters.vehicle_models}
+            onToggle={(v) => toggleInArray("vehicle_models", v)}
+          />
+          <Divider sx={{ my: 1 }} />
+        </>
+      )}
+
+      <Typography variant="body2" sx={{ fontWeight: 600, mt: 1 }}>
+        محدوده‌ی قیمت (تومان)
+      </Typography>
+      <Box sx={{ px: 1 }}>
+        <Slider
+          value={priceRange}
+          onChange={(_, newValue) =>
+            setPriceRange(newValue as [number, number])
+          }
+          onChangeCommitted={(_, newValue) => {
+            const [min, max] = newValue as [number, number];
+            applyChange({
+              ...optimisticFilters,
+              min_price: min > PRICE_MIN ? String(min) : "",
+              max_price: max < PRICE_MAX ? String(max) : "",
+            });
+          }}
+          min={PRICE_MIN}
+          max={PRICE_MAX}
+          step={100000}
+          size="small"
+          valueLabelDisplay="off"
+        />
+        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Typography variant="caption" color="text.secondary">
+            {priceRange[0].toLocaleString("fa-IR")} تومان
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {priceRange[1].toLocaleString("fa-IR")} تومان
+          </Typography>
+        </Box>
+      </Box>
+      <Divider sx={{ my: 1 }} />
 
       {showCategoryFilter && (
         <>
@@ -400,24 +595,48 @@ export function ProductFilterPanel({
         </>
       )}
 
-      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-        برند
+      <Typography variant="body2" sx={{ fontWeight: 600, mt: 1 }}>
+        دسترسی سریع
       </Typography>
-      <Box sx={{ display: "flex", flexDirection: "column" }}>
-        {brands.map((b) => (
-          <FormControlLabel
-            key={b.id}
-            control={
-              <Checkbox
-                size="small"
-                checked={optimisticFilters.brand_ids.includes(String(b.id))}
-                onChange={() => toggleInArray("brand_ids", String(b.id))}
-              />
+      <FormControlLabel
+        control={
+          <Switch
+            size="small"
+            checked={optimisticFilters.is_available}
+            onChange={(e) =>
+              applyChange({
+                ...optimisticFilters,
+                is_available: e.target.checked,
+              })
             }
-            label={<Typography variant="body2">{b.name}</Typography>}
           />
-        ))}
-      </Box>
+        }
+        label={<Typography variant="body2">فقط کالاهای موجود</Typography>}
+      />
+      <FormControlLabel
+        control={
+          <Switch
+            size="small"
+            checked={optimisticFilters.is_discounted}
+            onChange={(e) =>
+              applyChange({
+                ...optimisticFilters,
+                is_discounted: e.target.checked,
+              })
+            }
+          />
+        }
+        label={<Typography variant="body2">فقط کالاهای تخفیف‌دار</Typography>}
+      />
+      <Divider sx={{ my: 1 }} />
+
+      <SearchableCheckboxList
+        title="برند"
+        options={brands.map((b) => String(b.id))}
+        selected={optimisticFilters.brand_ids}
+        onToggle={(v) => toggleInArray("brand_ids", v)}
+        getLabel={(id) => brands.find((b) => String(b.id) === id)?.name || id}
+      />
 
       <Divider sx={{ my: 1 }} />
 
@@ -468,6 +687,36 @@ export function ProductFilterPanel({
         ))}
       </Box>
 
+      {liveFilterableAttributes && liveFilterableAttributes.length > 0 && (
+        <>
+          {liveFilterableAttributes.map((attr) => (
+            <Box key={attr.name}>
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {attr.name}
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column" }}>
+                {attr.values.map((value) => (
+                  <FormControlLabel
+                    key={value}
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={
+                          optimisticFilters.attributes[attr.name] === value
+                        }
+                        onChange={() => toggleAttribute(attr.name, value)}
+                      />
+                    }
+                    label={<Typography variant="body2">{value}</Typography>}
+                  />
+                ))}
+              </Box>
+            </Box>
+          ))}
+        </>
+      )}
+
       <Divider sx={{ my: 1 }} />
 
       <Button
@@ -476,8 +725,15 @@ export function ProductFilterPanel({
           setOptimisticFilters({
             category_ids: [],
             brand_ids: [],
+            vehicle_brands: [],
+            vehicle_models: [],
             stock_statuses: [],
             min_rating: "",
+            attributes: {},
+            min_price: "",
+            max_price: "",
+            is_available: false,
+            is_discounted: false,
           });
           onClear();
         }}

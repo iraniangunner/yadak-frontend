@@ -95,19 +95,19 @@ type ProductAttribute = {
   name: string;
   value: string;
   sort_order: number;
+  is_filterable: boolean;
 };
 
 type Option = { id: number; name: string };
 
-// ⚠️ فرض کردم مدل Vehicle فیلدهای brand/model جدا داره (چون
-// VehicleFinderWidget همین‌جوری کار می‌کرد). اگه یه فیلد name ترکیبی
-// داره، فقط همین تابع vehicleLabel رو عوض کنید.
-type Vehicle = { id: number; brand?: string; model?: string; name?: string };
-function vehicleLabel(v: Vehicle) {
-  return (
-    v.name || [v.brand, v.model].filter(Boolean).join(" ") || `خودرو #${v.id}`
-  );
-}
+// ⚠️ فیلدهای Vehicle همچنان به‌عنوان «منبع گزینه‌های دراپ‌داون» استفاده
+// می‌شن (نه رابطه‌ی محصول) - برای ساخت لیست‌های کاسکید برند→مدل→تیپ.
+type VehicleRef = {
+  id: number;
+  brand: string;
+  model: string;
+  generation?: string | null;
+};
 
 const emptyForm = {
   title: "",
@@ -117,6 +117,9 @@ const emptyForm = {
   compare_price: "",
   category_id: "",
   brand_id: "",
+  vehicle_brand: "",
+  vehicle_model: "",
+  vehicle_type: "",
   stock_status: "available",
   weight_kg: "",
   dimensions: "",
@@ -133,7 +136,9 @@ export function AdminProductsContent() {
 
   const [categories, setCategories] = useState<Option[]>([]);
   const [brands, setBrands] = useState<Option[]>([]);
-  const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
+  // منبع گزینه‌های دراپ‌داون کاسکید برند→مدل→تیپ خودرو (از جدول Vehicle،
+  // ولی فقط برای گزینه‌ها - مقدار انتخاب‌شده مستقیم روی خودِ محصول ذخیره می‌شه)
+  const [allVehicleRefs, setAllVehicleRefs] = useState<VehicleRef[]>([]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tab, setTab] = useState(0);
@@ -153,11 +158,35 @@ export function AdminProductsContent() {
     max_quantity: "",
     price: "",
   });
-  const [newAttribute, setNewAttribute] = useState({ name: "", value: "" });
+  const [newAttribute, setNewAttribute] = useState({
+    name: "",
+    value: "",
+    is_filterable: false,
+  });
 
-  // خودروهای سازگار
-  const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]);
-  const [isSavingVehicles, setIsSavingVehicles] = useState(false);
+  // گزینه‌های کاسکید: برند خودرو (یکتا) → مدل‌های همون برند → تیپ‌های همون برند+مدل
+  const vehicleBrandChoices = Array.from(
+    new Set(allVehicleRefs.map((v) => v.brand))
+  ).sort();
+  const vehicleModelChoices = Array.from(
+    new Set(
+      allVehicleRefs
+        .filter((v) => v.brand === form.vehicle_brand)
+        .map((v) => v.model)
+    )
+  ).sort();
+  const vehicleTrimChoices = Array.from(
+    new Set(
+      allVehicleRefs
+        .filter(
+          (v) =>
+            v.brand === form.vehicle_brand &&
+            v.model === form.vehicle_model &&
+            v.generation
+        )
+        .map((v) => v.generation as string)
+    )
+  ).sort();
 
   // کالای مکمل
   type ProductRef = { id: number; title: string; sku: string };
@@ -194,8 +223,8 @@ export function AdminProductsContent() {
     categoriesAPI.list().then((res) => setCategories(res.data.data));
     brandsAPI.list().then((res) => setBrands(res.data.data));
     vehiclesAPI
-      .list({ per_page: 200 })
-      .then((res) => setAllVehicles(res.data.data));
+      .list({ per_page: 300 })
+      .then((res) => setAllVehicleRefs(res.data.data));
   }, []);
 
   const loadProductDetails = (id: number) => {
@@ -203,8 +232,15 @@ export function AdminProductsContent() {
       setImages(res.data.product.images || []);
       setPriceTiers(res.data.product.price_tiers || []);
       setAttributes(res.data.product.product_attributes || []);
-      setSelectedVehicles(res.data.product.vehicles || []);
       setSelectedComplementary(res.data.product.complementary_products || []);
+      // فیلدهای برند/مدل/تیپ خودرو توی لیست سبک محصولات نیستن، فقط
+      // موقع گرفتن جزئیات کامل میان - همین‌جا فرم رو باهاشون پر می‌کنیم.
+      setForm((prev) => ({
+        ...prev,
+        vehicle_brand: res.data.product.vehicle_brand || "",
+        vehicle_model: res.data.product.vehicle_model || "",
+        vehicle_type: res.data.product.vehicle_type || "",
+      }));
     });
   };
 
@@ -215,7 +251,6 @@ export function AdminProductsContent() {
     setImages([]);
     setPriceTiers([]);
     setAttributes([]);
-    setSelectedVehicles([]);
     setSelectedComplementary([]);
     setErrors({});
     setTab(0);
@@ -232,6 +267,9 @@ export function AdminProductsContent() {
       compare_price: product.compare_price ? String(product.compare_price) : "",
       category_id: product.category ? String(product.category.id) : "",
       brand_id: product.brand ? String(product.brand.id) : "",
+      vehicle_brand: "",
+      vehicle_model: "",
+      vehicle_type: "",
       stock_status: product.stock_status,
       weight_kg: "",
       dimensions: "",
@@ -257,6 +295,9 @@ export function AdminProductsContent() {
     if (form.compare_price) fd.append("compare_price", form.compare_price);
     if (form.category_id) fd.append("category_id", form.category_id);
     if (form.brand_id) fd.append("brand_id", form.brand_id);
+    if (form.vehicle_brand) fd.append("vehicle_brand", form.vehicle_brand);
+    if (form.vehicle_model) fd.append("vehicle_model", form.vehicle_model);
+    if (form.vehicle_type) fd.append("vehicle_type", form.vehicle_type);
     fd.append("stock_status", form.stock_status);
     if (form.weight_kg) fd.append("weight_kg", form.weight_kg);
     if (form.dimensions) fd.append("dimensions", form.dimensions);
@@ -366,8 +407,9 @@ export function AdminProductsContent() {
       name: newAttribute.name,
       value: newAttribute.value,
       sort_order: attributes.length,
+      is_filterable: newAttribute.is_filterable,
     });
-    setNewAttribute({ name: "", value: "" });
+    setNewAttribute({ name: "", value: "", is_filterable: false });
     loadProductDetails(editingId);
   };
 
@@ -375,30 +417,6 @@ export function AdminProductsContent() {
     if (!editingId) return;
     await adminAPI.products.attributes.delete(editingId, attributeId);
     loadProductDetails(editingId);
-  };
-
-  // ------------------------------------------------------------------
-  // خودروهای سازگار
-  // ------------------------------------------------------------------
-
-  const handleSaveVehicles = async () => {
-    if (!editingId) return;
-
-    setIsSavingVehicles(true);
-    const fd = new FormData();
-    // ⚠️ حتی وقتی آرایه خالیه هم باید بفرستیم - چون sync() توی بک‌اند
-    // با آرایه‌ی خالی یعنی «همه‌ی خودروهای قبلی رو پاک کن»، نه اینکه
-    // اصلاً دست نزنه (اگه فیلد اصلاً نره، update() بک‌اند vehicle_ids
-    // رو دست‌نخورده می‌ذاره).
-    selectedVehicles.forEach((v) => fd.append("vehicle_ids[]", String(v.id)));
-    if (selectedVehicles.length === 0) fd.append("vehicle_ids", "");
-
-    try {
-      await adminAPI.products.update(editingId, fd);
-      loadProductDetails(editingId);
-    } finally {
-      setIsSavingVehicles(false);
-    }
   };
 
   // ------------------------------------------------------------------
@@ -626,7 +644,6 @@ export function AdminProductsContent() {
           <Tab label="گالری تصاویر" disabled={!editingId} />
           <Tab label="قیمت پلکانی" disabled={!editingId} />
           <Tab label="ویژگی‌ها" disabled={!editingId} />
-          <Tab label="خودروهای سازگار" disabled={!editingId} />
           <Tab label="کالای مکمل" disabled={!editingId} />
         </Tabs>
 
@@ -748,6 +765,88 @@ export function AdminProductsContent() {
                 </FormControl>
               </Box>
 
+              {/* خودروی سازگار - اختیاری، سه دراپ‌داون آبشاری. مقدارها
+                  مستقیم روی خودِ محصول ذخیره می‌شن (نه یه رابطه‌ی جدا) -
+                  اگه پر بشن، هم توی فیلتر فروشگاه هم توی جزئیات محصول
+                  نمایش داده می‌شن. */}
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                <FormControl sx={{ flex: "1 1 200px" }}>
+                  <InputLabel>برند خودرو (اختیاری)</InputLabel>
+                  <Select
+                    label="برند خودرو (اختیاری)"
+                    value={form.vehicle_brand}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        vehicle_brand: e.target.value,
+                        vehicle_model: "",
+                        vehicle_type: "",
+                      })
+                    }
+                  >
+                    <MenuItem value="">بدون برند خودرو</MenuItem>
+                    {vehicleBrandChoices.map((b) => (
+                      <MenuItem key={b} value={b}>
+                        {b}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl
+                  sx={{ flex: "1 1 200px" }}
+                  disabled={!form.vehicle_brand}
+                >
+                  <InputLabel>مدل خودرو (اختیاری)</InputLabel>
+                  <Select
+                    label="مدل خودرو (اختیاری)"
+                    value={form.vehicle_model}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        vehicle_model: e.target.value,
+                        vehicle_type: "",
+                      })
+                    }
+                  >
+                    <MenuItem value="">بدون مدل</MenuItem>
+                    {vehicleModelChoices.map((m) => (
+                      <MenuItem key={m} value={m}>
+                        {m}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl
+                  sx={{ flex: "1 1 200px" }}
+                  disabled={
+                    !form.vehicle_model || vehicleTrimChoices.length === 0
+                  }
+                >
+                  <InputLabel>تیپ خودرو (اختیاری)</InputLabel>
+                  <Select
+                    label="تیپ خودرو (اختیاری)"
+                    value={form.vehicle_type}
+                    onChange={(e) =>
+                      setForm({ ...form, vehicle_type: e.target.value })
+                    }
+                  >
+                    <MenuItem value="">بدون تیپ</MenuItem>
+                    {vehicleTrimChoices.map((t) => (
+                      <MenuItem key={t} value={t}>
+                        {t}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+              {form.vehicle_brand && (
+                <Typography variant="caption" color="text.secondary">
+                  اگه پر بشه، هم توی فیلتر فروشگاه (برند/مدل خودرو) هم توی
+                  جزئیات محصول نمایش داده می‌شه. تیپ فقط توی جزئیات محصول میاد،
+                  جزو فیلتر نیست.
+                </Typography>
+              )}
+
               <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
                 <TextField
                   label="وزن (کیلوگرم، اختیاری)"
@@ -834,7 +933,7 @@ export function AdminProductsContent() {
               {!editingId && (
                 <Alert severity="info">
                   بعد از ذخیره‌ی اطلاعات پایه، تب‌های گالری، قیمت پلکانی،
-                  ویژگی‌ها و خودروهای سازگار فعال می‌شن.
+                  ویژگی‌ها و کالای مکمل فعال می‌شن.
                 </Alert>
               )}
             </Box>
@@ -998,7 +1097,9 @@ export function AdminProductsContent() {
             <Box sx={{ pt: 1 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 ویژگی‌های فنی محصول رو به‌صورت کلید-مقدار اضافه کنید (مثلاً
-                «جنس: فلزی»، «رنگ: مشکی»).
+                «جنس: فلزی»، «رنگ: مشکی»). فقط ویژگی‌هایی که «قابل‌فیلتر» علامت
+                بزنید، توی فیلتر صفحه‌ی دسته‌بندی نشون داده می‌شن — چیزهای صرفاً
+                توضیحی (مثل «کشور سازنده») رو تیک نزنید.
               </Typography>
 
               <TableContainer
@@ -1011,13 +1112,14 @@ export function AdminProductsContent() {
                     <TableRow>
                       <TableCell>ویژگی</TableCell>
                       <TableCell>مقدار</TableCell>
+                      <TableCell align="center">قابل‌فیلتر</TableCell>
                       <TableCell align="center">حذف</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {attributes.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={3} align="center">
+                        <TableCell colSpan={4} align="center">
                           <Typography variant="body2" color="text.secondary">
                             هنوز ویژگی‌ای تعریف نشده
                           </Typography>
@@ -1028,6 +1130,23 @@ export function AdminProductsContent() {
                         <TableRow key={attribute.id}>
                           <TableCell>{attribute.name}</TableCell>
                           <TableCell>{attribute.value}</TableCell>
+                          <TableCell align="center">
+                            <Switch
+                              size="small"
+                              checked={attribute.is_filterable}
+                              onChange={async (e) => {
+                                if (!editingId) return;
+                                await adminAPI.products.attributes.update(
+                                  editingId,
+                                  attribute.id,
+                                  {
+                                    is_filterable: e.target.checked,
+                                  }
+                                );
+                                loadProductDetails(editingId);
+                              }}
+                            />
+                          </TableCell>
                           <TableCell align="center">
                             <IconButton
                               size="small"
@@ -1050,7 +1169,7 @@ export function AdminProductsContent() {
                   display: "flex",
                   gap: 2,
                   flexWrap: "wrap",
-                  alignItems: "flex-end",
+                  alignItems: "center",
                 }}
               >
                 <TextField
@@ -1069,6 +1188,20 @@ export function AdminProductsContent() {
                   }
                   sx={{ flex: "1 1 200px" }}
                 />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={newAttribute.is_filterable}
+                      onChange={(e) =>
+                        setNewAttribute({
+                          ...newAttribute,
+                          is_filterable: e.target.checked,
+                        })
+                      }
+                    />
+                  }
+                  label="قابل‌فیلتر"
+                />
                 <Button
                   variant="contained"
                   disableElevation
@@ -1080,54 +1213,8 @@ export function AdminProductsContent() {
             </Box>
           )}
 
-          {/* ---------------- تب ۵: خودروهای سازگار ---------------- */}
+          {/* ---------------- تب ۵: کالای مکمل ---------------- */}
           {tab === 4 && editingId && (
-            <Box sx={{ pt: 1 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                خودروهایی که این قطعه براشون سازگاره رو انتخاب کنید - مشتری با
-                انتخاب خودروش توی هومپیج، این محصول رو توی نتایج می‌بینه.
-              </Typography>
-
-              <Autocomplete
-                multiple
-                options={allVehicles}
-                value={selectedVehicles}
-                getOptionLabel={vehicleLabel}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                onChange={(_, newValue) => setSelectedVehicles(newValue)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="خودروهای سازگار"
-                    placeholder="جستجو و انتخاب..."
-                  />
-                )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      label={vehicleLabel(option)}
-                      size="small"
-                      {...getTagProps({ index })}
-                      key={option.id}
-                    />
-                  ))
-                }
-                sx={{ mb: 2 }}
-              />
-
-              <Button
-                variant="contained"
-                disableElevation
-                onClick={handleSaveVehicles}
-                disabled={isSavingVehicles}
-              >
-                {isSavingVehicles ? "در حال ذخیره..." : "ذخیره‌ی خودروها"}
-              </Button>
-            </Box>
-          )}
-
-          {/* ---------------- تب ۶: کالای مکمل ---------------- */}
-          {tab === 5 && editingId && (
             <Box sx={{ pt: 1 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 محصولاتی که معمولاً همراه این کالا خریداری/استفاده می‌شن رو

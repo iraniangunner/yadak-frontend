@@ -1,13 +1,8 @@
-import { notFound } from "next/navigation";
-
 import {
   getCategories,
   getBrands,
   getProducts,
   getVehicleFilterOptions,
-  getFilterableAttributes,
-  findCategoryBySlug,
-  getCategoryAndDescendantIds,
 } from "@/lib/serverApi";
 import { FilterSidebar } from "@/app/_components/shop/products/FilterSidebar";
 import { MobileFilterButton } from "@/app/_components/shop/products/MobileFilterButton";
@@ -20,26 +15,25 @@ import Box from "@mui/material/Box";
 
 /*
 |--------------------------------------------------------------------------
-| مسیر فایل: src/app/(shop)/category/[slug]/page.tsx
+| مسیر فایل: src/app/(shop)/vehicle/[brand]/page.tsx
 |--------------------------------------------------------------------------
-| صفحه‌ی مخصوص یه دسته‌بندی - فیلتر «دسته‌بندی» نشون داده نمی‌شه (خودِ
-| صفحه قفل‌شده روی همین یه دسته‌ست). جعبه‌ی جستجو دیگه اینجا نیست - فقط
-| توی هدر (طبق تصمیم اخیر).
+| «خرید بر اساس خودرو» - دقیقاً هم‌ساختار با /category و /brand، فقط
+| قفل‌شده روی یه برند خودرو (نه برند محصول). چون vehicle_brand یه رشته‌ی
+| ساده‌ست (نه یه موجودیت با id)، پارامتر مسیر خودِ اسم برند (URL-encode
+| شده) هست، نه یه slug جدا.
+|
+| فیلتر «مدل خودرو» همچنان آزاده - یعنی مشتری می‌تونه بعد از ورود به
+| صفحه‌ی «پژو»، مدل خاصی (مثلاً ۲۰۶) رو هم اضافه فیلتر کنه.
 */
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ brand: string }>;
 }) {
-  const { slug } = await params;
-  const decodedSlug = decodeURIComponent(slug);
-  const categories = await getCategories();
-  const category = findCategoryBySlug(categories, decodedSlug);
-
-  return {
-    title: category ? `${category.name} | یدکی` : "دسته‌بندی پیدا نشد | یدکی",
-  };
+  const { brand } = await params;
+  const brandName = decodeURIComponent(brand);
+  return { title: `قطعات ${brandName} | یدکی` };
 }
 
 function buildQueryString(sp: Record<string, string | undefined>) {
@@ -55,40 +49,35 @@ function buildQueryString(sp: Record<string, string | undefined>) {
   return params.toString();
 }
 
-export default async function CategoryPage({
+export default async function VehicleBrandPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ brand: string }>;
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const { slug } = await params;
-  const decodedSlug = decodeURIComponent(slug);
-
+  const { brand } = await params;
   const sp = await searchParams;
+  const vehicleBrandName = decodeURIComponent(brand);
 
-  const categories = await getCategories();
-
-  const category = findCategoryBySlug(categories, decodedSlug);
-
-  if (!category) {
-    notFound();
-  }
-
-  const categoryIds = getCategoryAndDescendantIds(categories, category.id);
-  const [brands, vehicleOptions, filterableAttributes] = await Promise.all([
-    getBrands(categoryIds),
-    getVehicleFilterOptions(categoryIds),
-    getFilterableAttributes(categoryIds),
+  const [categories, brands, vehicleOptions] = await Promise.all([
+    getCategories(),
+    getBrands(),
+    getVehicleFilterOptions(),
   ]);
+
+  // ⚠️ برخلاف قبل، اینجا notFound() صدا نمی‌زنیم حتی اگه فعلاً هیچ
+  // محصولی با این برند خودرو نباشه - دقیقاً مثل /category و /brand،
+  // نبود محصول یعنی نتیجه‌ی خالی (که خودِ ProductGridWithLoadMore
+  // نمایشش می‌ده)، نه یعنی این صفحه اصلاً وجود نداره.
 
   const queryString = buildQueryString({
     ...Object.fromEntries(
       Object.entries(sp).filter(([key]) => key.startsWith("attr_"))
     ),
-    category_id: categoryIds.join(","),
-    vehicle_brand: sp.vehicle_brand,
+    vehicle_brand: vehicleBrandName,
     vehicle_model: sp.vehicle_model,
+    category_id: sp.category_id,
     brand_id: sp.brand_id,
     stock_status: sp.stock_status,
     min_rating: sp.min_rating,
@@ -102,23 +91,21 @@ export default async function CategoryPage({
   });
 
   const products = await getProducts(queryString, 10);
-  const basePath = `/category/${slug}`;
+  const basePath = `/vehicle/${brand}`;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
-        {category.name}
+        قطعات مناسب {vehicleBrandName}
       </Typography>
 
       <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
+        {/* برند خودرو اینجا مخفیه (قفل‌شده روی همین برند)؛ مدل خودرو همچنان آزاده */}
         <FilterSidebar
           categories={categories}
           brands={brands}
-          vehicleBrandOptions={vehicleOptions.brands}
           vehicleModelOptions={vehicleOptions.models}
-          filterableAttributes={filterableAttributes}
-          attributeCategoryIds={categoryIds}
-          showCategoryFilter={false}
+          showCategoryFilter={true}
           basePath={basePath}
         />
 
@@ -143,11 +130,8 @@ export default async function CategoryPage({
               <MobileFilterButton
                 categories={categories}
                 brands={brands}
-                vehicleBrandOptions={vehicleOptions.brands}
                 vehicleModelOptions={vehicleOptions.models}
-                filterableAttributes={filterableAttributes}
-                attributeCategoryIds={categoryIds}
-                showCategoryFilter={false}
+                showCategoryFilter={true}
                 basePath={basePath}
               />
               <Box sx={{ ml: "auto" }}>
@@ -158,7 +142,7 @@ export default async function CategoryPage({
             <ActiveFilterChips
               categories={categories}
               brands={brands}
-              showCategoryFilter={false}
+              showCategoryFilter={true}
               basePath={basePath}
             />
           </Box>
@@ -167,9 +151,9 @@ export default async function CategoryPage({
             initialProducts={products.data}
             initialTotal={products.total}
             initialLastPage={products.lastPage}
-            fixedCategoryIds={categoryIds}
+            fixedVehicleBrand={vehicleBrandName}
             basePath={basePath}
-            showCategoryFilter={false}
+            showCategoryFilter={true}
           />
         </Box>
       </Box>

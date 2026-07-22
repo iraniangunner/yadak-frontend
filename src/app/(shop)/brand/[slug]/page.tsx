@@ -1,13 +1,10 @@
 import { notFound } from "next/navigation";
-
 import {
   getCategories,
   getBrands,
   getProducts,
   getVehicleFilterOptions,
-  getFilterableAttributes,
-  findCategoryBySlug,
-  getCategoryAndDescendantIds,
+  findBrandBySlug,
 } from "@/lib/serverApi";
 import { FilterSidebar } from "@/app/_components/shop/products/FilterSidebar";
 import { MobileFilterButton } from "@/app/_components/shop/products/MobileFilterButton";
@@ -20,11 +17,11 @@ import Box from "@mui/material/Box";
 
 /*
 |--------------------------------------------------------------------------
-| مسیر فایل: src/app/(shop)/category/[slug]/page.tsx
+| مسیر فایل: src/app/(shop)/brand/[slug]/page.tsx
 |--------------------------------------------------------------------------
-| صفحه‌ی مخصوص یه دسته‌بندی - فیلتر «دسته‌بندی» نشون داده نمی‌شه (خودِ
-| صفحه قفل‌شده روی همین یه دسته‌ست). جعبه‌ی جستجو دیگه اینجا نیست - فقط
-| توی هدر (طبق تصمیم اخیر).
+| «خرید بر اساس برند» - دقیقاً هم‌ساختار با /category/[slug]، فقط قفل‌شده
+| روی یه برند به‌جای یه دسته‌بندی. فیلتر دسته‌بندی اینجا آزاده (چون یه
+| برند می‌تونه توی چند دسته باشه)، ولی فیلتر برند خودش قفل و مخفیه.
 */
 
 export async function generateMetadata({
@@ -34,11 +31,11 @@ export async function generateMetadata({
 }) {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
-  const categories = await getCategories();
-  const category = findCategoryBySlug(categories, decodedSlug);
+  const brands = await getBrands();
+  const brand = findBrandBySlug(brands, decodedSlug);
 
   return {
-    title: category ? `${category.name} | یدکی` : "دسته‌بندی پیدا نشد | یدکی",
+    title: brand ? `${brand.name} | یدکی` : "برند پیدا نشد | یدکی",
   };
 }
 
@@ -55,7 +52,7 @@ function buildQueryString(sp: Record<string, string | undefined>) {
   return params.toString();
 }
 
-export default async function CategoryPage({
+export default async function BrandPage({
   params,
   searchParams,
 }: {
@@ -64,32 +61,28 @@ export default async function CategoryPage({
 }) {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
-
   const sp = await searchParams;
 
-  const categories = await getCategories();
+  const [categories, brands] = await Promise.all([
+    getCategories(),
+    getBrands(),
+  ]);
+  const brand = findBrandBySlug(brands, decodedSlug);
 
-  const category = findCategoryBySlug(categories, decodedSlug);
-
-  if (!category) {
+  if (!brand) {
     notFound();
   }
 
-  const categoryIds = getCategoryAndDescendantIds(categories, category.id);
-  const [brands, vehicleOptions, filterableAttributes] = await Promise.all([
-    getBrands(categoryIds),
-    getVehicleFilterOptions(categoryIds),
-    getFilterableAttributes(categoryIds),
-  ]);
+  const vehicleOptions = await getVehicleFilterOptions(undefined, [brand.id]);
 
   const queryString = buildQueryString({
     ...Object.fromEntries(
       Object.entries(sp).filter(([key]) => key.startsWith("attr_"))
     ),
-    category_id: categoryIds.join(","),
+    brand_id: String(brand.id),
+    category_id: sp.category_id,
     vehicle_brand: sp.vehicle_brand,
     vehicle_model: sp.vehicle_model,
-    brand_id: sp.brand_id,
     stock_status: sp.stock_status,
     min_rating: sp.min_rating,
     min_price: sp.min_price,
@@ -102,23 +95,22 @@ export default async function CategoryPage({
   });
 
   const products = await getProducts(queryString, 10);
-  const basePath = `/category/${slug}`;
+  const basePath = `/brand/${slug}`;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
-        {category.name}
+        محصولات برند {brand.name}
       </Typography>
 
       <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
+        {/* فیلتر برند اینجا مخفیه (قفل‌شده روی همین برند)؛ دسته‌بندی آزاده */}
         <FilterSidebar
           categories={categories}
-          brands={brands}
+          brands={[]}
           vehicleBrandOptions={vehicleOptions.brands}
           vehicleModelOptions={vehicleOptions.models}
-          filterableAttributes={filterableAttributes}
-          attributeCategoryIds={categoryIds}
-          showCategoryFilter={false}
+          showCategoryFilter={true}
           basePath={basePath}
         />
 
@@ -142,12 +134,10 @@ export default async function CategoryPage({
             >
               <MobileFilterButton
                 categories={categories}
-                brands={brands}
+                brands={[]}
                 vehicleBrandOptions={vehicleOptions.brands}
                 vehicleModelOptions={vehicleOptions.models}
-                filterableAttributes={filterableAttributes}
-                attributeCategoryIds={categoryIds}
-                showCategoryFilter={false}
+                showCategoryFilter={true}
                 basePath={basePath}
               />
               <Box sx={{ ml: "auto" }}>
@@ -157,8 +147,8 @@ export default async function CategoryPage({
 
             <ActiveFilterChips
               categories={categories}
-              brands={brands}
-              showCategoryFilter={false}
+              brands={[]}
+              showCategoryFilter={true}
               basePath={basePath}
             />
           </Box>
@@ -167,9 +157,9 @@ export default async function CategoryPage({
             initialProducts={products.data}
             initialTotal={products.total}
             initialLastPage={products.lastPage}
-            fixedCategoryIds={categoryIds}
+            fixedBrandId={brand.id}
             basePath={basePath}
-            showCategoryFilter={false}
+            showCategoryFilter={true}
           />
         </Box>
       </Box>

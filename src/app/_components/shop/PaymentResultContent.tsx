@@ -116,7 +116,7 @@ export function PaymentResultContent() {
         )}
         <Button
           component={NextLink}
-          href="/products"
+          href="/"
           variant="outlined"
           startIcon={<ShoppingBag />}
         >

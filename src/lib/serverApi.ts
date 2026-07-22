@@ -47,6 +47,13 @@ export function findCategoryBySlug(
   return categories.find((c) => c.slug === slug) || null;
 }
 
+export function findBrandBySlug(
+  brands: ServerBrand[],
+  slug: string
+): ServerBrand | null {
+  return brands.find((b) => b.slug === slug) || null;
+}
+
 /**
  * همه‌ی شناسه‌های زیرمجموعه (تا هر عمقی) + خودِ دسته - برای اینکه صفحه‌ی
  * دسته‌بندی محصولات زیرمجموعه‌ها رو هم نشون بده، نه فقط همون یه دسته‌ی دقیق.
@@ -65,6 +72,7 @@ export function getCategoryAndDescendantIds(
 export type ServerBrand = {
   id: number;
   name: string;
+  slug: string;
   thumbnail_url: string | null;
 };
 export type ServerBanner = {
@@ -117,8 +125,11 @@ export type ServerProductDetail = {
   thumbnail_url: string | null;
   average_rating: number | null;
   reviews_count: number;
-  category: { id: number; name: string } | null;
+  category: { id: number; name: string; slug: string } | null;
   brand: { id: number; name: string } | null;
+  vehicle_brand: string | null;
+  vehicle_model: string | null;
+  vehicle_type: string | null;
   images: { id: number; url: string }[];
   product_attributes: { id: number; name: string; value: string }[];
   price_tiers: {
@@ -211,6 +222,19 @@ export async function getArticle(slug: string): Promise<ServerArticle | null> {
   return res?.article || null;
 }
 
+export type FilterableAttribute = { name: string; values: string[] };
+
+export async function getFilterableAttributes(
+  categoryIds: number[]
+): Promise<FilterableAttribute[]> {
+  if (categoryIds.length === 0) return [];
+  const res = await serverFetch<{ data: FilterableAttribute[] }>(
+    `/products/filterable-attributes?category_id=${categoryIds.join(",")}`,
+    60
+  );
+  return res?.data || [];
+}
+
 export async function getVehicles(categoryIds?: number[]) {
   const categoryQuery = categoryIds?.length
     ? `&category_id=${categoryIds.join(",")}`
@@ -220,4 +244,26 @@ export async function getVehicles(categoryIds?: number[]) {
     300
   );
   return res?.data || [];
+}
+
+/**
+ * برند/مدل‌های خودروی موجود - بر اساس فیلدهای مستقیم vehicle_brand/
+ * vehicle_model روی خودِ محصولات (نه رابطه‌ی قدیمی Vehicle). برای فیلتر
+ * صفحه‌ی دسته‌بندی استفاده می‌شه.
+ */
+export type VehicleFilterOptions = { brands: string[]; models: string[] };
+
+export async function getVehicleFilterOptions(
+  categoryIds?: number[],
+  brandIds?: number[]
+): Promise<VehicleFilterOptions> {
+  const params = new URLSearchParams();
+  if (categoryIds?.length) params.set("category_id", categoryIds.join(","));
+  if (brandIds?.length) params.set("brand_id", brandIds.join(","));
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const res = await serverFetch<VehicleFilterOptions>(
+    `/products/vehicle-filter-options${query}`,
+    60
+  );
+  return res || { brands: [], models: [] };
 }

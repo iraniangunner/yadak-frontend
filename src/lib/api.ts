@@ -83,7 +83,6 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      // مسیر واقعی: app/api/refresh/route.ts
       const res = await fetch("/api/refresh-token", { method: "POST" });
       const data = await res.json();
 
@@ -145,11 +144,17 @@ export const vehiclesAPI = {
 
 export const productsAPI = {
   list: (params?: {
-    vehicle_id?: number;
+    vehicle_brand?: string; // چندتایی: "پژو,پراید"
+    vehicle_model?: string; // چندتایی: "206,پارس"
     category_id?: string; // چندتایی: "1,2,3"
     brand_id?: string; // چندتایی: "1,2,3"
     stock_status?: string; // چندتایی: "available,incoming"
     min_rating?: number;
+    min_price?: number;
+    max_price?: number;
+    is_available?: number; // 1 یعنی فقط موجود
+    is_discounted?: number; // 1 یعنی فقط تخفیف‌دار
+    attributes?: Record<string, string>;
     sort?: string;
     search?: string;
     per_page?: number;
@@ -160,6 +165,20 @@ export const productsAPI = {
     api.get(`/products/${id}/price-for-quantity`, { params: { quantity } }),
   subscribeStock: (id: number, payload?: { mobile?: string }) =>
     api.post(`/products/${id}/stock-subscribe`, payload ?? {}),
+  filterableAttributes: (params: {
+    category_id: string;
+    brand_id?: string;
+    vehicle_brand?: string;
+    vehicle_model?: string;
+    stock_status?: string;
+    min_price?: number;
+    max_price?: number;
+    attributes?: Record<string, string>;
+  }) => api.get("/products/filterable-attributes", { params }),
+  vehicleFilterOptions: (params?: {
+    category_id?: string;
+    brand_id?: string;
+  }) => api.get("/products/vehicle-filter-options", { params }),
   complementarySuggestions: (productIds: number[]) =>
     api.get("/products/complementary-suggestions", {
       params: { product_ids: productIds.join(",") },
@@ -309,6 +328,10 @@ export const couponCheckAPI = {
     api.post("/coupons/check", { code, subtotal }, { requiresAuth: true }),
 };
 
+export const cartDiscountRulesAPI = {
+  active: () => api.get("/cart-discount-rules/active"),
+};
+
 export const referralCodeCheckAPI = {
   check: (code: string) =>
     api.post("/referral-codes/check", { code }, { requiresAuth: true }),
@@ -321,10 +344,6 @@ export const myReferralAPI = {
     page?: number;
     per_page?: number;
   }) => api.get("/my/referral-commissions", { params, requiresAuth: true }),
-};
-
-export const cartDiscountRulesAPI = {
-  active: () => api.get("/cart-discount-rules/active"),
 };
 
 export const adminAPI = {
@@ -461,7 +480,12 @@ export const adminAPI = {
     attributes: {
       create: (
         productId: number,
-        payload: { name: string; value: string; sort_order?: number }
+        payload: {
+          name: string;
+          value: string;
+          sort_order?: number;
+          is_filterable?: boolean;
+        }
       ) =>
         api.post(`/admin/products/${productId}/attributes`, payload, {
           requiresAuth: true,
@@ -469,7 +493,12 @@ export const adminAPI = {
       update: (
         productId: number,
         attributeId: number,
-        payload: Partial<{ name: string; value: string; sort_order: number }>
+        payload: Partial<{
+          name: string;
+          value: string;
+          sort_order: number;
+          is_filterable: boolean;
+        }>
       ) =>
         api.put(
           `/admin/products/${productId}/attributes/${attributeId}`,

@@ -73,7 +73,7 @@ export function BestSellers({ products }: { products: Product[] }) {
         </Box>
         <Button
           component={NextLink}
-          href="/products"
+          href="/"
           endIcon={<ArrowBackIos sx={{ fontSize: "0.8rem" }} />}
         >
           مشاهده‌ی همه

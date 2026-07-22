@@ -25,7 +25,15 @@ import { TrustFeatures } from "./home/TrustFeatures";
 | بخش‌بندی‌شده‌ی زیرِ پوشه‌ی Home/.
 */
 export async function HomeContent() {
-  const [categories, brands, banners, discounted, bestSellers, articles, vehicles] = await Promise.all([
+  const [
+    categories,
+    brands,
+    banners,
+    discounted,
+    bestSellers,
+    articles,
+    vehicles,
+  ] = await Promise.all([
     getCategories(),
     getBrands(),
     getBanners(),

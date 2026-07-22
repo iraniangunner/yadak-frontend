@@ -8,8 +8,8 @@ import {
   ProductCard,
   ProductCardData,
 } from "@/app/_components/shop/ProductCard";
-import { ProductCardSkeleton } from "./ProductCardSkeleton";
 import { useProductFilters } from "@/hooks/useProductFilters";
+import { ProductCardSkeleton } from "./ProductCardSkeleton";
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +26,8 @@ export function ProductGridWithLoadMore({
   initialTotal,
   initialLastPage,
   fixedCategoryIds,
+  fixedBrandId,
+  fixedVehicleBrand,
   basePath,
   showCategoryFilter = true,
 }: {
@@ -33,10 +35,12 @@ export function ProductGridWithLoadMore({
   initialTotal: number;
   initialLastPage: number;
   fixedCategoryIds?: number[];
+  fixedBrandId?: number;
+  fixedVehicleBrand?: string;
   basePath?: string;
   showCategoryFilter?: boolean;
 }) {
-  const { search, vehicleId, filters, sort, perPage } = useProductFilters({
+  const { search, filters, sort, perPage } = useProductFilters({
     basePath,
     includeCategoryFilter: showCategoryFilter,
   });
@@ -58,19 +62,35 @@ export function ProductGridWithLoadMore({
     productsAPI
       .list({
         search: search || undefined,
-        vehicle_id: vehicleId ? Number(vehicleId) : undefined,
+        vehicle_brand:
+          fixedVehicleBrand ||
+          (filters.vehicle_brands.length
+            ? filters.vehicle_brands.join(",")
+            : undefined),
+        vehicle_model: filters.vehicle_models.length
+          ? filters.vehicle_models.join(",")
+          : undefined,
         category_id: fixedCategoryIds?.length
           ? fixedCategoryIds.join(",")
           : filters.category_ids.length
           ? filters.category_ids.join(",")
           : undefined,
-        brand_id: filters.brand_ids.length
+        brand_id: fixedBrandId
+          ? String(fixedBrandId)
+          : filters.brand_ids.length
           ? filters.brand_ids.join(",")
           : undefined,
         stock_status: filters.stock_statuses.length
           ? filters.stock_statuses.join(",")
           : undefined,
         min_rating: filters.min_rating ? Number(filters.min_rating) : undefined,
+        min_price: filters.min_price ? Number(filters.min_price) : undefined,
+        max_price: filters.max_price ? Number(filters.max_price) : undefined,
+        is_available: filters.is_available ? 1 : undefined,
+        is_discounted: filters.is_discounted ? 1 : undefined,
+        attributes: Object.keys(filters.attributes).length
+          ? filters.attributes
+          : undefined,
         sort: sort || undefined,
         page: pageToFetch,
         per_page: perPage,
@@ -92,7 +112,7 @@ export function ProductGridWithLoadMore({
     }
     fetchPage(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, vehicleId, filtersKey, sort, perPage]);
+  }, [search, filtersKey, sort, perPage]);
 
   return (
     <Box>

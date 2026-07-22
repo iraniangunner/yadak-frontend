@@ -21,37 +21,31 @@ import { ProductFilterPanel } from "@/app/_components/shop/ProductFilterPanel";
 
 type Option = { id: number; name: string };
 type CategoryOption = Option & { parent_id: number | null };
-type VehicleOption = {
-  id: number;
-  brand: string;
-  model: string;
-  generation?: string | null;
-};
 
 export function MobileFilterButton({
   categories,
   brands,
-  vehicles,
+  vehicleBrandOptions,
+  vehicleModelOptions,
+  filterableAttributes,
+  attributeCategoryIds,
   showCategoryFilter = true,
   basePath,
 }: {
   categories: CategoryOption[];
   brands: Option[];
-  vehicles?: VehicleOption[];
+  vehicleBrandOptions?: string[];
+  vehicleModelOptions?: string[];
+  filterableAttributes?: { name: string; values: string[] }[];
+  attributeCategoryIds?: number[];
   showCategoryFilter?: boolean;
   basePath?: string;
 }) {
-  const {
-    filters,
-    vehicleId,
-    setParam,
-    updateFilters,
-    clearFilters,
-    activeFilterCount,
-  } = useProductFilters({
-    basePath,
-    includeCategoryFilter: showCategoryFilter,
-  });
+  const { filters, updateFilters, clearFilters, activeFilterCount } =
+    useProductFilters({
+      basePath,
+      includeCategoryFilter: showCategoryFilter,
+    });
   const [open, setOpen] = useState(false);
 
   return (
@@ -90,12 +84,13 @@ export function MobileFilterButton({
               filters={filters}
               categories={categories}
               brands={brands}
-              vehicles={vehicles}
-              vehicleId={vehicleId}
-              onVehicleChange={(id) => setParam("vehicle_id", id)}
+              vehicleBrandOptions={vehicleBrandOptions}
+              vehicleModelOptions={vehicleModelOptions}
               onChange={updateFilters}
               onClear={clearFilters}
               showCategoryFilter={showCategoryFilter}
+              filterableAttributes={filterableAttributes}
+              attributeCategoryIds={attributeCategoryIds}
             />
           </Box>
 

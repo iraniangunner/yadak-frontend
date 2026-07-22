@@ -316,18 +316,6 @@ export function MobileBottomNav({
 
         <Box
           component={NextLink}
-          href="/products"
-          sx={itemSx(isActive("/products"))}
-        >
-          <Indicator active={isActive("/products")} />
-          <Storefront fontSize="small" />
-          <Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1 }}>
-            فروشگاه
-          </Typography>
-        </Box>
-
-        <Box
-          component={NextLink}
           href={user ? "/account/profile" : "/login"}
           sx={itemSx(isActive("/account") || isActive("/login"))}
         >

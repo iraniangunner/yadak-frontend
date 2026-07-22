@@ -49,6 +49,76 @@ const stockStatusLabels: Record<
   incoming: { label: "در حال تأمین", color: "info" },
 };
 
+// ------------------------------------------------------------------
+// نشانگر مراحل خرید - سبد خرید (فعال، سمت راست) ← تکمیل اطلاعات ← پرداخت
+// ------------------------------------------------------------------
+function CheckoutSteps() {
+  const steps = [
+    { label: "سبد خرید", icon: <ShoppingCart fontSize="small" /> },
+    { label: "تکمیل اطلاعات", icon: <CheckCircle fontSize="small" /> },
+    { label: "پرداخت", icon: <Payments fontSize="small" /> },
+  ];
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 1.5,
+        mb: 4,
+      }}
+    >
+      {steps.map((step, idx) => {
+        const isActive = idx === 0; // «سبد خرید» مرحله‌ی جاریه
+
+        return (
+          <Box
+            key={step.label}
+            sx={{ display: "flex", alignItems: "center", gap: 1.5 }}
+          >
+            {idx > 0 && (
+              <Box
+                sx={{
+                  width: { xs: 24, sm: 56 },
+                  height: "1px",
+                  borderTop: "1px dashed",
+                  borderColor: "divider",
+                }}
+              />
+            )}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+              <Box
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  bgcolor: isActive ? "primary.main" : "background.default",
+                  color: isActive ? "#fff" : "text.disabled",
+                }}
+              >
+                {step.icon}
+              </Box>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: isActive ? 700 : 400,
+                  color: isActive ? "text.primary" : "text.disabled",
+                }}
+              >
+                {step.label}
+              </Typography>
+            </Box>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
+
 export function CartContent() {
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
@@ -134,6 +204,7 @@ export function CartContent() {
   if (items.length === 0) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        <CheckoutSteps />
         <Box sx={{ textAlign: "center", py: 8 }}>
           <ShoppingBag sx={{ fontSize: 56, color: "text.disabled", mb: 2 }} />
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
@@ -144,7 +215,7 @@ export function CartContent() {
           </Typography>
           <Button
             component={NextLink}
-            href="/products"
+            href="/"
             variant="contained"
             disableElevation
           >
@@ -170,6 +241,8 @@ export function CartContent() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      <CheckoutSteps />
+
       <Box
         sx={{
           display: "flex",
@@ -569,7 +642,7 @@ export function CartContent() {
       {suggestions.length > 0 && (
         <Box sx={{ mt: 5 }}>
           <Typography sx={{ fontWeight: 700, mb: 2 }}>
-            این‌ها رو هم کم دارید
+            این‌ها رو هم کم ندارید
           </Typography>
           <RelatedProductsCarousel products={suggestions} />
         </Box>

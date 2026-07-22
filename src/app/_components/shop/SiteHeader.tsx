@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import NextLink from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Box,
   Container,
@@ -32,75 +32,113 @@ import { SearchModal } from "@/app/_components/shop/SearchModal";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/SiteHeader.tsx
 |--------------------------------------------------------------------------
-| 
+| دسکتاپ: منوی دسته‌بندی با هاور باز می‌شه، چندستونه‌ی آبشاری (هر عمقی).
+| پس‌زمینه‌ی مات و پنل منو دو تا sibling کاملاً جدا هستن (نه تودرتو)، تا
+| هیچ‌وقت پنل زیر بلور گیر نیفته.
+|
+| موبایل: منوی همبرگری قدیمی حذف شد - ناوبری اصلی و دسته‌بندی‌ها الان
+| توی MobileBottomNav.tsx (نوار پایین ثابت) هست.
+|
+| ⚠️ نکته‌ی مهم: چون stylis-plugin-rtl حتی مقدار عددی left/right رو هم
+| بر اساس اسم property برعکس می‌کنه (نه مقدارش)، برای موقعیت‌دهی پیکسلی
+| دقیق از style خام React استفاده می‌کنیم (نه sx)، چون style خام از
+| پردازش emotion/stylis رد نمی‌شه.
 */
 
 function getChildren(categories: ServerCategory[], parentId: number | null) {
   return categories.filter((c) => c.parent_id === parentId);
 }
 
-function CategoryColumn({
-  items,
-  categories,
-  activeId,
-  onHoverItem,
-  onNavigate,
+const MENU_BG = "#ffffff";
+const MENU_BG_HOVER = "rgba(30,58,138,0.06)";
+const MENU_TEXT = "#4b5563";
+const MENU_TEXT_ACTIVE = "#1E3A8A";
+const MENU_ACCENT = "#1E3A8A";
+
+function CategoryLevel1Item({
+  category,
+  active,
+  onHover,
 }: {
-  items: ServerCategory[];
-  categories: ServerCategory[];
-  activeId: number | null;
-  onHoverItem: (category: ServerCategory) => void;
-  onNavigate: () => void;
+  category: ServerCategory;
+  active: boolean;
+  onHover: () => void;
 }) {
   return (
     <Box
+      component={NextLink}
+      href={`/category/${category.slug}`}
+      onMouseEnter={onHover}
       sx={{
-        width: 220,
-        flexShrink: 0,
-        py: 1,
-        borderInlineEnd: "1px solid",
-        borderColor: "divider",
-        maxHeight: 420,
-        overflowY: "auto",
+        display: "block",
+        px: 2.5,
+        py: 1.4,
+        fontSize: "0.875rem",
+        textDecoration: "none",
+        color: active ? MENU_TEXT_ACTIVE : MENU_TEXT,
+        fontWeight: active ? 700 : 400,
+        bgcolor: active ? MENU_BG_HOVER : "transparent",
+        borderInlineStart: active ? "3px solid" : "3px solid transparent",
+        borderColor: active ? MENU_ACCENT : "transparent",
+        transition: "background-color .15s, color .15s",
       }}
     >
-      {items.map((item, idx) => {
-        const hasChildren = getChildren(categories, item.id).length > 0;
-        const isActive = activeId === item.id;
+      {category.name}
+    </Box>
+  );
+}
 
-        return (
+function CategoryLevel2Group({
+  category,
+  categories,
+  onNavigate,
+}: {
+  category: ServerCategory;
+  categories: ServerCategory[];
+  onNavigate: () => void;
+}) {
+  const children = getChildren(categories, category.id);
+
+  return (
+    <Box sx={{ minWidth: 160 }}>
+      <Box
+        component={NextLink}
+        href={`/category/${category.slug}`}
+        onClick={onNavigate}
+        sx={{
+          display: "block",
+          color: MENU_TEXT_ACTIVE,
+          fontWeight: 700,
+          fontSize: "0.875rem",
+          textDecoration: "none",
+          mb: 1,
+          pb: 0.75,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          "&:hover": { color: MENU_ACCENT },
+        }}
+      >
+        {category.name}
+      </Box>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+        {children.map((child) => (
           <Box
-            key={item.id}
+            key={child.id}
             component={NextLink}
-            href={`/category/${item.slug}`}
+            href={`/category/${child.slug}`}
             onClick={onNavigate}
-            onMouseEnter={() => onHoverItem(item)}
             sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              px: 2,
-              py: 1,
+              color: MENU_TEXT,
+              fontSize: "0.8125rem",
               textDecoration: "none",
-              color: isActive ? "primary.main" : "text.primary",
-              bgcolor: isActive ? "rgba(30,58,138,0.06)" : "transparent",
-              fontWeight: isActive ? 700 : 400,
-              fontSize: "0.875rem",
-              transition: "background-color .15s, color .15s",
-              borderBottom: idx < items.length - 1 ? "1px solid" : "none",
-              borderColor: "divider",
+              py: 0.5,
+              "&:hover": { color: MENU_TEXT_ACTIVE },
             }}
           >
-            {item.name}
-            {hasChildren && (
-              <KeyboardArrowDown
-                fontSize="small"
-                sx={{ transform: "rotate(90deg)", opacity: 0.5 }}
-              />
-            )}
+            {child.name}
           </Box>
-        );
-      })}
+        ))}
+      </Box>
     </Box>
   );
 }
@@ -113,7 +151,6 @@ function DesktopCategoriesMegaMenu({
   headerRef: React.RefObject<HTMLElement>;
 }) {
   const [open, setOpen] = useState(false);
-  const [hoverPath, setHoverPath] = useState<ServerCategory[]>([]);
   const [anchorRect, setAnchorRect] = useState<{
     top: number;
     start: number;
@@ -122,6 +159,18 @@ function DesktopCategoriesMegaMenu({
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const roots = getChildren(categories, null);
+
+  // ⚠️ جدا از onClick روی هر لینک، همین که مسیر واقعاً عوض شد (یعنی
+  // ناوبری واقعاً انجام شده)، منو رو قطعی می‌بندیم - تا اگه یه‌جا onClick
+  // به هر دلیلی (مثلاً race با mouseleave) از قلم بیفته، بازم بسته بشه.
+  const pathname = usePathname();
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  const [activeRootId, setActiveRootId] = useState<number | null>(
+    roots[0]?.id ?? null
+  );
 
   const handleEnter = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -135,36 +184,14 @@ function DesktopCategoriesMegaMenu({
     setOpen(true);
   };
   const handleLeave = () => {
-    closeTimer.current = setTimeout(() => {
-      setOpen(false);
-      setHoverPath([]);
-    }, 150);
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
   };
-  const handleClose = () => {
-    setOpen(false);
-    setHoverPath([]);
-  };
-  const handleHoverAtLevel = (level: number, category: ServerCategory) => {
-    setHoverPath((prev) => [...prev.slice(0, level), category]);
-  };
+  const handleClose = () => setOpen(false);
 
   if (roots.length === 0) return null;
 
-  const columns: {
-    items: ServerCategory[];
-    activeId: number | null;
-    level: number;
-  }[] = [{ items: roots, activeId: hoverPath[0]?.id ?? null, level: 0 }];
-  hoverPath.forEach((node, idx) => {
-    const children = getChildren(categories, node.id);
-    if (children.length > 0) {
-      columns.push({
-        items: children,
-        activeId: hoverPath[idx + 1]?.id ?? null,
-        level: idx + 1,
-      });
-    }
-  });
+  const activeRoot = roots.find((r) => r.id === activeRootId) || roots[0];
+  const level2Items = getChildren(categories, activeRoot.id);
 
   return (
     <Box
@@ -195,7 +222,7 @@ function DesktopCategoriesMegaMenu({
           "&:hover": { bgcolor: "primary.main", color: "#fff" },
         }}
       >
-        دسته‌بندی محصولات
+        دسته‌بندی‌ها
       </Button>
 
       {open &&
@@ -234,13 +261,11 @@ function DesktopCategoriesMegaMenu({
               <Box
                 sx={{
                   display: "flex",
-                  bgcolor: "background.paper",
-                  borderRadius: 3,
-                  boxShadow: "0 12px 32px rgba(0,0,0,0.18)",
-                  border: "1px solid",
-                  borderColor: "divider",
+                  bgcolor: MENU_BG,
+                  borderRadius: 2,
+                  boxShadow: "0 20px 48px rgba(0,0,0,0.35)",
                   overflow: "hidden",
-                  maxWidth: "90vw",
+                  maxWidth: "92vw",
                   animation: "megaMenuFadeIn .2s ease-out",
                   "@keyframes megaMenuFadeIn": {
                     from: { opacity: 0, transform: "translateY(-6px)" },
@@ -248,16 +273,77 @@ function DesktopCategoriesMegaMenu({
                   },
                 }}
               >
-                {columns.map((col) => (
-                  <CategoryColumn
-                    key={col.level}
-                    items={col.items}
-                    categories={categories}
-                    activeId={col.activeId}
-                    onHoverItem={(item) => handleHoverAtLevel(col.level, item)}
-                    onNavigate={handleClose}
-                  />
-                ))}
+                <Box
+                  sx={{
+                    width: 210,
+                    flexShrink: 0,
+                    py: 1.5,
+                    borderInlineEnd: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  {roots.map((root) => (
+                    <CategoryLevel1Item
+                      key={root.id}
+                      category={root}
+                      active={root.id === activeRoot.id}
+                      onHover={() => setActiveRootId(root.id)}
+                    />
+                  ))}
+                </Box>
+
+                <Box
+                  sx={{
+                    p: 3,
+                    maxHeight: 460,
+                    overflowY: "auto",
+                    minWidth: 480,
+                  }}
+                >
+                  <Box
+                    component={NextLink}
+                    href={`/category/${activeRoot.slug}`}
+                    onClick={handleClose}
+                    sx={{
+                      color: MENU_ACCENT,
+                      fontWeight: 700,
+                      fontSize: "0.8125rem",
+                      textDecoration: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      mb: 2,
+                    }}
+                  >
+                    مشاهده‌ی همه‌ی {activeRoot.name}
+                  </Box>
+
+                  {level2Items.length === 0 ? (
+                    <Typography
+                      sx={{ color: MENU_TEXT, fontSize: "0.8125rem" }}
+                    >
+                      زیردسته‌ای ثبت نشده
+                    </Typography>
+                  ) : (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "flex-start",
+                        gap: 4,
+                      }}
+                    >
+                      {level2Items.map((item) => (
+                        <CategoryLevel2Group
+                          key={item.id}
+                          category={item}
+                          categories={categories}
+                          onNavigate={handleClose}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Box>
               </Box>
             </Box>
           </Box>,
@@ -357,8 +443,8 @@ export function SiteHeader({
                   headerRef={headerRef}
                 />
                 {[
-                  { href: "/products", label: "فروشگاه" },
-                  { href: "/blog", label: "بلاگ" },
+                  { href: "/", label: "فروشگاه" },
+                  { href: "/articles", label: "بلاگ" },
                   { href: "/about", label: "درباره‌ی ما" },
                   { href: "/contact", label: "تماس با ما" },
                 ].map((link) => (

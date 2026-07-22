@@ -12,31 +12,30 @@ import { ProductFilterPanel } from "@/app/_components/shop/ProductFilterPanel";
 
 type Option = { id: number; name: string };
 type CategoryOption = Option & { parent_id: number | null };
-type VehicleOption = {
-  id: number;
-  brand: string;
-  model: string;
-  generation?: string | null;
-};
 
 export function FilterSidebar({
   categories,
   brands,
-  vehicles,
+  vehicleBrandOptions,
+  vehicleModelOptions,
+  filterableAttributes,
+  attributeCategoryIds,
   showCategoryFilter = true,
   basePath,
 }: {
   categories: CategoryOption[];
   brands: Option[];
-  vehicles?: VehicleOption[];
+  vehicleBrandOptions?: string[];
+  vehicleModelOptions?: string[];
+  filterableAttributes?: { name: string; values: string[] }[];
+  attributeCategoryIds?: number[];
   showCategoryFilter?: boolean;
   basePath?: string;
 }) {
-  const { filters, vehicleId, setParam, updateFilters, clearFilters } =
-    useProductFilters({
-      basePath,
-      includeCategoryFilter: showCategoryFilter,
-    });
+  const { filters, updateFilters, clearFilters } = useProductFilters({
+    basePath,
+    includeCategoryFilter: showCategoryFilter,
+  });
 
   return (
     <Box
@@ -58,12 +57,13 @@ export function FilterSidebar({
         filters={filters}
         categories={categories}
         brands={brands}
-        vehicles={vehicles}
-        vehicleId={vehicleId}
-        onVehicleChange={(id) => setParam("vehicle_id", id)}
+        vehicleBrandOptions={vehicleBrandOptions}
+        vehicleModelOptions={vehicleModelOptions}
         onChange={updateFilters}
         onClear={clearFilters}
         showCategoryFilter={showCategoryFilter}
+        filterableAttributes={filterableAttributes}
+        attributeCategoryIds={attributeCategoryIds}
       />
     </Box>
   );

@@ -72,7 +72,7 @@ export function FavoritesContent() {
   const handleRemove = async (productId: number) => {
     setRemovingIds((prev) => [...prev, productId]);
     setFavorites(
-      (prev) => prev?.filter((f) => f.product.id !== productId) ?? null,
+      (prev) => prev?.filter((f) => f.product.id !== productId) ?? null
     );
 
     try {
@@ -124,7 +124,7 @@ export function FavoritesContent() {
         </Typography>
         <Button
           component={NextLink}
-          href="/products"
+          href="/"
           variant="contained"
           disableElevation
         >

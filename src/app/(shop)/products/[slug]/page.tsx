@@ -67,7 +67,7 @@ export default async function ProductDetailPage({
         </Box>
         <Box
           component={NextLink}
-          href="/products"
+          href="/"
           sx={{ color: "text.secondary", textDecoration: "none" }}
         >
           محصولات
@@ -75,7 +75,7 @@ export default async function ProductDetailPage({
         {product.category && (
           <Box
             component={NextLink}
-            href={`/products?category_id=${product.category.id}`}
+            href={`/category/${product.category.slug}`}
             sx={{ color: "text.secondary", textDecoration: "none" }}
           >
             {product.category.name}
@@ -100,7 +100,20 @@ export default async function ProductDetailPage({
         <ProductTabsSection
           productId={product.id}
           description={product.description}
-          attributes={product.product_attributes}
+          attributes={[
+            // خودروی سازگار (اگه پر شده باشه) - همراه بقیه‌ی ویژگی‌ها توی
+            // همون تب نمایش داده می‌شه، نه یه بخش جدا.
+            ...(product.vehicle_brand
+              ? [{ id: -1, name: "برند خودرو", value: product.vehicle_brand }]
+              : []),
+            ...(product.vehicle_model
+              ? [{ id: -2, name: "مدل خودرو", value: product.vehicle_model }]
+              : []),
+            ...(product.vehicle_type
+              ? [{ id: -3, name: "تیپ خودرو", value: product.vehicle_type }]
+              : []),
+            ...product.product_attributes,
+          ]}
           averageRating={product.average_rating}
           reviewsCount={product.reviews_count}
         />

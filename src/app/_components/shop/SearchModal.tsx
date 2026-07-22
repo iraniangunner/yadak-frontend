@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import NextLink from "next/link";
 import {
   Dialog,
@@ -21,8 +20,8 @@ import { formatPrice } from "@/lib/format";
 | مسیر فایل: src/app/_components/shop/SearchModal.tsx
 |--------------------------------------------------------------------------
 | مودال وسط صفحه - تایپ می‌کنید، بعد از یه مکث کوتاه (debounce) نتایج
-| زنده (عکس+عنوان+قیمت) زیرش لیست می‌شه. Enter یا کلیک روی «مشاهده‌ی همه»
-| می‌بره به صفحه‌ی کامل نتایج (/products?search=...).
+| زنده (عکس+عنوان+قیمت) زیرش لیست می‌شه. ⚠️ دیگه صفحه‌ی نتیجه‌ی کامل
+| (/search) وجود نداره - جستجو فقط همینجا، درون همین مودال جواب می‌ده.
 */
 
 type SearchResult = {
@@ -40,7 +39,6 @@ export function SearchModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,19 +59,13 @@ export function SearchModal({
     setIsLoading(true);
     const timer = setTimeout(() => {
       productsAPI
-        .list({ search: query.trim(), per_page: 6 })
+        .list({ search: query.trim(), per_page: 10 })
         .then((res) => setResults(res.data.data))
         .finally(() => setIsLoading(false));
     }, 350);
 
     return () => clearTimeout(timer);
   }, [query]);
-
-  const goToFullResults = () => {
-    if (!query.trim()) return;
-    router.push(`/products?search=${encodeURIComponent(query.trim())}`);
-    onClose();
-  };
 
   return (
     <Dialog
@@ -91,10 +83,7 @@ export function SearchModal({
           fullWidth
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") goToFullResults();
-          }}
-          placeholder="جستجوی قطعه مورد نظر"
+          placeholder="جستجوی قطعه، برند، خودرو..."
           slotProps={{
             input: {
               startAdornment: (
@@ -128,74 +117,50 @@ export function SearchModal({
               محصولی پیدا نشد
             </Typography>
           ) : (
-            <>
-              {results.map((product) => (
-                <Box
-                  key={product.id}
-                  component={NextLink}
-                  href={`/products/${product.slug}`}
-                  onClick={onClose}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1.5,
-                    p: 1.25,
-                    borderRadius: 2,
-                    textDecoration: "none",
-                    color: "text.primary",
-                    "&:hover": { bgcolor: "background.default" },
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={product.thumbnail_url || undefined}
-                    alt=""
-                    sx={{
-                      width: 52,
-                      height: 52,
-                      objectFit: "cover",
-                      borderRadius: 1.5,
-                      bgcolor: "background.default",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
-                      {product.title}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="primary.main"
-                      sx={{ fontWeight: 700 }}
-                    >
-                      {formatPrice(product.final_price)}
-                    </Typography>
-                  </Box>
-                </Box>
-              ))}
-
+            results.map((product) => (
               <Box
-                component="button"
-                onClick={goToFullResults}
+                key={product.id}
+                component={NextLink}
+                href={`/products/${product.slug}`}
+                onClick={onClose}
                 sx={{
-                  display: "block",
-                  width: "100%",
-                  mt: 1,
-                  p: 1.5,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
+                  p: 1.25,
                   borderRadius: 2,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  bgcolor: "transparent",
-                  color: "primary.main",
-                  fontWeight: 700,
-                  fontSize: "0.875rem",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
+                  textDecoration: "none",
+                  color: "text.primary",
+                  "&:hover": { bgcolor: "background.default" },
                 }}
               >
-                مشاهده‌ی همه‌ی نتایج برای «{query}»
+                <Box
+                  component="img"
+                  src={product.thumbnail_url || undefined}
+                  alt=""
+                  sx={{
+                    width: 52,
+                    height: 52,
+                    objectFit: "cover",
+                    borderRadius: 1.5,
+                    bgcolor: "background.default",
+                    flexShrink: 0,
+                  }}
+                />
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                    {product.title}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="primary.main"
+                    sx={{ fontWeight: 700 }}
+                  >
+                    {formatPrice(product.final_price)}
+                  </Typography>
+                </Box>
               </Box>
-            </>
+            ))
           )}
         </Box>
       )}
