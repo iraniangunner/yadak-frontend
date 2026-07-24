@@ -32,17 +32,6 @@ import { SearchModal } from "@/app/_components/shop/SearchModal";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/SiteHeader.tsx
 |--------------------------------------------------------------------------
-| دسکتاپ: منوی دسته‌بندی با هاور باز می‌شه، چندستونه‌ی آبشاری (هر عمقی).
-| پس‌زمینه‌ی مات و پنل منو دو تا sibling کاملاً جدا هستن (نه تودرتو)، تا
-| هیچ‌وقت پنل زیر بلور گیر نیفته.
-|
-| موبایل: منوی همبرگری قدیمی حذف شد - ناوبری اصلی و دسته‌بندی‌ها الان
-| توی MobileBottomNav.tsx (نوار پایین ثابت) هست.
-|
-| ⚠️ نکته‌ی مهم: چون stylis-plugin-rtl حتی مقدار عددی left/right رو هم
-| بر اساس اسم property برعکس می‌کنه (نه مقدارش)، برای موقعیت‌دهی پیکسلی
-| دقیق از style خام React استفاده می‌کنیم (نه sx)، چون style خام از
-| پردازش emotion/stylis رد نمی‌شه.
 */
 
 function getChildren(categories: ServerCategory[], parentId: number | null) {
@@ -160,16 +149,13 @@ function DesktopCategoriesMegaMenu({
   const anchorRef = useRef<HTMLDivElement>(null);
   const roots = getChildren(categories, null);
 
-  // ⚠️ جدا از onClick روی هر لینک، همین که مسیر واقعاً عوض شد (یعنی
-  // ناوبری واقعاً انجام شده)، منو رو قطعی می‌بندیم - تا اگه یه‌جا onClick
-  // به هر دلیلی (مثلاً race با mouseleave) از قلم بیفته، بازم بسته بشه.
   const pathname = usePathname();
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
   const [activeRootId, setActiveRootId] = useState<number | null>(
-    roots[0]?.id ?? null
+    roots[0]?.id ?? null,
   );
 
   const handleEnter = () => {
@@ -265,6 +251,8 @@ function DesktopCategoriesMegaMenu({
                   borderRadius: 2,
                   boxShadow: "0 20px 48px rgba(0,0,0,0.35)",
                   overflow: "hidden",
+                  // عرض کل پنل ثابت = عرض سایدبار (210) + عرض بخش محتوا (560)
+                  width: 770,
                   maxWidth: "92vw",
                   animation: "megaMenuFadeIn .2s ease-out",
                   "@keyframes megaMenuFadeIn": {
@@ -297,7 +285,9 @@ function DesktopCategoriesMegaMenu({
                     p: 3,
                     maxHeight: 460,
                     overflowY: "auto",
-                    minWidth: 480,
+                    // عرض ثابت به‌جای minWidth تا با تغییر دسته عوض نشه
+                    flex: 1,
+                    minWidth: 0,
                   }}
                 >
                   <Box
@@ -347,7 +337,7 @@ function DesktopCategoriesMegaMenu({
               </Box>
             </Box>
           </Box>,
-          document.body
+          document.body,
         )}
     </Box>
   );
