@@ -244,6 +244,10 @@ export function AdminProductsContent() {
     });
   };
 
+  // useEffect(() => {
+  //   console.log("FORM CHANGED", form);
+  // }, [form]);
+
   const openCreateDialog = () => {
     setEditingId(null);
     setForm(emptyForm);
@@ -295,9 +299,12 @@ export function AdminProductsContent() {
     if (form.compare_price) fd.append("compare_price", form.compare_price);
     if (form.category_id) fd.append("category_id", form.category_id);
     if (form.brand_id) fd.append("brand_id", form.brand_id);
-    if (form.vehicle_brand) fd.append("vehicle_brand", form.vehicle_brand);
-    if (form.vehicle_model) fd.append("vehicle_model", form.vehicle_model);
-    if (form.vehicle_type) fd.append("vehicle_type", form.vehicle_type);
+    // if (form.vehicle_brand) fd.append("vehicle_brand", form.vehicle_brand);
+    // if (form.vehicle_model) fd.append("vehicle_model", form.vehicle_model);
+    // if (form.vehicle_type) fd.append("vehicle_type", form.vehicle_type);
+    fd.append("vehicle_brand", form.vehicle_brand);
+    fd.append("vehicle_model", form.vehicle_model);
+    fd.append("vehicle_type", form.vehicle_type);
     fd.append("stock_status", form.stock_status);
     if (form.weight_kg) fd.append("weight_kg", form.weight_kg);
     if (form.dimensions) fd.append("dimensions", form.dimensions);
