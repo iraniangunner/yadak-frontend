@@ -14,7 +14,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 async function serverFetch<T>(
   path: string,
-  revalidateSeconds = 60
+  revalidateSeconds = 60,
 ): Promise<T | null> {
   try {
     const res = await fetch(`${API_URL}${path}`, {
@@ -42,14 +42,14 @@ export type ServerCategory = {
  */
 export function findCategoryBySlug(
   categories: ServerCategory[],
-  slug: string
+  slug: string,
 ): ServerCategory | null {
   return categories.find((c) => c.slug === slug) || null;
 }
 
 export function findBrandBySlug(
   brands: ServerBrand[],
-  slug: string
+  slug: string,
 ): ServerBrand | null {
   return brands.find((b) => b.slug === slug) || null;
 }
@@ -60,7 +60,7 @@ export function findBrandBySlug(
  */
 export function getCategoryAndDescendantIds(
   categories: ServerCategory[],
-  categoryId: number
+  categoryId: number,
 ): number[] {
   const children = categories.filter((c) => c.parent_id === categoryId);
   let ids = [categoryId];
@@ -109,6 +109,7 @@ export type ServerVehicle = {
   brand: string;
   model: string;
   generation: string | null;
+  thumbnail_url: string | null;
   year_from: number | null;
   year_to: number | null;
 };
@@ -141,27 +142,47 @@ export type ServerProductDetail = {
 };
 
 export async function getProduct(
-  slug: string
+  slug: string,
 ): Promise<ServerProductDetail | null> {
   const res = await serverFetch<{ product: ServerProductDetail }>(
     `/products/${slug}`,
-    30
+    30,
   );
   return res?.product || null;
 }
 
-export async function getCategories() {
-  const res = await serverFetch<{ data: ServerCategory[] }>("/categories", 300);
+export async function getCategories(scope?: {
+  brandIds?: number[];
+  vehicleBrand?: string;
+  vehicleModel?: string;
+}) {
+  const params = new URLSearchParams();
+  params.set("per_page", "500");
+  if (scope?.brandIds?.length) params.set("brand_id", scope.brandIds.join(","));
+  if (scope?.vehicleBrand) params.set("vehicle_brand", scope.vehicleBrand);
+  if (scope?.vehicleModel) params.set("vehicle_model", scope.vehicleModel);
+
+  const res = await serverFetch<{ data: ServerCategory[] }>(
+    `/categories?${params.toString()}`,
+    300,
+  );
   return res?.data || [];
 }
 
-export async function getBrands(categoryIds?: number[]) {
-  const query = categoryIds?.length
-    ? `?category_id=${categoryIds.join(",")}`
-    : "";
+export async function getBrands(
+  categoryIds?: number[],
+  vehicleScope?: { vehicleBrand?: string; vehicleModel?: string },
+) {
+  const params = new URLSearchParams();
+  if (categoryIds?.length) params.set("category_id", categoryIds.join(","));
+  if (vehicleScope?.vehicleBrand)
+    params.set("vehicle_brand", vehicleScope.vehicleBrand);
+  if (vehicleScope?.vehicleModel)
+    params.set("vehicle_model", vehicleScope.vehicleModel);
+  const query = params.toString() ? `?${params.toString()}` : "";
   const res = await serverFetch<{ data: ServerBrand[] }>(
     `/brands${query}`,
-    300
+    300,
   );
   return res?.data || [];
 }
@@ -189,7 +210,7 @@ export async function getProducts(params: string, revalidateSeconds = 60) {
 export async function getArticles(perPage = 3) {
   const res = await serverFetch<{ data: ServerArticle[] }>(
     `/articles?per_page=${perPage}`,
-    300
+    300,
   );
   return res?.data || [];
 }
@@ -200,7 +221,7 @@ export async function getArticles(perPage = 3) {
  */
 export async function getArticlesFiltered(
   params: string,
-  revalidateSeconds = 60
+  revalidateSeconds = 60,
 ) {
   const res = await serverFetch<{
     data: ServerArticle[];
@@ -217,7 +238,7 @@ export async function getArticlesFiltered(
 export async function getArticle(slug: string): Promise<ServerArticle | null> {
   const res = await serverFetch<{ article: ServerArticle }>(
     `/articles/${slug}`,
-    60
+    60,
   );
   return res?.article || null;
 }
@@ -225,12 +246,22 @@ export async function getArticle(slug: string): Promise<ServerArticle | null> {
 export type FilterableAttribute = { name: string; values: string[] };
 
 export async function getFilterableAttributes(
-  categoryIds: number[]
+  categoryIds: number[],
 ): Promise<FilterableAttribute[]> {
   if (categoryIds.length === 0) return [];
   const res = await serverFetch<{ data: FilterableAttribute[] }>(
     `/products/filterable-attributes?category_id=${categoryIds.join(",")}`,
-    60
+    60,
+  );
+  return res?.data || [];
+}
+
+export type VehicleBrandImage = { name: string; thumbnail_url: string | null };
+
+export async function getVehicleBrandImages(): Promise<VehicleBrandImage[]> {
+  const res = await serverFetch<{ data: VehicleBrandImage[] }>(
+    "/vehicles/brand-images",
+    300,
   );
   return res?.data || [];
 }
@@ -241,7 +272,7 @@ export async function getVehicles(categoryIds?: number[]) {
     : "";
   const res = await serverFetch<{ data: ServerVehicle[] }>(
     `/vehicles?per_page=300${categoryQuery}`,
-    300
+    300,
   );
   return res?.data || [];
 }
@@ -255,15 +286,17 @@ export type VehicleFilterOptions = { brands: string[]; models: string[] };
 
 export async function getVehicleFilterOptions(
   categoryIds?: number[],
-  brandIds?: number[]
+  brandIds?: number[],
+  vehicleBrand?: string,
 ): Promise<VehicleFilterOptions> {
   const params = new URLSearchParams();
   if (categoryIds?.length) params.set("category_id", categoryIds.join(","));
   if (brandIds?.length) params.set("brand_id", brandIds.join(","));
+  if (vehicleBrand) params.set("vehicle_brand", vehicleBrand);
   const query = params.toString() ? `?${params.toString()}` : "";
   const res = await serverFetch<VehicleFilterOptions>(
     `/products/vehicle-filter-options${query}`,
-    60
+    60,
   );
   return res || { brands: [], models: [] };
 }

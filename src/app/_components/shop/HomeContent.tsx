@@ -6,9 +6,13 @@ import {
   getProducts,
   getArticles,
   getVehicles,
+  getVehicleFilterOptions,
+  getVehicleBrandImages,
 } from "@/lib/serverApi";
 import { Hero } from "./home/Hero";
 import { VehicleFinderSection } from "./home/VehicleFinderSection";
+import { CategoriesSection } from "./home/CategoriesSection";
+import { VehicleBrandsSection } from "./home/VehicleBrandsSection";
 import { IntroText } from "./home/IntroText";
 import { SpecialOffers } from "./home/SpecialOffers";
 import { FeaturedBanner } from "./home/FeaturedBanner";
@@ -23,6 +27,9 @@ import { TrustFeatures } from "./home/TrustFeatures";
 |--------------------------------------------------------------------------
 | Server Component async - فقط fetch داده و ارکستراسیونِ کامپوننت‌های
 | بخش‌بندی‌شده‌ی زیرِ پوشه‌ی Home/.
+|
+| VehicleBrandsSection («خودروها») - فقط لوگوی برند خودرو، مثل سایت
+| مرجع - نه مدل خاص.
 */
 export async function HomeContent() {
   const [
@@ -33,6 +40,8 @@ export async function HomeContent() {
     bestSellers,
     articles,
     vehicles,
+    vehicleOptions,
+    vehicleBrandImages,
   ] = await Promise.all([
     getCategories(),
     getBrands(),
@@ -41,6 +50,8 @@ export async function HomeContent() {
     getProducts("per_page=10&sort=best_selling", 60),
     getArticles(6),
     getVehicles(),
+    getVehicleFilterOptions(),
+    getVehicleBrandImages(),
   ]);
 
   const discountedProducts = discounted.data
@@ -50,12 +61,17 @@ export async function HomeContent() {
   return (
     <Box sx={{ bgcolor: "#F8FAFC" }}>
       <Hero productCount={discounted.total} />
-      <VehicleFinderSection vehicles={vehicles} categories={categories} />
+      <VehicleFinderSection vehicles={vehicles} />
+      <CategoriesSection categories={categories} />
+      <BrandsSection brands={brands} />
+      <VehicleBrandsSection
+        vehicleOptions={vehicleOptions}
+        vehicleBrandImages={vehicleBrandImages}
+      />
       <IntroText />
       <SpecialOffers products={discountedProducts} />
       <FeaturedBanner banners={banners} />
       <BestSellers products={bestSellers.data} />
-      <BrandsSection brands={brands} />
       <TipsSection articles={articles} />
       {/* <TrustFeatures /> */}
     </Box>

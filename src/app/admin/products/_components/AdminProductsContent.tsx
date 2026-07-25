@@ -166,14 +166,14 @@ export function AdminProductsContent() {
 
   // گزینه‌های کاسکید: برند خودرو (یکتا) → مدل‌های همون برند → تیپ‌های همون برند+مدل
   const vehicleBrandChoices = Array.from(
-    new Set(allVehicleRefs.map((v) => v.brand))
+    new Set(allVehicleRefs.map((v) => v.brand)),
   ).sort();
   const vehicleModelChoices = Array.from(
     new Set(
       allVehicleRefs
         .filter((v) => v.brand === form.vehicle_brand)
-        .map((v) => v.model)
-    )
+        .map((v) => v.model),
+    ),
   ).sort();
   const vehicleTrimChoices = Array.from(
     new Set(
@@ -182,10 +182,10 @@ export function AdminProductsContent() {
           (v) =>
             v.brand === form.vehicle_brand &&
             v.model === form.vehicle_model &&
-            v.generation
+            v.generation,
         )
-        .map((v) => v.generation as string)
-    )
+        .map((v) => v.generation as string),
+    ),
   ).sort();
 
   // کالای مکمل
@@ -295,9 +295,12 @@ export function AdminProductsContent() {
     if (form.compare_price) fd.append("compare_price", form.compare_price);
     if (form.category_id) fd.append("category_id", form.category_id);
     if (form.brand_id) fd.append("brand_id", form.brand_id);
-    if (form.vehicle_brand) fd.append("vehicle_brand", form.vehicle_brand);
-    if (form.vehicle_model) fd.append("vehicle_model", form.vehicle_model);
-    if (form.vehicle_type) fd.append("vehicle_type", form.vehicle_type);
+    // if (form.vehicle_brand) fd.append("vehicle_brand", form.vehicle_brand);
+    // if (form.vehicle_model) fd.append("vehicle_model", form.vehicle_model);
+    // if (form.vehicle_type) fd.append("vehicle_type", form.vehicle_type);
+    fd.append("vehicle_brand", form.vehicle_brand);
+    fd.append("vehicle_model", form.vehicle_model);
+    fd.append("vehicle_type", form.vehicle_type);
     fd.append("stock_status", form.stock_status);
     if (form.weight_kg) fd.append("weight_kg", form.weight_kg);
     if (form.dimensions) fd.append("dimensions", form.dimensions);
@@ -322,7 +325,7 @@ export function AdminProductsContent() {
       setDialogOpen(false);
     } catch (err: any) {
       setErrors(
-        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی محصول."] }
+        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی محصول."] },
       );
     } finally {
       setIsSaving(false);
@@ -434,7 +437,7 @@ export function AdminProductsContent() {
       // خودِ محصولی که الان در حال ویرایششیم رو از نتایج جستجو حذف کن -
       // یه محصول نباید مکمل خودش باشه
       setComplementaryOptions(
-        res.data.data.filter((p: ProductRef) => p.id !== editingId)
+        res.data.data.filter((p: ProductRef) => p.id !== editingId),
       );
     } finally {
       setIsSearchingComplementary(false);
@@ -447,7 +450,7 @@ export function AdminProductsContent() {
     setIsSavingComplementary(true);
     const fd = new FormData();
     selectedComplementary.forEach((p) =>
-      fd.append("complementary_product_ids[]", String(p.id))
+      fd.append("complementary_product_ids[]", String(p.id)),
     );
     if (selectedComplementary.length === 0)
       fd.append("complementary_product_ids", "");
@@ -722,7 +725,7 @@ export function AdminProductsContent() {
                         <MenuItem key={value} value={value}>
                           {label}
                         </MenuItem>
-                      )
+                      ),
                     )}
                   </Select>
                 </FormControl>
@@ -895,8 +898,8 @@ export function AdminProductsContent() {
                     {thumbnailFile
                       ? thumbnailFile.name
                       : editingId
-                      ? "تعویض تصویر شاخص"
-                      : "انتخاب تصویر شاخص"}
+                        ? "تعویض تصویر شاخص"
+                        : "انتخاب تصویر شاخص"}
                     <input
                       type="file"
                       accept="image/*"
@@ -1141,7 +1144,7 @@ export function AdminProductsContent() {
                                   attribute.id,
                                   {
                                     is_filterable: e.target.checked,
-                                  }
+                                  },
                                 );
                                 loadProductDetails(editingId);
                               }}

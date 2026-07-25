@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-
 import {
   getCategories,
   getBrands,
   getProducts,
   getVehicleFilterOptions,
+  getVehicleBrandImages,
   getFilterableAttributes,
   findCategoryBySlug,
   getCategoryAndDescendantIds,
@@ -76,15 +76,17 @@ export default async function CategoryPage({
   }
 
   const categoryIds = getCategoryAndDescendantIds(categories, category.id);
-  const [brands, vehicleOptions, filterableAttributes] = await Promise.all([
-    getBrands(categoryIds),
-    getVehicleFilterOptions(categoryIds),
-    getFilterableAttributes(categoryIds),
-  ]);
+  const [brands, vehicleOptions, filterableAttributes, vehicleBrandImages] =
+    await Promise.all([
+      getBrands(categoryIds),
+      getVehicleFilterOptions(categoryIds),
+      getFilterableAttributes(categoryIds),
+      getVehicleBrandImages(),
+    ]);
 
   const queryString = buildQueryString({
     ...Object.fromEntries(
-      Object.entries(sp).filter(([key]) => key.startsWith("attr_"))
+      Object.entries(sp).filter(([key]) => key.startsWith("attr_")),
     ),
     category_id: categoryIds.join(","),
     vehicle_brand: sp.vehicle_brand,
@@ -116,6 +118,7 @@ export default async function CategoryPage({
           brands={brands}
           vehicleBrandOptions={vehicleOptions.brands}
           vehicleModelOptions={vehicleOptions.models}
+          vehicleBrandImages={vehicleBrandImages}
           filterableAttributes={filterableAttributes}
           attributeCategoryIds={categoryIds}
           showCategoryFilter={false}
@@ -145,6 +148,7 @@ export default async function CategoryPage({
                 brands={brands}
                 vehicleBrandOptions={vehicleOptions.brands}
                 vehicleModelOptions={vehicleOptions.models}
+                vehicleBrandImages={vehicleBrandImages}
                 filterableAttributes={filterableAttributes}
                 attributeCategoryIds={categoryIds}
                 showCategoryFilter={false}

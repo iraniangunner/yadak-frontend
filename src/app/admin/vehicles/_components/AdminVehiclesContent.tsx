@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -24,14 +24,20 @@ import {
   FormControlLabel,
   Switch,
   Alert,
+  Avatar,
 } from "@mui/material";
-import { Add, Edit, Delete } from "@mui/icons-material";
+import { Add, Edit, Delete, DirectionsCar } from "@mui/icons-material";
 import { adminAPI, vehiclesAPI } from "@/lib/api";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/admin/_components/AdminVehiclesContent.tsx
 |--------------------------------------------------------------------------
+| ⚠️ تصویر روی همین جدول vehicles ذخیره می‌شه (نه یه جدول جدا). چون
+| چندتا ردیف می‌تونن یه برند مشترک داشته باشن، برای نمایش «عکس برند
+| خودرو» توی فروشگاه، بک‌اند اولین ردیفی که برای اون برند thumbnail
+| داره رو انتخاب می‌کنه - پس کافیه حداقل روی یکی از ردیف‌های هر برند
+| (نیازی نیست همه) عکس بذارید.
 */
 
 type Vehicle = {
@@ -39,6 +45,7 @@ type Vehicle = {
   brand: string;
   model: string;
   generation: string | null;
+  thumbnail_url: string | null;
   year_from: number | null;
   year_to: number | null;
   is_active: boolean;
@@ -63,6 +70,10 @@ export function AdminVehiclesContent() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [existingThumbnailUrl, setExistingThumbnailUrl] = useState<
+    string | null
+  >(null);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -89,6 +100,8 @@ export function AdminVehiclesContent() {
   const openCreateDialog = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setThumbnailFile(null);
+    setExistingThumbnailUrl(null);
     setErrors({});
     setDialogOpen(true);
   };
@@ -103,28 +116,35 @@ export function AdminVehiclesContent() {
       year_to: vehicle.year_to ? String(vehicle.year_to) : "",
       is_active: vehicle.is_active,
     });
+    setThumbnailFile(null);
+    setExistingThumbnailUrl(vehicle.thumbnail_url);
     setErrors({});
     setDialogOpen(true);
   };
+
+  const thumbnailPreviewUrl = useMemo(() => {
+    if (thumbnailFile) return URL.createObjectURL(thumbnailFile);
+    return existingThumbnailUrl;
+  }, [thumbnailFile, existingThumbnailUrl]);
 
   const handleSave = async () => {
     setIsSaving(true);
     setErrors({});
 
-    const payload = {
-      brand: form.brand,
-      model: form.model,
-      generation: form.generation || undefined,
-      year_from: form.year_from ? Number(form.year_from) : undefined,
-      year_to: form.year_to ? Number(form.year_to) : undefined,
-      is_active: form.is_active,
-    };
+    const fd = new FormData();
+    fd.append("brand", form.brand);
+    fd.append("model", form.model);
+    if (form.generation) fd.append("generation", form.generation);
+    if (form.year_from) fd.append("year_from", form.year_from);
+    if (form.year_to) fd.append("year_to", form.year_to);
+    fd.append("is_active", form.is_active ? "1" : "0");
+    if (thumbnailFile) fd.append("thumbnail", thumbnailFile);
 
     try {
       if (editingId) {
-        await adminAPI.vehicles.update(editingId, payload);
+        await adminAPI.vehicles.update(editingId, fd);
       } else {
-        await adminAPI.vehicles.create(payload);
+        await adminAPI.vehicles.create(fd);
       }
       setDialogOpen(false);
       loadVehicles();
@@ -186,6 +206,7 @@ export function AdminVehiclesContent() {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell></TableCell>
               <TableCell>برند</TableCell>
               <TableCell>مدل</TableCell>
               <TableCell>نسل</TableCell>
@@ -197,13 +218,13 @@ export function AdminVehiclesContent() {
           <TableBody>
             {vehicles === null ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={28} />
                 </TableCell>
               </TableRow>
             ) : vehicles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                   <Typography color="text.secondary">
                     خودرویی یافت نشد
                   </Typography>
@@ -212,6 +233,19 @@ export function AdminVehiclesContent() {
             ) : (
               vehicles.map((vehicle) => (
                 <TableRow key={vehicle.id} hover>
+                  <TableCell>
+                    <Avatar
+                      variant="rounded"
+                      src={vehicle.thumbnail_url || undefined}
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        bgcolor: "background.default",
+                      }}
+                    >
+                      <DirectionsCar fontSize="small" />
+                    </Avatar>
+                  </TableCell>
                   <TableCell>{vehicle.brand}</TableCell>
                   <TableCell>{vehicle.model}</TableCell>
                   <TableCell>{vehicle.generation || "—"}</TableCell>
@@ -329,6 +363,47 @@ export function AdminVehiclesContent() {
                 helperText={errors.year_to?.[0]}
                 sx={{ flex: "1 1 180px" }}
               />
+            </Box>
+
+            {/* تصویر - دقیقاً هم‌الگو با دسته‌بندی/برند. اگه چندتا ردیف
+                یه برند مشترک دارن، همینکه روی یکیشون عکس بذارید کافیه -
+                فروشگاه همون رو برای کل اون برند نشون می‌ده. */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              {thumbnailPreviewUrl && (
+                <Avatar
+                  variant="rounded"
+                  src={thumbnailPreviewUrl}
+                  sx={{ width: 56, height: 56, bgcolor: "background.default" }}
+                >
+                  <DirectionsCar fontSize="small" />
+                </Avatar>
+              )}
+              <Box>
+                <Button variant="outlined" component="label">
+                  {thumbnailFile
+                    ? thumbnailFile.name
+                    : editingId
+                      ? "تعویض تصویر برند"
+                      : "انتخاب تصویر برند (اختیاری)"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(e) =>
+                      setThumbnailFile(e.target.files?.[0] || null)
+                    }
+                  />
+                </Button>
+                {errors.thumbnail && (
+                  <Typography
+                    variant="caption"
+                    color="error"
+                    sx={{ display: "block", mt: 0.5 }}
+                  >
+                    {errors.thumbnail[0]}
+                  </Typography>
+                )}
+              </Box>
             </Box>
 
             <FormControlLabel

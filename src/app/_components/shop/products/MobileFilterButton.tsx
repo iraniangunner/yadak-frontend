@@ -26,6 +26,7 @@ export function MobileFilterButton({
   categories,
   brands,
   vehicleBrandOptions,
+  vehicleBrandImages,
   vehicleModelOptions,
   filterableAttributes,
   attributeCategoryIds,
@@ -35,6 +36,7 @@ export function MobileFilterButton({
   categories: CategoryOption[];
   brands: Option[];
   vehicleBrandOptions?: string[];
+  vehicleBrandImages?: { name: string; thumbnail_url: string | null }[];
   vehicleModelOptions?: string[];
   filterableAttributes?: { name: string; values: string[] }[];
   attributeCategoryIds?: number[];
@@ -85,6 +87,7 @@ export function MobileFilterButton({
               categories={categories}
               brands={brands}
               vehicleBrandOptions={vehicleBrandOptions}
+              vehicleBrandImages={vehicleBrandImages}
               vehicleModelOptions={vehicleModelOptions}
               onChange={updateFilters}
               onClear={clearFilters}

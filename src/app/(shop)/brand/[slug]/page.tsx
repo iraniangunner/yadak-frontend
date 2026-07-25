@@ -4,6 +4,7 @@ import {
   getBrands,
   getProducts,
   getVehicleFilterOptions,
+  getVehicleBrandImages,
   findBrandBySlug,
 } from "@/lib/serverApi";
 import { FilterSidebar } from "@/app/_components/shop/products/FilterSidebar";
@@ -63,21 +64,22 @@ export default async function BrandPage({
   const decodedSlug = decodeURIComponent(slug);
   const sp = await searchParams;
 
-  const [categories, brands] = await Promise.all([
-    getCategories(),
-    getBrands(),
-  ]);
+  const brands = await getBrands();
   const brand = findBrandBySlug(brands, decodedSlug);
 
   if (!brand) {
     notFound();
   }
 
-  const vehicleOptions = await getVehicleFilterOptions(undefined, [brand.id]);
+  const [categories, vehicleOptions, vehicleBrandImages] = await Promise.all([
+    getCategories({ brandIds: [brand.id] }),
+    getVehicleFilterOptions(undefined, [brand.id]),
+    getVehicleBrandImages(),
+  ]);
 
   const queryString = buildQueryString({
     ...Object.fromEntries(
-      Object.entries(sp).filter(([key]) => key.startsWith("attr_"))
+      Object.entries(sp).filter(([key]) => key.startsWith("attr_")),
     ),
     brand_id: String(brand.id),
     category_id: sp.category_id,
@@ -110,6 +112,7 @@ export default async function BrandPage({
           brands={[]}
           vehicleBrandOptions={vehicleOptions.brands}
           vehicleModelOptions={vehicleOptions.models}
+          vehicleBrandImages={vehicleBrandImages}
           showCategoryFilter={true}
           basePath={basePath}
         />
@@ -137,6 +140,7 @@ export default async function BrandPage({
                 brands={[]}
                 vehicleBrandOptions={vehicleOptions.brands}
                 vehicleModelOptions={vehicleOptions.models}
+                vehicleBrandImages={vehicleBrandImages}
                 showCategoryFilter={true}
                 basePath={basePath}
               />

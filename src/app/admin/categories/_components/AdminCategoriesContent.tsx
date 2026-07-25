@@ -10,6 +10,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Paper,
   Chip,
   IconButton,
@@ -61,6 +62,8 @@ const emptyForm = {
 
 export function AdminCategoriesContent() {
   const [categories, setCategories] = useState<Category[] | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -126,7 +129,7 @@ export function AdminCategoriesContent() {
       setErrors(
         err?.response?.data?.errors || {
           general: ["خطا در ذخیره‌ی دسته‌بندی."],
-        }
+        },
       );
     } finally {
       setIsSaving(false);
@@ -140,6 +143,12 @@ export function AdminCategoriesContent() {
   };
 
   const parentOptions = categories?.filter((c) => c.id !== editingId) || [];
+
+  // صفحه‌بندی سمت کلاینت - چون کل لیست (حداکثر ۱۰۰ تا) یه‌جا لود می‌شه،
+  // نیازی به صفحه‌بندی سمت سرور نیست؛ فقط همین آرایه رو برش می‌زنیم.
+  const paginatedCategories =
+    categories?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) ||
+    null;
 
   // اگه فایل جدیدی انتخاب شده، پیش‌نمایش زنده‌ش رو بساز؛ وگرنه عکس قبلی
   // محصول (در حالت ویرایش) رو نشون بده.
@@ -196,13 +205,13 @@ export function AdminCategoriesContent() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {categories === null ? (
+            {paginatedCategories === null ? (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={28} />
                 </TableCell>
               </TableRow>
-            ) : categories.length === 0 ? (
+            ) : paginatedCategories.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                   <Typography color="text.secondary">
@@ -211,7 +220,7 @@ export function AdminCategoriesContent() {
                 </TableCell>
               </TableRow>
             ) : (
-              categories.map((category) => (
+              paginatedCategories.map((category) => (
                 <TableRow key={category.id} hover>
                   <TableCell>
                     <Avatar
@@ -229,7 +238,7 @@ export function AdminCategoriesContent() {
                   <TableCell>{category.name}</TableCell>
                   <TableCell>
                     {category.parent_id
-                      ? categories.find((c) => c.id === category.parent_id)
+                      ? categories?.find((c) => c.id === category.parent_id)
                           ?.name || "—"
                       : "—"}
                   </TableCell>
@@ -260,6 +269,23 @@ export function AdminCategoriesContent() {
             )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          component="div"
+          count={categories?.length || 0}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+          rowsPerPageOptions={[10, 20, 50]}
+          labelRowsPerPage="ردیف در صفحه"
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}–${to} از ${count}`
+          }
+        />
       </TableContainer>
 
       <Dialog
@@ -328,8 +354,8 @@ export function AdminCategoriesContent() {
                 {thumbnailFile
                   ? thumbnailFile.name
                   : editingId
-                  ? "تعویض تصویر"
-                  : "انتخاب تصویر"}
+                    ? "تعویض تصویر"
+                    : "انتخاب تصویر"}
                 <input
                   type="file"
                   accept="image/*"

@@ -10,6 +10,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Paper,
   Chip,
   IconButton,
@@ -32,6 +33,9 @@ import { adminAPI, brandsAPI } from "@/lib/api";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/admin/_components/AdminBrandsContent.tsx
 |--------------------------------------------------------------------------
+| ⚠️ صفحه‌بندی سمت سرور اضافه شد (page/per_page واقعی به بک‌اند) - چون
+| تعداد برندها می‌تونه زیاد بشه، برخلاف دسته‌بندی (که صفحه‌بندیش سمت
+| کلاینته چون کلش یه‌جا لود می‌شه).
 */
 
 type Brand = {
@@ -45,6 +49,9 @@ const emptyForm = { name: "", is_active: true };
 
 export function AdminBrandsContent() {
   const [brands, setBrands] = useState<Brand[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -55,14 +62,18 @@ export function AdminBrandsContent() {
 
   const loadBrands = () => {
     setBrands(null);
-    brandsAPI.list({ with_inactive: true, per_page: 100 }).then((res) => {
-      setBrands(res.data.data);
-    });
+    brandsAPI
+      .list({ with_inactive: true, page: page + 1, per_page: rowsPerPage })
+      .then((res) => {
+        setBrands(res.data.data);
+        setTotal(res.data.total);
+      });
   };
 
   useEffect(() => {
     loadBrands();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, rowsPerPage]);
 
   const openCreateDialog = () => {
     setEditingId(null);
@@ -98,7 +109,9 @@ export function AdminBrandsContent() {
       setDialogOpen(false);
       loadBrands();
     } catch (err: any) {
-      setErrors(err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی برند."] });
+      setErrors(
+        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی برند."] },
+      );
     } finally {
       setIsSaving(false);
     }
@@ -112,7 +125,8 @@ export function AdminBrandsContent() {
 
   const thumbnailPreviewUrl = useMemo(() => {
     if (thumbnailFile) return URL.createObjectURL(thumbnailFile);
-    if (editingId) return brands?.find((b) => b.id === editingId)?.thumbnail_url || null;
+    if (editingId)
+      return brands?.find((b) => b.id === editingId)?.thumbnail_url || null;
     return null;
   }, [thumbnailFile, editingId, brands]);
 
@@ -125,16 +139,31 @@ export function AdminBrandsContent() {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 3,
+        }}
+      >
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
           برندها
         </Typography>
-        <Button variant="contained" disableElevation startIcon={<Add />} onClick={openCreateDialog}>
+        <Button
+          variant="contained"
+          disableElevation
+          startIcon={<Add />}
+          onClick={openCreateDialog}
+        >
           افزودن برند
         </Button>
       </Box>
 
-      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+      <TableContainer
+        component={Paper}
+        sx={{ borderRadius: 3, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+      >
         <Table>
           <TableHead>
             <TableRow>
@@ -164,7 +193,11 @@ export function AdminBrandsContent() {
                     <Avatar
                       variant="rounded"
                       src={brand.thumbnail_url || undefined}
-                      sx={{ width: 36, height: 36, bgcolor: "background.default" }}
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        bgcolor: "background.default",
+                      }}
                     >
                       <Storefront fontSize="small" />
                     </Avatar>
@@ -178,10 +211,16 @@ export function AdminBrandsContent() {
                     />
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton size="small" onClick={() => openEditDialog(brand)}>
+                    <IconButton
+                      size="small"
+                      onClick={() => openEditDialog(brand)}
+                    >
                       <Edit fontSize="small" />
                     </IconButton>
-                    <IconButton size="small" onClick={() => handleDelete(brand.id)}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDelete(brand.id)}
+                    >
                       <Delete fontSize="small" color="error" />
                     </IconButton>
                   </TableCell>
@@ -190,10 +229,34 @@ export function AdminBrandsContent() {
             )}
           </TableBody>
         </Table>
+
+        <TablePagination
+          component="div"
+          count={total}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+          rowsPerPageOptions={[10, 20, 50]}
+          labelRowsPerPage="ردیف در صفحه"
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}–${to} از ${count}`
+          }
+        />
       </TableContainer>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 700 }}>{editingId ? "ویرایش برند" : "افزودن برند"}</DialogTitle>
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          {editingId ? "ویرایش برند" : "افزودن برند"}
+        </DialogTitle>
         <DialogContent>
           {errors.general && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -222,12 +285,18 @@ export function AdminBrandsContent() {
                 </Avatar>
               )}
               <Button variant="outlined" component="label">
-                {thumbnailFile ? thumbnailFile.name : editingId ? "تعویض تصویر" : "انتخاب تصویر"}
+                {thumbnailFile
+                  ? thumbnailFile.name
+                  : editingId
+                    ? "تعویض تصویر"
+                    : "انتخاب تصویر"}
                 <input
                   type="file"
                   accept="image/*"
                   hidden
-                  onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                  onChange={(e) =>
+                    setThumbnailFile(e.target.files?.[0] || null)
+                  }
                 />
               </Button>
             </Box>
@@ -236,7 +305,9 @@ export function AdminBrandsContent() {
               control={
                 <Switch
                   checked={form.is_active}
-                  onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                  onChange={(e) =>
+                    setForm({ ...form, is_active: e.target.checked })
+                  }
                 />
               }
               label="فعال"
@@ -244,10 +315,19 @@ export function AdminBrandsContent() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button color="inherit" onClick={() => setDialogOpen(false)} disabled={isSaving}>
+          <Button
+            color="inherit"
+            onClick={() => setDialogOpen(false)}
+            disabled={isSaving}
+          >
             انصراف
           </Button>
-          <Button variant="contained" disableElevation onClick={handleSave} disabled={isSaving}>
+          <Button
+            variant="contained"
+            disableElevation
+            onClick={handleSave}
+            disabled={isSaving}
+          >
             {isSaving ? "در حال ذخیره..." : "ذخیره"}
           </Button>
         </DialogActions>

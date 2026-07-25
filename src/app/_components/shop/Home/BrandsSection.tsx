@@ -1,3 +1,4 @@
+import NextLink from "next/link";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
@@ -7,6 +8,9 @@ import type { getBrands } from "@/lib/serverApi";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/Home/BrandsSection.tsx
 |--------------------------------------------------------------------------
+| «خرید بر اساس برند محصولات» - همون ظاهر قبلی (نوار لوگوی خاکستری‌شده با
+| هاور رنگی)، فقط الان کلیک‌پذیره (میره /brand/[slug]) و به یه تعداد
+| معقول محدود شده (نه همه‌ی برندها).
 */
 type Brand = Awaited<ReturnType<typeof getBrands>>[number];
 
@@ -19,7 +23,7 @@ export function BrandsSection({ brands }: { brands: Brand[] }) {
         variant="h5"
         sx={{ fontWeight: 700, mb: 3, textAlign: "center" }}
       >
-        برندهای مورد اعتماد
+        خرید بر اساس برند
       </Typography>
       <Box
         sx={{
@@ -29,9 +33,11 @@ export function BrandsSection({ brands }: { brands: Brand[] }) {
           justifyContent: "center",
         }}
       >
-        {brands.map((brand) => (
+        {brands.slice(0, 12).map((brand) => (
           <Box
             key={brand.id}
+            component={NextLink}
+            href={`/brand/${brand.slug}`}
             sx={{
               width: 140,
               height: 70,
@@ -42,6 +48,7 @@ export function BrandsSection({ brands }: { brands: Brand[] }) {
               alignItems: "center",
               justifyContent: "center",
               px: 2,
+              textDecoration: "none",
               transition: "border-color .15s",
               "&:hover": { borderColor: "accent.main" },
             }}
@@ -61,7 +68,10 @@ export function BrandsSection({ brands }: { brands: Brand[] }) {
                 }}
               />
             ) : (
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 700, color: "text.primary" }}
+              >
                 {brand.name}
               </Typography>
             )}

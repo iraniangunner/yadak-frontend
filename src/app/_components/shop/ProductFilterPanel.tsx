@@ -15,6 +15,7 @@ import {
   Switch,
   InputAdornment,
   Slider,
+  Avatar,
 } from "@mui/material";
 import { ExpandMore, Search } from "@mui/icons-material";
 import { productsAPI } from "@/lib/api";
@@ -66,170 +67,19 @@ const ratingOptions = [4, 3, 2, 1];
 // بخش دسته‌بندی درختی - کاملاً بازگشتی، هر تعداد سطح رو پشتیبانی می‌کنه
 // ------------------------------------------------------------------
 
-function getChildren(
+// ترتیب نمایش: هر ریشه، بعدش همه‌ی زیرمجموعه‌هاش (به هر عمقی)، قبل از
+// اینکه بریم سراغ ریشه‌ی بعدی - تا لیست مسطح هم منطقی و قابل‌فهم بمونه.
+function flattenCategories(
   categories: CategoryOption[],
-  parentId: number
+  parentId: number | null = null,
 ): CategoryOption[] {
-  return categories.filter((c) => c.parent_id === parentId);
-}
-
-function getDescendantIds(
-  categories: CategoryOption[],
-  nodeId: number
-): string[] {
-  const children = getChildren(categories, nodeId);
-  let ids: string[] = [];
+  const children = categories.filter((c) => c.parent_id === parentId);
+  let result: CategoryOption[] = [];
   for (const child of children) {
-    ids.push(String(child.id));
-    ids = ids.concat(getDescendantIds(categories, child.id));
+    result.push(child);
+    result = result.concat(flattenCategories(categories, child.id));
   }
-  return ids;
-}
-
-function getAncestorIds(
-  categories: CategoryOption[],
-  nodeId: number
-): string[] {
-  const node = categories.find((c) => c.id === nodeId);
-  if (!node || !node.parent_id) return [];
-  return [
-    String(node.parent_id),
-    ...getAncestorIds(categories, node.parent_id),
-  ];
-}
-
-function CategoryNode({
-  category,
-  categories,
-  selectedIds,
-  onChange,
-  depth,
-  isLast,
-}: {
-  category: CategoryOption;
-  categories: CategoryOption[];
-  selectedIds: string[];
-  onChange: (next: string[]) => void;
-  depth: number;
-  isLast: boolean;
-}) {
-  const [expanded, setExpanded] = useState(depth === 0);
-  const children = getChildren(categories, category.id);
-  const hasChildren = children.length > 0;
-
-  const ancestorIds = getAncestorIds(categories, category.id);
-  const isChecked =
-    selectedIds.includes(String(category.id)) &&
-    !ancestorIds.some((id) => selectedIds.includes(id));
-
-  const handleToggle = () => {
-    const nodeId = String(category.id);
-    const descendantIds = getDescendantIds(categories, category.id);
-
-    if (isChecked) {
-      onChange(
-        selectedIds.filter((id) => id !== nodeId && !descendantIds.includes(id))
-      );
-    } else {
-      const cleaned = selectedIds.filter(
-        (id) =>
-          id !== nodeId &&
-          !descendantIds.includes(id) &&
-          !ancestorIds.includes(id)
-      );
-      onChange([...cleaned, nodeId, ...descendantIds]);
-    }
-  };
-
-  return (
-    <Box sx={{ position: "relative" }}>
-      {depth > 0 && (
-        <Box
-          sx={{
-            position: "absolute",
-            top: 0,
-            bottom: isLast ? "auto" : 0,
-            height: isLast ? 20 : "100%",
-            insetInlineStart: (depth - 1) * 20 + 10,
-            width: "1px",
-            bgcolor: "divider",
-          }}
-        />
-      )}
-      {depth > 0 && (
-        <Box
-          sx={{
-            position: "absolute",
-            top: 20,
-            height: "1px",
-            width: 10,
-            insetInlineStart: (depth - 1) * 20 + 10,
-            bgcolor: "divider",
-          }}
-        />
-      )}
-
-      <Box sx={{ display: "flex", alignItems: "center" }}>
-        {depth > 0 && <Box sx={{ width: depth * 20, flexShrink: 0 }} />}
-
-        <FormControlLabel
-          sx={{
-            flex: 1,
-            mr: 0,
-            borderRadius: 1.5,
-            bgcolor: isChecked ? "rgba(30,58,138,0.06)" : "transparent",
-            transition: "background-color .15s",
-            pr: 0.5,
-          }}
-          control={
-            <Checkbox
-              size="small"
-              checked={isChecked}
-              onChange={handleToggle}
-            />
-          }
-          label={
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: isChecked ? 700 : 400 }}
-            >
-              {category.name}
-            </Typography>
-          }
-        />
-
-        {hasChildren && (
-          <IconButton size="small" onClick={() => setExpanded((v) => !v)}>
-            <ExpandMore
-              fontSize="small"
-              sx={{
-                transition: "transform .2s",
-                transform: expanded ? "rotate(0deg)" : "rotate(90deg)",
-              }}
-            />
-          </IconButton>
-        )}
-      </Box>
-
-      {hasChildren && (
-        <Collapse in={expanded}>
-          <Box sx={{ display: "flex", flexDirection: "column" }}>
-            {children.map((child, idx) => (
-              <CategoryNode
-                key={child.id}
-                category={child}
-                categories={categories}
-                selectedIds={selectedIds}
-                onChange={onChange}
-                depth={depth + 1}
-                isLast={idx === children.length - 1}
-              />
-            ))}
-          </Box>
-        </Collapse>
-      )}
-    </Box>
-  );
+  return result;
 }
 
 function CategoryTree({
@@ -241,21 +91,86 @@ function CategoryTree({
   selectedIds: string[];
   onChange: (next: string[]) => void;
 }) {
-  const roots = categories.filter((c) => !c.parent_id);
+  // فقط دسته‌های برگ (بدون زیرمجموعه) نشون داده می‌شن - چون محصولات
+  // فقط به برگ‌ها وصل می‌شن (نه دسته‌های والد/سازمانی)؛ نشون‌دادن والد
+  // به‌عنوان فیلتر همیشه نتیجه‌ی خالی می‌داد (هیچ محصولی category_id
+  // برابر با آیدی والد نداره).
+  const flatList = flattenCategories(categories).filter(
+    (c) => !categories.some((child) => child.parent_id === c.id),
+  );
+  const [search, setSearch] = useState("");
+  const filtered = search.trim()
+    ? flatList.filter((c) => c.name.includes(search.trim()))
+    : flatList;
+
+  const toggle = (id: string) => {
+    onChange(
+      selectedIds.includes(id)
+        ? selectedIds.filter((v) => v !== id)
+        : [...selectedIds, id],
+    );
+  };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column" }}>
-      {roots.map((root, idx) => (
-        <CategoryNode
-          key={root.id}
-          category={root}
-          categories={categories}
-          selectedIds={selectedIds}
-          onChange={onChange}
-          depth={0}
-          isLast={idx === roots.length - 1}
+    <Box>
+      {flatList.length > 5 && (
+        <TextField
+          size="small"
+          placeholder="جستجو در دسته‌بندی..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          fullWidth
+          sx={{ mb: 0.5 }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search fontSize="small" sx={{ color: "text.disabled" }} />
+                </InputAdornment>
+              ),
+            },
+          }}
         />
-      ))}
+      )}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          maxHeight: 280,
+          overflowY: "auto",
+        }}
+      >
+        {filtered.map((category) => {
+          const id = String(category.id);
+          const isChecked = selectedIds.includes(id);
+
+          return (
+            <FormControlLabel
+              key={category.id}
+              sx={{
+                mr: 0,
+                borderRadius: 1.5,
+                // bgcolor: isChecked ? "rgba(30,58,138,0.06)" : "transparent",
+              }}
+              control={
+                <Checkbox
+                  size="small"
+                  checked={isChecked}
+                  onChange={() => toggle(id)}
+                />
+              }
+              label={
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: isChecked ? 700 : 400 }}
+                >
+                  {category.name}
+                </Typography>
+              }
+            />
+          );
+        })}
+      </Box>
     </Box>
   );
 }
@@ -271,6 +186,7 @@ function SearchableCheckboxList({
   onToggle,
   getLabel = (o) => o,
   getKey = (o) => o,
+  getImage,
 }: {
   title: string;
   options: string[];
@@ -278,6 +194,7 @@ function SearchableCheckboxList({
   onToggle: (value: string) => void;
   getLabel?: (option: string) => string;
   getKey?: (option: string) => string;
+  getImage?: (option: string) => string | null | undefined;
 }) {
   const [search, setSearch] = useState("");
   const filtered = search.trim()
@@ -332,7 +249,23 @@ function SearchableCheckboxList({
                 />
               }
               label={
-                <Typography variant="body2">{getLabel(option)}</Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                  {/* {getImage && (
+                    <Avatar
+                      variant="rounded"
+                      src={getImage(option) || undefined}
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        fontSize: "0.65rem",
+                        bgcolor: "background.default",
+                      }}
+                    >
+                      {getLabel(option).charAt(0)}
+                    </Avatar>
+                  )} */}
+                  <Typography variant="body2">{getLabel(option)}</Typography>
+                </Box>
               }
             />
           ))
@@ -347,6 +280,7 @@ export function ProductFilterPanel({
   categories,
   brands,
   vehicleBrandOptions,
+  vehicleBrandImages,
   vehicleModelOptions,
   onChange,
   onClear,
@@ -358,6 +292,7 @@ export function ProductFilterPanel({
   categories: CategoryOption[];
   brands: Option[];
   vehicleBrandOptions?: string[];
+  vehicleBrandImages?: { name: string; thumbnail_url: string | null }[];
   vehicleModelOptions?: string[];
   onChange: (filters: ProductFilters) => void;
   onClear: () => void;
@@ -406,7 +341,7 @@ export function ProductFilterPanel({
   // سرور می‌گیریم تا فقط ویژگی‌هایی که واقعاً بین محصولات باقی‌مونده
   // وجود دارن نشون داده بشن (faceted filtering، مثل دیجی‌کالا).
   const [liveFilterableAttributes, setLiveFilterableAttributes] = useState(
-    filterableAttributes || []
+    filterableAttributes || [],
   );
 
   useEffect(() => {
@@ -462,7 +397,7 @@ export function ProductFilterPanel({
 
   const toggleInArray = (
     key: "brand_ids" | "vehicle_brands" | "vehicle_models" | "stock_statuses",
-    value: string
+    value: string,
   ) => {
     const current = optimisticFilters[key] as string[];
     const next = current.includes(value)
@@ -530,6 +465,9 @@ export function ProductFilterPanel({
             options={vehicleBrandOptions}
             selected={optimisticFilters.vehicle_brands}
             onToggle={(v) => toggleInArray("vehicle_brands", v)}
+            // getImage={(name) =>
+            //   vehicleBrandImages?.find((v) => v.name === name)?.thumbnail_url
+            // }
           />
           <Divider sx={{ my: 1 }} />
         </>

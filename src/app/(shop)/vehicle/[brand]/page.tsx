@@ -1,8 +1,10 @@
+import { DirectionsCar } from "@mui/icons-material";
 import {
   getCategories,
   getBrands,
   getProducts,
   getVehicleFilterOptions,
+  getVehicleBrandImages,
 } from "@/lib/serverApi";
 import { FilterSidebar } from "@/app/_components/shop/products/FilterSidebar";
 import { MobileFilterButton } from "@/app/_components/shop/products/MobileFilterButton";
@@ -10,8 +12,9 @@ import { SortAndPerPageControls } from "@/app/_components/shop/products/SortAndP
 import { ActiveFilterChips } from "@/app/_components/shop/products/ActiveFilterChips";
 import { ProductGridWithLoadMore } from "@/app/_components/shop/products/ProductGridWithLoadMore";
 import Container from "@mui/material/Container";
-import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import Avatar from "@mui/material/Avatar";
+import Typography from "@mui/material/Typography";
 
 /*
 |--------------------------------------------------------------------------
@@ -60,11 +63,16 @@ export default async function VehicleBrandPage({
   const sp = await searchParams;
   const vehicleBrandName = decodeURIComponent(brand);
 
-  const [categories, brands, vehicleOptions] = await Promise.all([
-    getCategories(),
-    getBrands(),
-    getVehicleFilterOptions(),
-  ]);
+  const [categories, brands, vehicleOptions, vehicleBrandImages] =
+    await Promise.all([
+      getCategories({ vehicleBrand: vehicleBrandName }),
+      getBrands(undefined, { vehicleBrand: vehicleBrandName }),
+      getVehicleFilterOptions(undefined, undefined, vehicleBrandName),
+      getVehicleBrandImages(),
+    ]);
+  const brandImage = vehicleBrandImages.find(
+    (v) => v.name === vehicleBrandName,
+  );
 
   // ⚠️ برخلاف قبل، اینجا notFound() صدا نمی‌زنیم حتی اگه فعلاً هیچ
   // محصولی با این برند خودرو نباشه - دقیقاً مثل /category و /brand،
@@ -73,7 +81,7 @@ export default async function VehicleBrandPage({
 
   const queryString = buildQueryString({
     ...Object.fromEntries(
-      Object.entries(sp).filter(([key]) => key.startsWith("attr_"))
+      Object.entries(sp).filter(([key]) => key.startsWith("attr_")),
     ),
     vehicle_brand: vehicleBrandName,
     vehicle_model: sp.vehicle_model,
@@ -95,9 +103,19 @@ export default async function VehicleBrandPage({
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
-        قطعات مناسب {vehicleBrandName}
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+        <Avatar
+          variant="rounded"
+          src={brandImage?.thumbnail_url || undefined}
+          sx={{ width: 40, height: 40, bgcolor: "background.default" }}
+        >
+          <DirectionsCar fontSize="small" />
+        </Avatar>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          قطعات مناسب {vehicleBrandName}
+          {sp.vehicle_model && ` ${sp.vehicle_model}`}
+        </Typography>
+      </Box>
 
       <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
         {/* برند خودرو اینجا مخفیه (قفل‌شده روی همین برند)؛ مدل خودرو همچنان آزاده */}

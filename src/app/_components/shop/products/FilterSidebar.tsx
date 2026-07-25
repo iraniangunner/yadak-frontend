@@ -17,6 +17,7 @@ export function FilterSidebar({
   categories,
   brands,
   vehicleBrandOptions,
+  vehicleBrandImages,
   vehicleModelOptions,
   filterableAttributes,
   attributeCategoryIds,
@@ -26,6 +27,7 @@ export function FilterSidebar({
   categories: CategoryOption[];
   brands: Option[];
   vehicleBrandOptions?: string[];
+  vehicleBrandImages?: { name: string; thumbnail_url: string | null }[];
   vehicleModelOptions?: string[];
   filterableAttributes?: { name: string; values: string[] }[];
   attributeCategoryIds?: number[];
@@ -58,6 +60,7 @@ export function FilterSidebar({
         categories={categories}
         brands={brands}
         vehicleBrandOptions={vehicleBrandOptions}
+        vehicleBrandImages={vehicleBrandImages}
         vehicleModelOptions={vehicleModelOptions}
         onChange={updateFilters}
         onClear={clearFilters}
