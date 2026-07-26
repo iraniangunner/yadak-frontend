@@ -126,7 +126,12 @@ export type ServerProductDetail = {
   thumbnail_url: string | null;
   average_rating: number | null;
   reviews_count: number;
-  category: { id: number; name: string; slug: string } | null;
+  category: {
+    id: number;
+    name: string;
+    slug: string;
+    parent: { id: number; name: string; slug: string } | null;
+  } | null;
   brand: { id: number; name: string } | null;
   vehicle_brand: string | null;
   vehicle_model: string | null;

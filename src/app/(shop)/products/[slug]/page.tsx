@@ -57,7 +57,10 @@ export default async function ProductDetailPage({
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Breadcrumbs separator={<NavigateBefore fontSize="small" />} sx={{ mb: 3 }}>
+      <Breadcrumbs
+        separator={<NavigateBefore fontSize="small" />}
+        sx={{ mb: 3 }}
+      >
         <Box
           component={NextLink}
           href="/"
@@ -65,13 +68,15 @@ export default async function ProductDetailPage({
         >
           خانه
         </Box>
-        <Box
-          component={NextLink}
-          href="/"
-          sx={{ color: "text.secondary", textDecoration: "none" }}
-        >
-          محصولات
-        </Box>
+        {product.category?.parent && (
+          <Box
+            component={NextLink}
+            href={`/category/${product.category.parent.slug}`}
+            sx={{ color: "text.secondary", textDecoration: "none" }}
+          >
+            {product.category.parent.name}
+          </Box>
+        )}
         {product.category && (
           <Box
             component={NextLink}
