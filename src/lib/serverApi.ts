@@ -130,7 +130,7 @@ export type ServerProductDetail = {
   brand: { id: number; name: string } | null;
   vehicle_brand: string | null;
   vehicle_model: string | null;
-  vehicle_type: string | null;
+  vehicle_type: string[] | null;
   images: { id: number; url: string }[];
   product_attributes: { id: number; name: string; value: string }[];
   price_tiers: {

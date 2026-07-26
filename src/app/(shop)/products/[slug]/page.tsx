@@ -109,8 +109,14 @@ export default async function ProductDetailPage({
             ...(product.vehicle_model
               ? [{ id: -2, name: "مدل خودرو", value: product.vehicle_model }]
               : []),
-            ...(product.vehicle_type
-              ? [{ id: -3, name: "تیپ خودرو", value: product.vehicle_type }]
+            ...(product.vehicle_type && product.vehicle_type.length > 0
+              ? [
+                  {
+                    id: -3,
+                    name: "تیپ خودرو",
+                    value: product.vehicle_type.join("، "),
+                  },
+                ]
               : []),
             ...product.product_attributes,
           ]}
