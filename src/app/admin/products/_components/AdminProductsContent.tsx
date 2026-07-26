@@ -244,6 +244,10 @@ export function AdminProductsContent() {
     });
   };
 
+  // useEffect(() => {
+  //   console.log("FORM CHANGED", form);
+  // }, [form]);
+
   const openCreateDialog = () => {
     setEditingId(null);
     setForm(emptyForm);
