@@ -41,6 +41,7 @@ export default async function ProductDetailPage({
   const { slug } = await params;
   const product = await getProduct(slug);
 
+
   if (!product) {
     notFound();
   }

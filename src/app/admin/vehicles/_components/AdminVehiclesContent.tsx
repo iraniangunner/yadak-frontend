@@ -25,6 +25,7 @@ import {
   Switch,
   Alert,
   Avatar,
+  Autocomplete,
 } from "@mui/material";
 import { Add, Edit, Delete, DirectionsCar } from "@mui/icons-material";
 import { adminAPI, vehiclesAPI } from "@/lib/api";
@@ -44,7 +45,7 @@ type Vehicle = {
   id: number;
   brand: string;
   model: string;
-  generation: string | null;
+  generation: string[] | null;
   thumbnail_url: string | null;
   year_from: number | null;
   year_to: number | null;
@@ -54,7 +55,7 @@ type Vehicle = {
 const emptyForm = {
   brand: "",
   model: "",
-  generation: "",
+  generation: [] as string[],
   year_from: "",
   year_to: "",
   is_active: true,
@@ -111,7 +112,7 @@ export function AdminVehiclesContent() {
     setForm({
       brand: vehicle.brand,
       model: vehicle.model,
-      generation: vehicle.generation || "",
+      generation: vehicle.generation || [],
       year_from: vehicle.year_from ? String(vehicle.year_from) : "",
       year_to: vehicle.year_to ? String(vehicle.year_to) : "",
       is_active: vehicle.is_active,
@@ -134,7 +135,8 @@ export function AdminVehiclesContent() {
     const fd = new FormData();
     fd.append("brand", form.brand);
     fd.append("model", form.model);
-    if (form.generation) fd.append("generation", form.generation);
+    if (form.generation.length > 0)
+      form.generation.forEach((g) => fd.append("generation[]", g));
     if (form.year_from) fd.append("year_from", form.year_from);
     if (form.year_to) fd.append("year_to", form.year_to);
     fd.append("is_active", form.is_active ? "1" : "0");
@@ -150,7 +152,7 @@ export function AdminVehiclesContent() {
       loadVehicles();
     } catch (err: any) {
       setErrors(
-        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی خودرو."] },
+        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی خودرو."] }
       );
     } finally {
       setIsSaving(false);
@@ -248,10 +250,16 @@ export function AdminVehiclesContent() {
                   </TableCell>
                   <TableCell>{vehicle.brand}</TableCell>
                   <TableCell>{vehicle.model}</TableCell>
-                  <TableCell>{vehicle.generation || "—"}</TableCell>
+                  <TableCell>
+                    {vehicle.generation && vehicle.generation.length > 0
+                      ? vehicle.generation.join("، ")
+                      : "—"}
+                  </TableCell>
                   <TableCell>
                     {vehicle.year_from || vehicle.year_to
-                      ? `${vehicle.year_from ?? "?"} تا ${vehicle.year_to ?? "?"}`
+                      ? `${vehicle.year_from ?? "?"} تا ${
+                          vehicle.year_to ?? "?"
+                        }`
                       : "—"}
                   </TableCell>
                   <TableCell>
@@ -335,10 +343,31 @@ export function AdminVehiclesContent() {
               />
             </Box>
 
-            <TextField
-              label="نسل (اختیاری)"
+            <Autocomplete
+              multiple
+              freeSolo
+              options={[]}
               value={form.generation}
-              onChange={(e) => setForm({ ...form, generation: e.target.value })}
+              onChange={(_, newValue) =>
+                setForm({ ...form, generation: newValue })
+              }
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    label={option}
+                    size="small"
+                    {...getTagProps({ index })}
+                    key={option}
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="نسل/تیپ (اختیاری، چندتایی)"
+                  placeholder="تایپ کنید و Enter بزنید..."
+                />
+              )}
               fullWidth
             />
 
@@ -383,8 +412,8 @@ export function AdminVehiclesContent() {
                   {thumbnailFile
                     ? thumbnailFile.name
                     : editingId
-                      ? "تعویض تصویر برند"
-                      : "انتخاب تصویر برند (اختیاری)"}
+                    ? "تعویض تصویر برند"
+                    : "انتخاب تصویر برند (اختیاری)"}
                   <input
                     type="file"
                     accept="image/*"

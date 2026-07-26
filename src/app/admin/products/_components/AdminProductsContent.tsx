@@ -107,7 +107,7 @@ type VehicleRef = {
   id: number;
   brand: string;
   model: string;
-  generation?: string | null;
+  generation?: string[] | null;
 };
 
 const emptyForm = {
@@ -167,27 +167,22 @@ export function AdminProductsContent() {
 
   // گزینه‌های کاسکید: برند خودرو (یکتا) → مدل‌های همون برند → تیپ‌های همون برند+مدل
   const vehicleBrandChoices = Array.from(
-    new Set(allVehicleRefs.map((v) => v.brand)),
+    new Set(allVehicleRefs.map((v) => v.brand))
   ).sort();
   const vehicleModelChoices = Array.from(
     new Set(
       allVehicleRefs
         .filter((v) => v.brand === form.vehicle_brand)
-        .map((v) => v.model),
-    ),
+        .map((v) => v.model)
+    )
   ).sort();
-  const vehicleTrimChoices = Array.from(
-    new Set(
-      allVehicleRefs
-        .filter(
-          (v) =>
-            v.brand === form.vehicle_brand &&
-            v.model === form.vehicle_model &&
-            v.generation,
-        )
-        .map((v) => v.generation as string),
-    ),
-  ).sort();
+  // ⚠️ چون الان هر (برند+مدل) فقط یه ردیفه (نه چندتا ردیف برای هر
+  // تیپ)، دیگه نیازی به جمع‌کردن از چند ردیف نیست - مستقیم همون یه
+  // ردیف رو پیدا می‌کنیم و آرایه‌ی generation ـش رو برمی‌داریم.
+  const vehicleTrimChoices =
+    allVehicleRefs.find(
+      (v) => v.brand === form.vehicle_brand && v.model === form.vehicle_model
+    )?.generation || [];
 
   // کالای مکمل
   type ProductRef = { id: number; title: string; sku: string };
@@ -325,7 +320,7 @@ export function AdminProductsContent() {
       setDialogOpen(false);
     } catch (err: any) {
       setErrors(
-        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی محصول."] },
+        err?.response?.data?.errors || { general: ["خطا در ذخیره‌ی محصول."] }
       );
     } finally {
       setIsSaving(false);
@@ -437,7 +432,7 @@ export function AdminProductsContent() {
       // خودِ محصولی که الان در حال ویرایششیم رو از نتایج جستجو حذف کن -
       // یه محصول نباید مکمل خودش باشه
       setComplementaryOptions(
-        res.data.data.filter((p: ProductRef) => p.id !== editingId),
+        res.data.data.filter((p: ProductRef) => p.id !== editingId)
       );
     } finally {
       setIsSearchingComplementary(false);
@@ -450,7 +445,7 @@ export function AdminProductsContent() {
     setIsSavingComplementary(true);
     const fd = new FormData();
     selectedComplementary.forEach((p) =>
-      fd.append("complementary_product_ids[]", String(p.id)),
+      fd.append("complementary_product_ids[]", String(p.id))
     );
     if (selectedComplementary.length === 0)
       fd.append("complementary_product_ids", "");
@@ -725,7 +720,7 @@ export function AdminProductsContent() {
                         <MenuItem key={value} value={value}>
                           {label}
                         </MenuItem>
-                      ),
+                      )
                     )}
                   </Select>
                 </FormControl>
@@ -745,7 +740,7 @@ export function AdminProductsContent() {
                     {categories
                       .filter(
                         (c) =>
-                          !categories.some((child) => child.parent_id === c.id),
+                          !categories.some((child) => child.parent_id === c.id)
                       )
                       .map((c) => (
                         <MenuItem key={c.id} value={String(c.id)}>
@@ -910,8 +905,8 @@ export function AdminProductsContent() {
                     {thumbnailFile
                       ? thumbnailFile.name
                       : editingId
-                        ? "تعویض تصویر شاخص"
-                        : "انتخاب تصویر شاخص"}
+                      ? "تعویض تصویر شاخص"
+                      : "انتخاب تصویر شاخص"}
                     <input
                       type="file"
                       accept="image/*"
@@ -1156,7 +1151,7 @@ export function AdminProductsContent() {
                                   attribute.id,
                                   {
                                     is_filterable: e.target.checked,
-                                  },
+                                  }
                                 );
                                 loadProductDetails(editingId);
                               }}

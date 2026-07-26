@@ -2,15 +2,16 @@ import NextLink from "next/link";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
+import Storefront from "@mui/icons-material/Storefront";
 import type { getBrands } from "@/lib/serverApi";
+import { CardCarousel } from "./CardCarousel";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/Home/BrandsSection.tsx
 |--------------------------------------------------------------------------
-| «خرید بر اساس برند محصولات» - همون ظاهر قبلی (نوار لوگوی خاکستری‌شده با
-| هاور رنگی)، فقط الان کلیک‌پذیره (میره /brand/[slug]) و به یه تعداد
-| معقول محدود شده (نه همه‌ی برندها).
+| «خرید بر اساس برند» - دقیقاً مثل سایت مرجع: خودِ کارت فقط لوگو (مربع
+| سفید تمام‌عرض)، اسم برند جدا و بیرون از کارت، زیرش.
 */
 type Brand = Awaited<ReturnType<typeof getBrands>>[number];
 
@@ -25,59 +26,60 @@ export function BrandsSection({ brands }: { brands: Brand[] }) {
       >
         خرید بر اساس برند
       </Typography>
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 2,
-          justifyContent: "center",
-        }}
-      >
-        {brands.slice(0, 12).map((brand) => (
+      <CardCarousel>
+        {brands.map((brand) => (
           <Box
             key={brand.id}
             component={NextLink}
             href={`/brand/${brand.slug}`}
             sx={{
-              width: 140,
-              height: 70,
-              bgcolor: "background.paper",
-              border: "1px solid rgba(15,23,42,0.08)",
-              borderRadius: 2,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              px: 2,
+              width: 130,
               textDecoration: "none",
-              transition: "border-color .15s",
-              "&:hover": { borderColor: "accent.main" },
+              color: "text.primary",
+              display: "block",
             }}
           >
-            {brand.thumbnail_url ? (
-              <Box
-                component="img"
-                src={brand.thumbnail_url}
-                alt={brand.name}
-                sx={{
-                  maxWidth: "100%",
-                  maxHeight: 36,
-                  objectFit: "contain",
-                  filter: "grayscale(1) opacity(0.55)",
-                  transition: "filter .2s",
-                  "&:hover": { filter: "none" },
-                }}
-              />
-            ) : (
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: 700, color: "text.primary" }}
-              >
-                {brand.name}
-              </Typography>
-            )}
+            {/* کارت - فقط لوگو، مربع، بدون پدینگ اضافه */}
+            <Box
+              sx={{
+                width: 130,
+                height: 130,
+                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                p: 1.5,
+                mb: 1,
+                transition: "border-color .15s",
+                "&:hover": { borderColor: "accent.main" },
+              }}
+            >
+              {brand.thumbnail_url ? (
+                <Box
+                  component="img"
+                  src={brand.thumbnail_url}
+                  alt={brand.name}
+                  sx={{ width: "100%", height: "100%", objectFit: "contain" }}
+                />
+              ) : (
+                <Storefront sx={{ fontSize: 40, color: "text.disabled" }} />
+              )}
+            </Box>
+
+            {/* اسم - بیرون از کارت، زیرش */}
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 700, textAlign: "center" }}
+            >
+              {brand.name}
+            </Typography>
           </Box>
         ))}
-      </Box>
+      </CardCarousel>
     </Container>
   );
 }

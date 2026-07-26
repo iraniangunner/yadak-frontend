@@ -265,7 +265,7 @@ export type VehicleBrandImage = { name: string; thumbnail_url: string | null };
 
 export async function getVehicleBrandImages(): Promise<VehicleBrandImage[]> {
   const res = await serverFetch<{ data: VehicleBrandImage[] }>(
-    "/vehicles/brand-images",
+    "/vehicle-brands",
     300,
   );
   return res?.data || [];

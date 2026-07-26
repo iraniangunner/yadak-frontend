@@ -2,93 +2,72 @@ import NextLink from "next/link";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
-import Avatar from "@mui/material/Avatar";
 import DirectionsCar from "@mui/icons-material/DirectionsCar";
-import type {
-  getVehicleFilterOptions,
-  getVehicleBrandImages,
-} from "@/lib/serverApi";
+import type { getVehicleBrandImages } from "@/lib/serverApi";
+import { CardCarousel } from "./CardCarousel";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/Home/VehicleBrandsSection.tsx
 |--------------------------------------------------------------------------
-| «خودروها» - دقیقاً مثل بخش «خودروها»ی سایت مرجع: فقط لوگو/عکسِ برند
-| خودرو (نه مدل خاص). کلیک روی هرکدوم می‌ره /vehicle/[برند].
+| «خودروها» - همه‌ی برندهای فعالِ جدول vehicle_brands رو نشون می‌ده،
+| صرف‌نظر از اینکه الان محصولی براشون هست یا نه (خودِ صفحه‌ی
+| /vehicle/[برند] اگه محصولی نباشه، پیام «محصولی پیدا نشد» نشون می‌ده).
 */
-type VehicleOptions = Awaited<ReturnType<typeof getVehicleFilterOptions>>;
-type VehicleBrandImage = Awaited<
-  ReturnType<typeof getVehicleBrandImages>
->[number];
+type VehicleBrand = Awaited<ReturnType<typeof getVehicleBrandImages>>[number];
 
-export function VehicleBrandsSection({
-  vehicleOptions,
-  vehicleBrandImages,
-}: {
-  vehicleOptions: VehicleOptions;
-  vehicleBrandImages: VehicleBrandImage[];
-}) {
-  if (vehicleOptions.brands.length === 0) return null;
+export function VehicleBrandsSection({ vehicleBrands }: { vehicleBrands: VehicleBrand[] }) {
+  if (vehicleBrands.length === 0) return null;
 
   return (
     <Container maxWidth="lg" sx={{ pb: 6 }}>
-      <Typography
-        variant="h5"
-        sx={{ fontWeight: 700, mb: 3, textAlign: "center" }}
-      >
+      <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, textAlign: "center" }}>
         خودروها
       </Typography>
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 2,
-          justifyContent: "center",
-        }}
-      >
-        {vehicleOptions.brands.slice(0, 12).map((brandName) => {
-          const image = vehicleBrandImages.find((v) => v.name === brandName);
-          return (
+      <CardCarousel>
+        {vehicleBrands.map((brand) => (
+          <Box
+            key={brand.name}
+            component={NextLink}
+            href={`/vehicle/${encodeURIComponent(brand.name)}`}
+            sx={{ width: 130, textDecoration: "none", color: "text.primary", display: "block" }}
+          >
             <Box
-              key={brandName}
-              component={NextLink}
-              href={`/vehicle/${encodeURIComponent(brandName)}`}
               sx={{
-                width: 140,
-                height: 70,
+                width: 130,
+                height: 130,
                 bgcolor: "background.paper",
-                border: "1px solid rgba(15,23,42,0.08)",
+                border: "1px solid",
+                borderColor: "divider",
                 borderRadius: 2,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 1,
-                px: 2,
-                textDecoration: "none",
-                color: "text.primary",
+                overflow: "hidden",
+                p: 1.5,
+                mb: 1,
                 transition: "border-color .15s",
                 "&:hover": { borderColor: "accent.main" },
               }}
             >
-              <Avatar
-                variant="rounded"
-                src={image?.thumbnail_url || undefined}
-                sx={{
-                  width: 32,
-                  height: 32,
-                  bgcolor: "rgba(249,115,22,0.1)",
-                  color: "accent.main",
-                }}
-              >
-                <DirectionsCar fontSize="small" />
-              </Avatar>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {brandName}
-              </Typography>
+              {brand.thumbnail_url ? (
+                <Box
+                  component="img"
+                  src={brand.thumbnail_url}
+                  alt={brand.name}
+                  sx={{ width: "100%", height: "100%", objectFit: "contain" }}
+                />
+              ) : (
+                <DirectionsCar sx={{ fontSize: 40, color: "text.disabled" }} />
+              )}
             </Box>
-          );
-        })}
-      </Box>
+
+            <Typography variant="body2" sx={{ fontWeight: 700, textAlign: "center" }}>
+              لوازم {brand.name}
+            </Typography>
+          </Box>
+        ))}
+      </CardCarousel>
     </Container>
   );
 }
