@@ -45,8 +45,11 @@ export function VehicleFinderWidget({
 
   const handleSearch = () => {
     if (!brand) return;
-    const query = model ? `?vehicle_model=${encodeURIComponent(model)}` : "";
-    router.push(`/vehicle/${encodeURIComponent(brand)}${query}`);
+    if (model) {
+      router.push(`/vehicle/${encodeURIComponent(`لوازم-یدکی-${model}`)}`);
+    } else {
+      router.push(`/vehicle/${encodeURIComponent(brand)}`);
+    }
   };
 
   return (

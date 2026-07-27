@@ -28,6 +28,7 @@ export function ProductGridWithLoadMore({
   fixedCategoryIds,
   fixedBrandId,
   fixedVehicleBrand,
+  fixedVehicleModel,
   fixedIsDiscounted,
   basePath,
   showCategoryFilter = true,
@@ -38,6 +39,7 @@ export function ProductGridWithLoadMore({
   fixedCategoryIds?: number[];
   fixedBrandId?: number;
   fixedVehicleBrand?: string;
+  fixedVehicleModel?: string;
   fixedIsDiscounted?: boolean;
   basePath?: string;
   showCategoryFilter?: boolean;
@@ -69,9 +71,11 @@ export function ProductGridWithLoadMore({
           (filters.vehicle_brands.length
             ? filters.vehicle_brands.join(",")
             : undefined),
-        vehicle_model: filters.vehicle_models.length
-          ? filters.vehicle_models.join(",")
-          : undefined,
+        vehicle_model:
+          fixedVehicleModel ||
+          (filters.vehicle_models.length
+            ? filters.vehicle_models.join(",")
+            : undefined),
         category_id: fixedCategoryIds?.length
           ? fixedCategoryIds.join(",")
           : filters.category_ids.length

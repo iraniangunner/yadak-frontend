@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import NextLink from "next/link";
+import { NavigateBefore } from "@mui/icons-material";
 import {
   getCategories,
   getBrands,
@@ -19,6 +21,7 @@ import { SubcategoryGallery } from "@/app/_components/shop/products/SubcategoryG
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import Breadcrumbs from "@mui/material/Breadcrumbs";
 
 /*
 |--------------------------------------------------------------------------
@@ -82,6 +85,9 @@ export default async function CategoryPage({
 
   const categoryIds = getCategoryAndDescendantIds(categories, category.id);
   const directChildren = getDirectChildren(categories, category.id);
+  const parentCategory = category.parent_id
+    ? categories.find((c) => c.id === category.parent_id)
+    : null;
   const [brands, vehicleOptions, filterableAttributes, vehicleBrandImages] =
     await Promise.all([
       getBrands(categoryIds),
@@ -114,6 +120,29 @@ export default async function CategoryPage({
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Breadcrumbs
+        separator={<NavigateBefore fontSize="small" />}
+        sx={{ mb: 2 }}
+      >
+        <Box
+          component={NextLink}
+          href="/"
+          sx={{ color: "text.secondary", textDecoration: "none" }}
+        >
+          خانه
+        </Box>
+        {parentCategory && (
+          <Box
+            component={NextLink}
+            href={`/category/${parentCategory.slug}`}
+            sx={{ color: "text.secondary", textDecoration: "none" }}
+          >
+            {parentCategory.name}
+          </Box>
+        )}
+        <Typography color="text.primary">{category.name}</Typography>
+      </Breadcrumbs>
+
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
         {category.name}
       </Typography>

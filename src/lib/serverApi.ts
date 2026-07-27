@@ -125,6 +125,21 @@ export type ServerVehicle = {
  * مدل‌های یه برند خودروی خاص - برای گالری زیرمجموعه‌ی بالای صفحه‌ی
  * /vehicle/[brand] (نمایش عکس هر مدل: کوییک، پراید، تیبا زیر «سایپا»).
  */
+/**
+ * پیدا کردن یه مدل خاص، صرف‌نظر از برندش - برای صفحه‌ی «لوازم یدکی
+ * [مدل]» که فقط اسم مدل توی آدرسه (بدون برند). اگه چند برند مختلف
+ * مدلی با همین اسم داشته باشن، اولی برگردونده می‌شه (نادر، ولی ممکنه).
+ */
+export async function getVehicleByModel(
+  modelName: string
+): Promise<ServerVehicle | null> {
+  const res = await serverFetch<{ data: ServerVehicle[] }>(
+    `/vehicles?model=${encodeURIComponent(modelName)}&per_page=1`,
+    120
+  );
+  return res?.data?.[0] || null;
+}
+
 export async function getVehiclesByBrand(
   brand: string
 ): Promise<ServerVehicle[]> {

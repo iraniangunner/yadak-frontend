@@ -29,8 +29,8 @@ export function VehicleModelGallery({
             key={vehicle.id}
             component={NextLink}
             href={`/vehicle/${encodeURIComponent(
-              brand
-            )}?vehicle_model=${encodeURIComponent(vehicle.model)}`}
+              `لوازم-یدکی-${vehicle.model}`
+            )}`}
             sx={{
               width: 110,
               textDecoration: "none",
