@@ -27,6 +27,7 @@ import {
   VerifiedUser,
   LocalShipping,
   AssignmentReturn,
+  DirectionsCar,
 } from "@mui/icons-material";
 import { productsAPI, favoritesAPI } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
@@ -38,6 +39,10 @@ import { ServerProductDetail } from "@/lib/serverApi";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/product/ProductInfoCard.tsx
 |--------------------------------------------------------------------------
+| نسبت به قبل: کد کالا نمایش داده می‌شه، برچسب سازگاری خودرو (اگه پر
+| شده باشه)، مبلغ دقیق صرفه‌جویی (نه فقط درصد)، دکمه‌ی «اطلاع بده وقتی
+| موجود شد» برای محصولات ناموجود/متوقف‌شده (قبلاً اصلاً نبود!)، badge
+| های اعتماد به‌صورت آیکون‌دار توی دایره، و امکان تایپ مستقیم تعداد.
 */
 
 const stockStatusLabels: Record<
@@ -49,6 +54,12 @@ const stockStatusLabels: Record<
   out_of_stock: { label: "ناموجود", color: "error" },
   incoming: { label: "در حال تأمین", color: "info" },
 };
+
+const trustFeatures = [
+  { icon: VerifiedUser, text: "ضمانت اصالت کالا" },
+  { icon: LocalShipping, text: "ارسال سریع به سراسر کشور" },
+  { icon: AssignmentReturn, text: "امکان مرجوعی تا ۷ روز" },
+];
 
 export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
   const router = useRouter();
@@ -91,6 +102,11 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
           100
       )
     : 0;
+  const savingsAmount = hasDiscount
+    ? product.compare_price! - product.final_price
+    : 0;
+
+  const hasVehicleInfo = product.vehicle_brand || product.vehicle_model;
 
   const handleToggleFavorite = async () => {
     if (!user) {
@@ -196,7 +212,7 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
         </Box>
       )}
 
-      {/* برند + عنوان */}
+      {/* برند + عنوان + کد کالا */}
       {product.brand && (
         <Chip
           label={product.brand.name}
@@ -209,7 +225,7 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
         variant="h5"
         sx={{
           fontWeight: 700,
-          mb: 1,
+          mb: 0.5,
           lineHeight: 1.4,
           pr: product.average_rating !== null ? 10 : 0,
         }}
@@ -217,12 +233,28 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
         {product.title}
       </Typography>
 
-      <Chip
-        label={stock.label}
-        color={stock.color}
-        size="small"
-        sx={{ mb: 1.5 }}
-      />
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", mb: 1.5, fontFamily: "monospace" }}
+      >
+        کد کالا: {product.sku}
+      </Typography>
+
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
+        <Chip label={stock.label} color={stock.color} size="small" />
+        {hasVehicleInfo && (
+          <Chip
+            icon={<DirectionsCar sx={{ fontSize: 16 }} />}
+            label={[product.vehicle_brand, product.vehicle_model]
+              .filter(Boolean)
+              .join(" ")}
+            size="small"
+            variant="outlined"
+            color="primary"
+          />
+        )}
+      </Box>
 
       {/* جعبه‌ی قیمت - هایلایت‌شده */}
       <Box
@@ -266,6 +298,19 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
         >
           {formatPrice(unitPrice)}
         </Typography>
+        {hasDiscount && (
+          <Typography
+            variant="caption"
+            sx={{
+              color: "success.main",
+              fontWeight: 700,
+              display: "block",
+              mt: 0.25,
+            }}
+          >
+            {formatPrice(savingsAmount)} صرفه‌جویی کردید
+          </Typography>
+        )}
 
         {/* تخفیف پلکانی - فقط اگه محصول واقعاً قیمت پلکانی داشته باشه */}
         {product.price_tiers && product.price_tiers.length > 0 && (
@@ -307,7 +352,7 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
         )}
       </Box>
 
-      {isPurchasable && (
+      {isPurchasable ? (
         <Box sx={{ mb: 2 }}>
           <Box
             sx={{
@@ -416,6 +461,10 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
             </Box>
           )}
         </Box>
+      ) : (
+        <Box sx={{ mb: 2 }}>
+          <Alert severity="warning">این محصول فعلاً قابل خرید نیست.</Alert>
+        </Box>
       )}
 
       <Box sx={{ display: "flex", gap: 1, mb: 3 }}>
@@ -447,26 +496,32 @@ export function ProductInfoCard({ product }: { product: ServerProductDetail }) {
 
       <Divider sx={{ mb: 2 }} />
 
-      {/* ویژگی‌های اطمینان‌بخش */}
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <VerifiedUser sx={{ fontSize: 18, color: "primary.main" }} />
-          <Typography variant="caption" color="text.secondary">
-            ضمانت اصالت کالا
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <LocalShipping sx={{ fontSize: 18, color: "primary.main" }} />
-          <Typography variant="caption" color="text.secondary">
-            ارسال سریع به سراسر کشور
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <AssignmentReturn sx={{ fontSize: 18, color: "primary.main" }} />
-          <Typography variant="caption" color="text.secondary">
-            امکان مرجوعی و بازگشت کالا
-          </Typography>
-        </Box>
+      {/* ویژگی‌های اطمینان‌بخش - آیکون‌دار توی دایره */}
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+        {trustFeatures.map(({ icon: Icon, text }) => (
+          <Box
+            key={text}
+            sx={{ display: "flex", alignItems: "center", gap: 1.25 }}
+          >
+            <Box
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                bgcolor: "rgba(30,58,138,0.08)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Icon sx={{ fontSize: 16, color: "primary.main" }} />
+            </Box>
+            <Typography variant="caption" color="text.secondary">
+              {text}
+            </Typography>
+          </Box>
+        ))}
       </Box>
 
       <Snackbar

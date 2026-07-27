@@ -153,6 +153,7 @@ export async function getVehiclesByBrand(
 export type ServerProductDetail = {
   id: number;
   slug: string;
+  sku:string;
   title: string;
   description: string | null;
   price: number;
