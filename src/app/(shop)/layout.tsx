@@ -2,6 +2,7 @@ import { SiteHeader } from "@/app/_components/shop/SiteHeader";
 import { SiteFooter } from "@/app/_components/shop/SiteFooter";
 import { MobileBottomNav } from "@/app/_components/shop/MobileBottomNav";
 import { getCategories } from "@/lib/serverApi";
+import TopLoader from "../_components/shop/TopLoader";
 
 /*
 |--------------------------------------------------------------------------
@@ -18,6 +19,7 @@ export default async function ShopLayout({
 
   return (
     <>
+      <TopLoader />
       <SiteHeader categories={categories} />
       <main>{children}</main>
       <SiteFooter />
