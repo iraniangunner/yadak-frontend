@@ -14,7 +14,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 async function serverFetch<T>(
   path: string,
-  revalidateSeconds = 60,
+  revalidateSeconds = 60
 ): Promise<T | null> {
   try {
     const res = await fetch(`${API_URL}${path}`, {
@@ -42,14 +42,14 @@ export type ServerCategory = {
  */
 export function findCategoryBySlug(
   categories: ServerCategory[],
-  slug: string,
+  slug: string
 ): ServerCategory | null {
   return categories.find((c) => c.slug === slug) || null;
 }
 
 export function findBrandBySlug(
   brands: ServerBrand[],
-  slug: string,
+  slug: string
 ): ServerBrand | null {
   return brands.find((b) => b.slug === slug) || null;
 }
@@ -58,9 +58,16 @@ export function findBrandBySlug(
  * همه‌ی شناسه‌های زیرمجموعه (تا هر عمقی) + خودِ دسته - برای اینکه صفحه‌ی
  * دسته‌بندی محصولات زیرمجموعه‌ها رو هم نشون بده، نه فقط همون یه دسته‌ی دقیق.
  */
+export function getDirectChildren(
+  categories: ServerCategory[],
+  categoryId: number
+): ServerCategory[] {
+  return categories.filter((c) => c.parent_id === categoryId);
+}
+
 export function getCategoryAndDescendantIds(
   categories: ServerCategory[],
-  categoryId: number,
+  categoryId: number
 ): number[] {
   const children = categories.filter((c) => c.parent_id === categoryId);
   let ids = [categoryId];
@@ -108,11 +115,25 @@ export type ServerVehicle = {
   id: number;
   brand: string;
   model: string;
-  generation: string | null;
+  generation: string[] | null;
   thumbnail_url: string | null;
   year_from: number | null;
   year_to: number | null;
 };
+
+/**
+ * مدل‌های یه برند خودروی خاص - برای گالری زیرمجموعه‌ی بالای صفحه‌ی
+ * /vehicle/[brand] (نمایش عکس هر مدل: کوییک، پراید، تیبا زیر «سایپا»).
+ */
+export async function getVehiclesByBrand(
+  brand: string
+): Promise<ServerVehicle[]> {
+  const res = await serverFetch<{ data: ServerVehicle[] }>(
+    `/vehicles?brand=${encodeURIComponent(brand)}&per_page=100`,
+    120
+  );
+  return res?.data || [];
+}
 
 export type ServerProductDetail = {
   id: number;
@@ -147,11 +168,11 @@ export type ServerProductDetail = {
 };
 
 export async function getProduct(
-  slug: string,
+  slug: string
 ): Promise<ServerProductDetail | null> {
   const res = await serverFetch<{ product: ServerProductDetail }>(
     `/products/${slug}`,
-    30,
+    30
   );
   return res?.product || null;
 }
@@ -169,14 +190,14 @@ export async function getCategories(scope?: {
 
   const res = await serverFetch<{ data: ServerCategory[] }>(
     `/categories?${params.toString()}`,
-    300,
+    300
   );
   return res?.data || [];
 }
 
 export async function getBrands(
   categoryIds?: number[],
-  vehicleScope?: { vehicleBrand?: string; vehicleModel?: string },
+  vehicleScope?: { vehicleBrand?: string; vehicleModel?: string }
 ) {
   const params = new URLSearchParams();
   if (categoryIds?.length) params.set("category_id", categoryIds.join(","));
@@ -187,7 +208,7 @@ export async function getBrands(
   const query = params.toString() ? `?${params.toString()}` : "";
   const res = await serverFetch<{ data: ServerBrand[] }>(
     `/brands${query}`,
-    300,
+    300
   );
   return res?.data || [];
 }
@@ -215,7 +236,7 @@ export async function getProducts(params: string, revalidateSeconds = 60) {
 export async function getArticles(perPage = 3) {
   const res = await serverFetch<{ data: ServerArticle[] }>(
     `/articles?per_page=${perPage}`,
-    300,
+    300
   );
   return res?.data || [];
 }
@@ -226,7 +247,7 @@ export async function getArticles(perPage = 3) {
  */
 export async function getArticlesFiltered(
   params: string,
-  revalidateSeconds = 60,
+  revalidateSeconds = 60
 ) {
   const res = await serverFetch<{
     data: ServerArticle[];
@@ -243,7 +264,7 @@ export async function getArticlesFiltered(
 export async function getArticle(slug: string): Promise<ServerArticle | null> {
   const res = await serverFetch<{ article: ServerArticle }>(
     `/articles/${slug}`,
-    60,
+    60
   );
   return res?.article || null;
 }
@@ -251,22 +272,27 @@ export async function getArticle(slug: string): Promise<ServerArticle | null> {
 export type FilterableAttribute = { name: string; values: string[] };
 
 export async function getFilterableAttributes(
-  categoryIds: number[],
+  categoryIds: number[]
 ): Promise<FilterableAttribute[]> {
   if (categoryIds.length === 0) return [];
   const res = await serverFetch<{ data: FilterableAttribute[] }>(
     `/products/filterable-attributes?category_id=${categoryIds.join(",")}`,
-    60,
+    60
   );
   return res?.data || [];
 }
 
-export type VehicleBrandImage = { name: string; thumbnail_url: string | null };
+export type VehicleBrandImage = {
+  id: number;
+  name: string;
+  thumbnail_url: string | null;
+  is_active: boolean;
+};
 
 export async function getVehicleBrandImages(): Promise<VehicleBrandImage[]> {
   const res = await serverFetch<{ data: VehicleBrandImage[] }>(
     "/vehicle-brands",
-    300,
+    300
   );
   return res?.data || [];
 }
@@ -277,7 +303,7 @@ export async function getVehicles(categoryIds?: number[]) {
     : "";
   const res = await serverFetch<{ data: ServerVehicle[] }>(
     `/vehicles?per_page=300${categoryQuery}`,
-    300,
+    300
   );
   return res?.data || [];
 }
@@ -292,7 +318,7 @@ export type VehicleFilterOptions = { brands: string[]; models: string[] };
 export async function getVehicleFilterOptions(
   categoryIds?: number[],
   brandIds?: number[],
-  vehicleBrand?: string,
+  vehicleBrand?: string
 ): Promise<VehicleFilterOptions> {
   const params = new URLSearchParams();
   if (categoryIds?.length) params.set("category_id", categoryIds.join(","));
@@ -301,7 +327,7 @@ export async function getVehicleFilterOptions(
   const query = params.toString() ? `?${params.toString()}` : "";
   const res = await serverFetch<VehicleFilterOptions>(
     `/products/vehicle-filter-options${query}`,
-    60,
+    60
   );
   return res || { brands: [], models: [] };
 }

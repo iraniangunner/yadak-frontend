@@ -1,48 +1,31 @@
-import { DirectionsCar } from "@mui/icons-material";
+import { Container, Typography, Box } from "@mui/material";
+import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import {
   getCategories,
   getBrands,
   getProducts,
   getVehicleFilterOptions,
   getVehicleBrandImages,
-  getVehiclesByBrand,
 } from "@/lib/serverApi";
 import { FilterSidebar } from "@/app/_components/shop/products/FilterSidebar";
 import { MobileFilterButton } from "@/app/_components/shop/products/MobileFilterButton";
 import { SortAndPerPageControls } from "@/app/_components/shop/products/SortAndPerPageControls";
 import { ActiveFilterChips } from "@/app/_components/shop/products/ActiveFilterChips";
 import { ProductGridWithLoadMore } from "@/app/_components/shop/products/ProductGridWithLoadMore";
-import { VehicleModelGallery } from "@/app/_components/shop/products/VehicleModelGallery";
-import Container from "@mui/material/Container";
-import Box from "@mui/material/Box";
-import Avatar from "@mui/material/Avatar";
-import Typography from "@mui/material/Typography";
 
 /*
 |--------------------------------------------------------------------------
-| مسیر فایل: src/app/(shop)/vehicle/[brand]/page.tsx
+| مسیر فایل: src/app/(shop)/special-offers/page.tsx
 |--------------------------------------------------------------------------
-| «خرید بر اساس خودرو» - دقیقاً هم‌ساختار با /category و /brand، فقط
-| قفل‌شده روی یه برند خودرو (نه برند محصول). چون vehicle_brand یه رشته‌ی
-| ساده‌ست (نه یه موجودیت با id)، پارامتر مسیر خودِ اسم برند (URL-encode
-| شده) هست، نه یه slug جدا.
-|
-| فیلتر «مدل خودرو» همچنان آزاده - یعنی مشتری می‌تونه بعد از ورود به
-| صفحه‌ی «پژو»، مدل خاصی (مثلاً ۲۰۶) رو هم اضافه فیلتر کنه.
-|
-| ⚠️ بالای فیلتر، یه گالری از مدل‌های همین برند (با عکس هرکدوم) نشون
-| داده می‌شه («لوازم یدکی ۲۰۶»، «لوازم یدکی پارس»...).
+| «تخفیف‌دارها» - بدون قید به هیچ دسته/برند/خودرو خاصی (برخلاف
+| /category, /brand, /vehicle که هرکدوم یه بُعد رو قفل می‌کنن). فقط
+| is_discounted همیشه true ـه (fixedIsDiscounted روی ProductGridWithLoadMore).
+| بقیه‌ی فیلترها (دسته‌بندی، برند، خودرو، قیمت) کاملاً آزادن.
 */
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ brand: string }>;
-}) {
-  const { brand } = await params;
-  const brandName = decodeURIComponent(brand);
-  return { title: `قطعات ${brandName} | یدکی` };
-}
+export const metadata = {
+  title: "تخفیف‌دارها | یدکی",
+};
 
 function buildQueryString(sp: Record<string, string | undefined>) {
   const params = new URLSearchParams();
@@ -57,80 +40,59 @@ function buildQueryString(sp: Record<string, string | undefined>) {
   return params.toString();
 }
 
-export default async function VehicleBrandPage({
-  params,
+export default async function SpecialOffersPage({
   searchParams,
 }: {
-  params: Promise<{ brand: string }>;
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const { brand } = await params;
   const sp = await searchParams;
-  const vehicleBrandName = decodeURIComponent(brand);
 
-  const [categories, brands, vehicleOptions, vehicleBrandImages, brandModels] =
+  const [categories, brands, vehicleOptions, vehicleBrandImages] =
     await Promise.all([
-      getCategories({ vehicleBrand: vehicleBrandName }),
-      getBrands(undefined, { vehicleBrand: vehicleBrandName }),
-      getVehicleFilterOptions(undefined, undefined, vehicleBrandName),
+      getCategories(),
+      getBrands(),
+      getVehicleFilterOptions(),
       getVehicleBrandImages(),
-      getVehiclesByBrand(vehicleBrandName),
     ]);
-  const brandImage = vehicleBrandImages.find(
-    (v) => v.name === vehicleBrandName
-  );
-
-  // ⚠️ برخلاف قبل، اینجا notFound() صدا نمی‌زنیم حتی اگه فعلاً هیچ
-  // محصولی با این برند خودرو نباشه - دقیقاً مثل /category و /brand،
-  // نبود محصول یعنی نتیجه‌ی خالی (که خودِ ProductGridWithLoadMore
-  // نمایشش می‌ده)، نه یعنی این صفحه اصلاً وجود نداره.
 
   const queryString = buildQueryString({
     ...Object.fromEntries(
       Object.entries(sp).filter(([key]) => key.startsWith("attr_"))
     ),
-    vehicle_brand: vehicleBrandName,
-    vehicle_model: sp.vehicle_model,
     category_id: sp.category_id,
     brand_id: sp.brand_id,
+    vehicle_brand: sp.vehicle_brand,
+    vehicle_model: sp.vehicle_model,
     stock_status: sp.stock_status,
     min_rating: sp.min_rating,
     min_price: sp.min_price,
     max_price: sp.max_price,
     is_available: sp.is_available,
-    is_discounted: sp.is_discounted,
+    is_discounted: "1", // ⚠️ همیشه قفل - این خودِ نکته‌ی این صفحه‌ست
     sort: sp.sort,
     per_page: sp.per_page || "12",
     page: "1",
   });
 
   const products = await getProducts(queryString, 10);
-  const basePath = `/vehicle/${brand}`;
+  const basePath = "/special-offers";
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
-        <Avatar
-          variant="rounded"
-          src={brandImage?.thumbnail_url || undefined}
-          sx={{ width: 40, height: 40, bgcolor: "background.default" }}
-        >
-          <DirectionsCar fontSize="small" />
-        </Avatar>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+        <LocalOfferIcon sx={{ color: "accent.main" }} />
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          قطعات مناسب {vehicleBrandName}
-          {sp.vehicle_model && ` ${sp.vehicle_model}`}
+          تخفیف‌دارها
         </Typography>
       </Box>
 
-      <VehicleModelGallery brand={vehicleBrandName} models={brandModels} />
-
       <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
-        {/* برند خودرو اینجا مخفیه (قفل‌شده روی همین برند)؛ مدل خودرو همچنان آزاده */}
         <FilterSidebar
           categories={categories}
           brands={brands}
+          vehicleBrandOptions={vehicleOptions.brands}
           vehicleModelOptions={vehicleOptions.models}
+          vehicleBrandImages={vehicleBrandImages}
           showCategoryFilter={true}
           basePath={basePath}
         />
@@ -156,7 +118,9 @@ export default async function VehicleBrandPage({
               <MobileFilterButton
                 categories={categories}
                 brands={brands}
+                vehicleBrandOptions={vehicleOptions.brands}
                 vehicleModelOptions={vehicleOptions.models}
+                vehicleBrandImages={vehicleBrandImages}
                 showCategoryFilter={true}
                 basePath={basePath}
               />
@@ -177,7 +141,7 @@ export default async function VehicleBrandPage({
             initialProducts={products.data}
             initialTotal={products.total}
             initialLastPage={products.lastPage}
-            fixedVehicleBrand={vehicleBrandName}
+            fixedIsDiscounted={true}
             basePath={basePath}
             showCategoryFilter={true}
           />

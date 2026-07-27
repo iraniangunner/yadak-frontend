@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Storefront from "@mui/icons-material/Storefront";
 import {
   getCategories,
   getBrands,
@@ -15,6 +16,7 @@ import { ProductGridWithLoadMore } from "@/app/_components/shop/products/Product
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import Avatar from "@mui/material/Avatar";
 
 /*
 |--------------------------------------------------------------------------
@@ -79,7 +81,7 @@ export default async function BrandPage({
 
   const queryString = buildQueryString({
     ...Object.fromEntries(
-      Object.entries(sp).filter(([key]) => key.startsWith("attr_")),
+      Object.entries(sp).filter(([key]) => key.startsWith("attr_"))
     ),
     brand_id: String(brand.id),
     category_id: sp.category_id,
@@ -101,9 +103,18 @@ export default async function BrandPage({
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
-        محصولات برند {brand.name}
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+        <Avatar
+          variant="rounded"
+          src={brand.thumbnail_url || undefined}
+          sx={{ width: 40, height: 40, bgcolor: "background.default" }}
+        >
+          <Storefront fontSize="small" />
+        </Avatar>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          محصولات برند {brand.name}
+        </Typography>
+      </Box>
 
       <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
         {/* فیلتر برند اینجا مخفیه (قفل‌شده روی همین برند)؛ دسته‌بندی آزاده */}

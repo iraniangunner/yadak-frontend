@@ -112,12 +112,6 @@ const sections: { title: string; items: NavItem[] }[] = [
         roles: ["admin", "warehouse"],
       },
       {
-        href: "/admin/vehicle-brands",
-        label: "برندهای خودرو",
-        icon: <DirectionsCar fontSize="small" />,
-        roles: ["admin", "warehouse"],
-      },
-      {
         href: "/admin/vehicles",
         label: "خودروها",
         icon: <DirectionsCar fontSize="small" />,

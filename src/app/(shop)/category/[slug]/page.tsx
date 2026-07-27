@@ -8,12 +8,14 @@ import {
   getFilterableAttributes,
   findCategoryBySlug,
   getCategoryAndDescendantIds,
+  getDirectChildren,
 } from "@/lib/serverApi";
 import { FilterSidebar } from "@/app/_components/shop/products/FilterSidebar";
 import { MobileFilterButton } from "@/app/_components/shop/products/MobileFilterButton";
 import { SortAndPerPageControls } from "@/app/_components/shop/products/SortAndPerPageControls";
 import { ActiveFilterChips } from "@/app/_components/shop/products/ActiveFilterChips";
 import { ProductGridWithLoadMore } from "@/app/_components/shop/products/ProductGridWithLoadMore";
+import { SubcategoryGallery } from "@/app/_components/shop/products/SubcategoryGallery";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
@@ -25,6 +27,9 @@ import Box from "@mui/material/Box";
 | صفحه‌ی مخصوص یه دسته‌بندی - فیلتر «دسته‌بندی» نشون داده نمی‌شه (خودِ
 | صفحه قفل‌شده روی همین یه دسته‌ست). جعبه‌ی جستجو دیگه اینجا نیست - فقط
 | توی هدر (طبق تصمیم اخیر).
+|
+| ⚠️ اگه این دسته زیرمجموعه داشته باشه (مثلاً «قطعات موتور»)، بالای
+| فیلتر یه گالری از زیردسته‌ها (با عکس) نشون داده می‌شه.
 */
 
 export async function generateMetadata({
@@ -76,6 +81,7 @@ export default async function CategoryPage({
   }
 
   const categoryIds = getCategoryAndDescendantIds(categories, category.id);
+  const directChildren = getDirectChildren(categories, category.id);
   const [brands, vehicleOptions, filterableAttributes, vehicleBrandImages] =
     await Promise.all([
       getBrands(categoryIds),
@@ -86,7 +92,7 @@ export default async function CategoryPage({
 
   const queryString = buildQueryString({
     ...Object.fromEntries(
-      Object.entries(sp).filter(([key]) => key.startsWith("attr_")),
+      Object.entries(sp).filter(([key]) => key.startsWith("attr_"))
     ),
     category_id: categoryIds.join(","),
     vehicle_brand: sp.vehicle_brand,
@@ -111,6 +117,8 @@ export default async function CategoryPage({
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
         {category.name}
       </Typography>
+
+      <SubcategoryGallery children={directChildren} />
 
       <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
         <FilterSidebar

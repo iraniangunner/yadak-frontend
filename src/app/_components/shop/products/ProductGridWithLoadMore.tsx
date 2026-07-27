@@ -28,6 +28,7 @@ export function ProductGridWithLoadMore({
   fixedCategoryIds,
   fixedBrandId,
   fixedVehicleBrand,
+  fixedIsDiscounted,
   basePath,
   showCategoryFilter = true,
 }: {
@@ -37,6 +38,7 @@ export function ProductGridWithLoadMore({
   fixedCategoryIds?: number[];
   fixedBrandId?: number;
   fixedVehicleBrand?: string;
+  fixedIsDiscounted?: boolean;
   basePath?: string;
   showCategoryFilter?: boolean;
 }) {
@@ -87,7 +89,11 @@ export function ProductGridWithLoadMore({
         min_price: filters.min_price ? Number(filters.min_price) : undefined,
         max_price: filters.max_price ? Number(filters.max_price) : undefined,
         is_available: filters.is_available ? 1 : undefined,
-        is_discounted: filters.is_discounted ? 1 : undefined,
+        is_discounted: fixedIsDiscounted
+          ? 1
+          : filters.is_discounted
+          ? 1
+          : undefined,
         attributes: Object.keys(filters.attributes).length
           ? filters.attributes
           : undefined,

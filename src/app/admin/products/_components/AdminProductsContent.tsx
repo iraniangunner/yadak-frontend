@@ -45,6 +45,7 @@ import {
   brandsAPI,
   categoriesAPI,
   vehiclesAPI,
+  vehicleBrandsAPI,
   productsAPI,
 } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
@@ -140,6 +141,8 @@ export function AdminProductsContent() {
   // منبع گزینه‌های دراپ‌داون کاسکید برند→مدل→تیپ خودرو (از جدول Vehicle،
   // ولی فقط برای گزینه‌ها - مقدار انتخاب‌شده مستقیم روی خودِ محصول ذخیره می‌شه)
   const [allVehicleRefs, setAllVehicleRefs] = useState<VehicleRef[]>([]);
+  // تنها منبع واقعی اسم برند خودرو - از جدول vehicle_brands، نه از vehicles
+  const [vehicleBrandNames, setVehicleBrandNames] = useState<string[]>([]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tab, setTab] = useState(0);
@@ -166,9 +169,7 @@ export function AdminProductsContent() {
   });
 
   // گزینه‌های کاسکید: برند خودرو (یکتا) → مدل‌های همون برند → تیپ‌های همون برند+مدل
-  const vehicleBrandChoices = Array.from(
-    new Set(allVehicleRefs.map((v) => v.brand))
-  ).sort();
+  const vehicleBrandChoices = vehicleBrandNames;
   const vehicleModelChoices = Array.from(
     new Set(
       allVehicleRefs
@@ -223,6 +224,15 @@ export function AdminProductsContent() {
     vehiclesAPI
       .list({ per_page: 300 })
       .then((res) => setAllVehicleRefs(res.data.data));
+    // ⚠️ گزینه‌های «برند خودرو» رو دیگه از جدول vehicles نمی‌گیریم (که
+    // ممکنه ناهماهنگ باشه)، مستقیم از vehicle_brands - یعنی تنها منبع
+    // واحد برای اسم برند خودرو، همینه. دیگه هیچ فرمی نمی‌تونه برند
+    // جدید/ناهماهنگ معرفی کنه.
+    vehicleBrandsAPI
+      .list({ with_inactive: false })
+      .then((res) =>
+        setVehicleBrandNames(res.data.data.map((b: { name: string }) => b.name))
+      );
   }, []);
 
   const loadProductDetails = (id: number) => {
