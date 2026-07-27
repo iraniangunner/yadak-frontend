@@ -1,4 +1,3 @@
-import { Container, Typography, Box } from "@mui/material";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import {
   getCategories,
@@ -12,6 +11,9 @@ import { MobileFilterButton } from "@/app/_components/shop/products/MobileFilter
 import { SortAndPerPageControls } from "@/app/_components/shop/products/SortAndPerPageControls";
 import { ActiveFilterChips } from "@/app/_components/shop/products/ActiveFilterChips";
 import { ProductGridWithLoadMore } from "@/app/_components/shop/products/ProductGridWithLoadMore";
+import Container from "@mui/material/Container";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 
 /*
 |--------------------------------------------------------------------------

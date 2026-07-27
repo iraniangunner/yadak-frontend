@@ -9,6 +9,7 @@ import {
   FormControl,
   InputLabel,
   Button,
+  CircularProgress,
 } from "@mui/material";
 import { ServerVehicle } from "@/lib/serverApi";
 
@@ -16,10 +17,9 @@ import { ServerVehicle } from "@/lib/serverApi";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/home/VehicleFinderWidget.tsx
 |--------------------------------------------------------------------------
-| ⚠️ هماهنگ‌شده با معماری جدید: جدول Vehicle فقط منبع گزینه‌های
-| دراپ‌داونه (برند/مدل واقعاً روی محصولات ثبت شدن، نه رابطه). با انتخاب
-| برند+مدل، مستقیم می‌ره به /vehicle/[برند]?vehicle_model=مدل - همون
-| صفحه‌ای که بخش کارتی «خرید بر اساس خودرو» هم بهش وصله.
+| ⚠️ توی موبایل، دکمه‌ی «جستجوی قطعات» به‌صورت تمام‌عرض و بزرگ زیرِ هردو
+| دراپ‌داون میاد (نه کنارشون) - چون فضای کافی برای هم‌ردیف بودن نیست.
+| موقع کلیک هم یه لودینگ نشون داده می‌شه تا ناوبری کامل بشه.
 */
 
 export function VehicleFinderWidget({
@@ -30,6 +30,7 @@ export function VehicleFinderWidget({
   const router = useRouter();
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   const brands = useMemo(
     () => Array.from(new Set(vehicles.map((v) => v.brand))),
@@ -44,7 +45,9 @@ export function VehicleFinderWidget({
   );
 
   const handleSearch = () => {
-    if (!brand) return;
+    if (!brand || isSearching) return;
+    setIsSearching(true);
+
     if (model) {
       router.push(`/vehicle/${encodeURIComponent(`لوازم-یدکی-${model}`)}`);
     } else {
@@ -65,7 +68,11 @@ export function VehicleFinderWidget({
         boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
       }}
     >
-      <FormControl size="small" sx={{ flex: "1 1 180px" }}>
+      <FormControl
+        size="small"
+        sx={{ flex: { xs: "1 1 100%", sm: "1 1 180px" } }}
+        disabled={isSearching}
+      >
         <InputLabel>برند خودرو</InputLabel>
         <Select
           label="برند خودرو"
@@ -83,7 +90,11 @@ export function VehicleFinderWidget({
         </Select>
       </FormControl>
 
-      <FormControl size="small" sx={{ flex: "1 1 180px" }} disabled={!brand}>
+      <FormControl
+        size="small"
+        sx={{ flex: { xs: "1 1 100%", sm: "1 1 180px" } }}
+        disabled={!brand || isSearching}
+      >
         <InputLabel>مدل (اختیاری)</InputLabel>
         <Select
           label="مدل (اختیاری)"
@@ -104,10 +115,15 @@ export function VehicleFinderWidget({
         disableElevation
         size="large"
         onClick={handleSearch}
-        disabled={!brand}
-        sx={{ flex: "0 0 auto", px: 4 }}
+        disabled={!brand || isSearching}
+        startIcon={
+          isSearching ? (
+            <CircularProgress size={18} color="inherit" />
+          ) : undefined
+        }
+        sx={{ flex: { xs: "1 1 100%", sm: "0 0 auto" }, px: 4 }}
       >
-        جستجوی قطعات
+        {isSearching ? "در حال انتقال..." : "جستجوی قطعات"}
       </Button>
     </Box>
   );

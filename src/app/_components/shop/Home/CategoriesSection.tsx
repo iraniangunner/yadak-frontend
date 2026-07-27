@@ -9,16 +9,27 @@ import type { getCategories } from "@/lib/serverApi";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/Home/CategoriesSection.tsx
 |--------------------------------------------------------------------------
-| «خرید بر اساس دسته‌بندی» - آیکون گرد بالا، اسم پایین (مطابق سایت
-| مرجع). بدون کاروسل - گرید ساده‌ی چندردیفی، چون توی عکس مرجع فلش
-| قبلی/بعدی نداشت (برخلاف برند/خودرو که کاروسل بودن).
+| «خرید بر اساس دسته‌بندی» - آیکون گرد بالا، اسم پایین. برخلاف قبل که
+| فقط دسته‌های سطح بالا رو نشون می‌داد، الان یه ترکیب تصادفی از هر دو
+| سطح (والد + زیردسته) - نه همه‌شون، فقط یه تعداد معقول.
 */
 type Category = Awaited<ReturnType<typeof getCategories>>[number];
 
-export function CategoriesSection({ categories }: { categories: Category[] }) {
-  const topLevel = categories.filter((c) => !c.parent_id).slice(0, 20);
+// Fisher-Yates - بدون تغییر آرایه‌ی اصلی (immutable)
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
-  if (topLevel.length === 0) return null;
+export function CategoriesSection({ categories }: { categories: Category[] }) {
+  // هم والدها هم زیردسته‌ها - همه با هم قاطی، فقط یه انتخاب تصادفی از کل
+  const selected = shuffle(categories).slice(0, 24);
+
+  if (selected.length === 0) return null;
 
   return (
     <Container maxWidth="lg" sx={{ pb: 6 }}>
@@ -36,7 +47,7 @@ export function CategoriesSection({ categories }: { categories: Category[] }) {
           justifyContent: "center",
         }}
       >
-        {topLevel.map((category) => (
+        {selected.map((category) => (
           <Box
             key={category.id}
             component={NextLink}

@@ -155,7 +155,7 @@ function DesktopCategoriesMegaMenu({
   }, [pathname]);
 
   const [activeRootId, setActiveRootId] = useState<number | null>(
-    roots[0]?.id ?? null,
+    roots[0]?.id ?? null
   );
 
   const handleEnter = () => {
@@ -337,7 +337,7 @@ function DesktopCategoriesMegaMenu({
               </Box>
             </Box>
           </Box>,
-          document.body,
+          document.body
         )}
     </Box>
   );
@@ -433,8 +433,7 @@ export function SiteHeader({
                   headerRef={headerRef}
                 />
                 {[
-                  { href: "/", label: "فروشگاه" },
-                  { href: "/articles", label: "بلاگ" },
+                  { href: "/blog", label: "بلاگ" },
                   { href: "/about", label: "درباره‌ی ما" },
                   { href: "/contact", label: "تماس با ما" },
                 ].map((link) => (
