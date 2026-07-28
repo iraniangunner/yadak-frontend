@@ -9,6 +9,7 @@ import {
   getVehicleBrandImages,
   getVehiclesByBrand,
   getVehicleByModel,
+  getCategoryAndDescendantIds,
 } from "@/lib/serverApi";
 import { FilterSidebar } from "@/app/_components/shop/products/FilterSidebar";
 import { MobileFilterButton } from "@/app/_components/shop/products/MobileFilterButton";
@@ -26,33 +27,25 @@ import Breadcrumbs from "@mui/material/Breadcrumbs";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/(shop)/vehicle/[slug]/page.tsx
 |--------------------------------------------------------------------------
-| ⚠️ این یه مسیر واحده که هم برند خودرو هم مدل رو پوشش می‌ده - چون
-| Next.js اجازه نمی‌ده هم‌زمان /vehicle/[brand] و /vehicle/[model] جدا
-| تعریف بشن (تناقض routing).
+| ⚠️ یه مسیر واحد که ۳ حالت رو پوشش می‌ده - چون Next.js اجازه نمی‌ده
+| چند دینامیک-سگمنت متفاوت (برند/مدل/دسته+مدل) هم‌زمان جدا تعریف بشن.
 |
-| تشخیص نوع اسلاگ:
-|   - اگه با پیشوند "لوازم-یدکی-" شروع بشه → صفحه‌ی مستقل یه مدل خاص
-|     (مثلاً /vehicle/لوازم-یدکی-تیبا) - برند خودش از روی دیتابیس
-|     پیدا می‌شه، توی آدرس نمیاد.
-|   - در غیر این صورت → صفحه‌ی کل یه برند (مثلاً /vehicle/سایپا)
+| تشخیص نوع اسلاگ (به همین ترتیب چک می‌شه):
+|   ۱. پیشوند "لوازم-یدکی-" → صفحه‌ی مستقل یه مدل خاص (بدون قید دسته)
+|      مثلاً /vehicle/لوازم-یدکی-تیبا
+|   ۲. اگه با "{اسلاگ یه دسته‌ی موجود}-" شروع بشه → صفحه‌ی دسته+مدل
+|      مثلاً /vehicle/لنت-ترمز-پراید (دسته «لنت ترمز» + مدل «پراید»)
+|   ۳. در غیر این صورت → صفحه‌ی کل یه برند خودرو، مثلاً /vehicle/سایپا
 */
 
 const MODEL_SLUG_PREFIX = "لوازم-یدکی-";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-  const decoded = decodeURIComponent(slug);
+// فقط برای این برندها اسم برند هم توی عنوان نشون داده می‌شه (بقیه‌ی
+// برندها فقط با اسم مدل تنها).
+const BRANDS_WITH_LABEL = ["پژو"];
 
-  if (decoded.startsWith(MODEL_SLUG_PREFIX)) {
-    const modelName = decoded.slice(MODEL_SLUG_PREFIX.length);
-    return { title: `لوازم یدکی ${modelName} | یدکی` };
-  }
-
-  return { title: `قطعات ${decoded} | یدکی` };
+function vehicleTitlePart(brand: string, model: string): string {
+  return BRANDS_WITH_LABEL.includes(brand) ? `${brand} ${model}` : model;
 }
 
 function buildQueryString(sp: Record<string, string | undefined>) {
@@ -68,6 +61,40 @@ function buildQueryString(sp: Record<string, string | undefined>) {
   return params.toString();
 }
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const decoded = decodeURIComponent(slug);
+
+  if (decoded.startsWith(MODEL_SLUG_PREFIX)) {
+    const modelName = decoded.slice(MODEL_SLUG_PREFIX.length);
+    const vehicle = await getVehicleByModel(modelName);
+    const titlePart = vehicle
+      ? vehicleTitlePart(vehicle.brand, modelName)
+      : modelName;
+    return { title: `لوازم یدکی ${titlePart} | یدکی` };
+  }
+
+  const categories = await getCategories();
+  const matchedCategory = categories
+    .filter((c) => decoded.startsWith(`${c.slug}-`))
+    .sort((a, b) => b.slug.length - a.slug.length)[0];
+
+  if (matchedCategory) {
+    const modelName = decoded.slice(matchedCategory.slug.length + 1);
+    const vehicle = await getVehicleByModel(modelName);
+    const titlePart = vehicle
+      ? vehicleTitlePart(vehicle.brand, modelName)
+      : modelName;
+    return { title: `${matchedCategory.name} ${titlePart} | یدکی` };
+  }
+
+  return { title: `قطعات ${decoded} | یدکی` };
+}
+
 export default async function VehiclePage({
   params,
   searchParams,
@@ -80,9 +107,16 @@ export default async function VehiclePage({
   const decoded = decodeURIComponent(slug);
   const isModelPage = decoded.startsWith(MODEL_SLUG_PREFIX);
 
+  // برای تشخیص حالت ۲ (دسته+مدل)، همه‌ی دسته‌ها رو زودتر می‌گیریم
+  const allCategories = await getCategories();
+  const matchedCategory = !isModelPage
+    ? allCategories
+        .filter((c) => decoded.startsWith(`${c.slug}-`))
+        .sort((a, b) => b.slug.length - a.slug.length)[0]
+    : undefined;
+
   // ------------------------------------------------------------------
-  // حالت ۱: صفحه‌ی یه مدل خاص («لوازم یدکی تیبا») - برند خودش از
-  // دیتابیس پیدا می‌شه، اسکوپ روی برند+مدل هردو.
+  // حالت ۱: صفحه‌ی یه مدل خاص («لوازم یدکی تیبا») - بدون قید دسته.
   // ------------------------------------------------------------------
   if (isModelPage) {
     const modelName = decoded.slice(MODEL_SLUG_PREFIX.length);
@@ -163,7 +197,7 @@ export default async function VehiclePage({
             <DirectionsCar fontSize="small" />
           </Avatar>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            لوازم یدکی {modelName}
+            لوازم یدکی {vehicleTitlePart(vehicleBrandName, modelName)}
           </Typography>
         </Box>
 
@@ -227,7 +261,156 @@ export default async function VehiclePage({
   }
 
   // ------------------------------------------------------------------
-  // حالت ۲: صفحه‌ی کل یه برند خودرو («سایپا») - همون رفتار قبلی.
+  // حالت ۲: صفحه‌ی «دسته + مدل» («لنت ترمز پراید») - قفل‌شده روی همون
+  // یه دسته‌ی مشخص + همون مدل خاص.
+  // ------------------------------------------------------------------
+  if (matchedCategory) {
+    const modelName = decoded.slice(matchedCategory.slug.length + 1);
+    const vehicle = await getVehicleByModel(modelName);
+
+    if (!vehicle) {
+      notFound();
+    }
+
+    const vehicleBrandName = vehicle.brand;
+    const categoryIds = getCategoryAndDescendantIds(
+      allCategories,
+      matchedCategory.id
+    );
+
+    const [brands, vehicleBrandImages] = await Promise.all([
+      getBrands(categoryIds, {
+        vehicleBrand: vehicleBrandName,
+        vehicleModel: modelName,
+      }),
+      getVehicleBrandImages(),
+    ]);
+    const brandImage = vehicleBrandImages.find(
+      (v) => v.name === vehicleBrandName
+    );
+
+    const queryString = buildQueryString({
+      ...Object.fromEntries(
+        Object.entries(sp).filter(([key]) => key.startsWith("attr_"))
+      ),
+      category_id: categoryIds.join(","),
+      vehicle_brand: vehicleBrandName,
+      vehicle_model: modelName,
+      brand_id: sp.brand_id,
+      stock_status: sp.stock_status,
+      min_rating: sp.min_rating,
+      min_price: sp.min_price,
+      max_price: sp.max_price,
+      is_available: sp.is_available,
+      is_discounted: sp.is_discounted,
+      sort: sp.sort,
+      per_page: sp.per_page || "12",
+      page: "1",
+    });
+
+    const products = await getProducts(queryString, 10);
+    const basePath = `/vehicle/${slug}`;
+
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Breadcrumbs
+          separator={<NavigateBefore fontSize="small" />}
+          sx={{ mb: 2 }}
+        >
+          <Box
+            component={NextLink}
+            href="/"
+            sx={{ color: "text.secondary", textDecoration: "none" }}
+          >
+            خانه
+          </Box>
+          <Box
+            component={NextLink}
+            href={`/category/${matchedCategory.slug}`}
+            sx={{ color: "text.secondary", textDecoration: "none" }}
+          >
+            {matchedCategory.name}
+          </Box>
+          <Typography color="text.primary">{modelName}</Typography>
+        </Breadcrumbs>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+          <Avatar
+            variant="rounded"
+            src={brandImage?.thumbnail_url || undefined}
+            sx={{ width: 40, height: 40, bgcolor: "background.default" }}
+          >
+            <DirectionsCar fontSize="small" />
+          </Avatar>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            {matchedCategory.name}{" "}
+            {vehicleTitlePart(vehicleBrandName, modelName)}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
+          {/* دسته‌بندی و برند/مدل خودرو هرسه قفل و مخفی‌ان - فقط بقیه‌ی فیلترها آزادن */}
+          <FilterSidebar
+            categories={allCategories}
+            brands={brands}
+            showCategoryFilter={false}
+            basePath={basePath}
+          />
+
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box
+              sx={{
+                bgcolor: "background.paper",
+                borderRadius: 3,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                p: 1.5,
+                mb: 2,
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 1.5,
+                }}
+              >
+                <MobileFilterButton
+                  categories={allCategories}
+                  brands={brands}
+                  showCategoryFilter={false}
+                  basePath={basePath}
+                />
+                <Box sx={{ ml: "auto" }}>
+                  <SortAndPerPageControls basePath={basePath} />
+                </Box>
+              </Box>
+              <ActiveFilterChips
+                categories={allCategories}
+                brands={brands}
+                showCategoryFilter={false}
+                basePath={basePath}
+              />
+            </Box>
+
+            <ProductGridWithLoadMore
+              initialProducts={products.data}
+              initialTotal={products.total}
+              initialLastPage={products.lastPage}
+              fixedCategoryIds={categoryIds}
+              fixedVehicleBrand={vehicleBrandName}
+              fixedVehicleModel={modelName}
+              basePath={basePath}
+              showCategoryFilter={false}
+            />
+          </Box>
+        </Box>
+      </Container>
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // حالت ۳: صفحه‌ی کل یه برند خودرو («سایپا») - رفتار قبلی.
   // ------------------------------------------------------------------
   const vehicleBrandName = decoded;
 

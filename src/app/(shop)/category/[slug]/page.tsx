@@ -11,6 +11,7 @@ import {
   findCategoryBySlug,
   getCategoryAndDescendantIds,
   getDirectChildren,
+  getVehicles,
 } from "@/lib/serverApi";
 import { FilterSidebar } from "@/app/_components/shop/products/FilterSidebar";
 import { MobileFilterButton } from "@/app/_components/shop/products/MobileFilterButton";
@@ -18,6 +19,7 @@ import { SortAndPerPageControls } from "@/app/_components/shop/products/SortAndP
 import { ActiveFilterChips } from "@/app/_components/shop/products/ActiveFilterChips";
 import { ProductGridWithLoadMore } from "@/app/_components/shop/products/ProductGridWithLoadMore";
 import { SubcategoryGallery } from "@/app/_components/shop/products/SubcategoryGallery";
+import { CategoryVehicleGallery } from "@/app/_components/shop/products/CategoryVehicleGallery";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
@@ -88,13 +90,19 @@ export default async function CategoryPage({
   const parentCategory = category.parent_id
     ? categories.find((c) => c.id === category.parent_id)
     : null;
-  const [brands, vehicleOptions, filterableAttributes, vehicleBrandImages] =
-    await Promise.all([
-      getBrands(categoryIds),
-      getVehicleFilterOptions(categoryIds),
-      getFilterableAttributes(categoryIds),
-      getVehicleBrandImages(),
-    ]);
+  const [
+    brands,
+    vehicleOptions,
+    filterableAttributes,
+    vehicleBrandImages,
+    categoryVehicles,
+  ] = await Promise.all([
+    getBrands(categoryIds),
+    getVehicleFilterOptions(categoryIds),
+    getFilterableAttributes(categoryIds),
+    getVehicleBrandImages(),
+    getVehicles(categoryIds),
+  ]);
 
   const queryString = buildQueryString({
     ...Object.fromEntries(
@@ -147,7 +155,15 @@ export default async function CategoryPage({
         {category.name}
       </Typography>
 
-      <SubcategoryGallery children={directChildren} />
+      {directChildren.length > 0 ? (
+        <SubcategoryGallery children={directChildren} />
+      ) : (
+        <CategoryVehicleGallery
+          vehicles={categoryVehicles}
+          categoryName={category.name}
+          categorySlug={category.slug}
+        />
+      )}
 
       <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
         <FilterSidebar
