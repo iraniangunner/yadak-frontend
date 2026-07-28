@@ -37,7 +37,7 @@ const BANNERS = [
     image: "/banners/filter.webp",
     line1: "انواع فیلتر هوای",
     line2: "موتور خودرو",
-    href: "/category/فیلتر-هوای-موتور",
+    href: "/category/فیلتر-هوا-موتور",
   },
 ];
 

@@ -21,7 +21,7 @@ type Vehicle = Awaited<ReturnType<typeof getVehicles>>[number];
 // اسم مدل به‌تنهایی ممکنه گمراه‌کننده باشه، مثلاً «۲۰۶» بدون «پژو»).
 // بقیه‌ی برندها (سایپا، ایران‌خودرو، هیوندای، سیتروئن و...) فقط با
 // اسم مدل تنها نمایش داده می‌شن.
-const BRANDS_WITH_LABEL = ["پژو"];
+const BRANDS_WITH_LABEL = ["پژو", "جک"];
 
 export function CategoryVehicleGallery({
   vehicles,

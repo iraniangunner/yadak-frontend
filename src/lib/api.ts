@@ -136,6 +136,7 @@ export const categoriesAPI = {
     tree?: boolean;
     with_inactive?: boolean;
     per_page?: number;
+    page?: number;
   }) => api.get("/categories", { params }),
 };
 

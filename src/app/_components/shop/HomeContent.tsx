@@ -46,18 +46,18 @@ export async function HomeContent() {
     vehicleBrands,
   ] = await Promise.all([
     getCategories(),
-    getBrands(),
+    getBrands(undefined, undefined, true),
     getBanners(),
     getProducts("per_page=20", 60),
     getProducts("per_page=10&sort=best_selling", 60),
     getArticles(6),
     getVehicles(),
-    getVehicleBrandImages(),
+    getVehicleBrandImages(true),
   ]);
 
   const discountedProducts = discounted.data
     .filter((p) => p.compare_price && p.compare_price > p.final_price)
-    .slice(0, 4);
+    .slice(0, 3);
 
   // دسته‌ی مشخص‌شده رو از روی اسم پیدا کن (اگه پیدا نشد، بخش نمایش داده نمی‌شه)
   const featuredCategory = categories.find(
@@ -89,10 +89,6 @@ export async function HomeContent() {
       <BrandsSection brands={brands} />
       <VehicleBrandsSection vehicleBrands={vehicleBrands} />
       <IntroText />
-
-      {/* <FeaturedBanner banners={banners} /> */}
-      {/* <BestSellers products={bestSellers.data} /> */}
-
       {featuredCategory && (
         <NewestProductsSection
           overline="تازه‌ها"

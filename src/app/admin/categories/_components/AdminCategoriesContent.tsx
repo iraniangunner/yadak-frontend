@@ -42,6 +42,16 @@ import { adminAPI, categoriesAPI } from "@/lib/api";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/admin/_components/AdminCategoriesContent.tsx
 |--------------------------------------------------------------------------
+| ⚠️ قبلاً همیشه فقط per_page=100 رو یه‌بار می‌گرفت و صفحه‌بندی فقط روی
+| همون ۱۰۰ تا (سمت کلاینت) کار می‌کرد - یعنی اگه بیشتر از ۱۰۰ تا دسته
+| داشتید، بقیه‌شون اصلاً fetch نمی‌شدن و هیچ‌جا دیده نمی‌شدن. الان
+| صفحه‌بندی واقعاً سمت سرور انجام می‌شه (page/per_page واقعی به بک‌اند)،
+| دقیقاً هم‌الگو با AdminBrandsContent.
+|
+| ⚠️ نکته‌ی مهم: برای دراپ‌داون «زیرمجموعه‌ی» (parentOptions)، باید همه‌ی
+| دسته‌ها رو (نه فقط صفحه‌ی فعلی) در دسترس داشته باشیم - برای همین یه
+| fetch جدا و کامل (allCategoriesForParentSelect) فقط برای همون دراپ‌داون
+| نگه می‌داریم.
 */
 
 type Category = {
@@ -62,8 +72,13 @@ const emptyForm = {
 
 export function AdminCategoriesContent() {
   const [categories, setCategories] = useState<Category[] | null>(null);
+  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
+
+  // منبع کامل و مستقل از صفحه‌بندی، فقط برای پر کردن دراپ‌داون «زیرمجموعه‌ی»
+  const [allCategoriesForParentSelect, setAllCategoriesForParentSelect] =
+    useState<Category[]>([]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -75,14 +90,30 @@ export function AdminCategoriesContent() {
   const loadCategories = () => {
     setCategories(null);
     categoriesAPI
-      .list({ with_inactive: true, per_page: 100 } as any)
+      .list({
+        with_inactive: true,
+        page: page + 1,
+        per_page: rowsPerPage,
+      } as any)
       .then((res) => {
         setCategories(res.data.data);
+        setTotal(res.data.total);
       });
+  };
+
+  const loadAllCategoriesForParentSelect = () => {
+    categoriesAPI
+      .list({ with_inactive: true, per_page: 500 } as any)
+      .then((res) => setAllCategoriesForParentSelect(res.data.data));
   };
 
   useEffect(() => {
     loadCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, rowsPerPage]);
+
+  useEffect(() => {
+    loadAllCategoriesForParentSelect();
   }, []);
 
   const openCreateDialog = () => {
@@ -125,11 +156,12 @@ export function AdminCategoriesContent() {
       }
       setDialogOpen(false);
       loadCategories();
+      loadAllCategoriesForParentSelect();
     } catch (err: any) {
       setErrors(
         err?.response?.data?.errors || {
           general: ["خطا در ذخیره‌ی دسته‌بندی."],
-        },
+        }
       );
     } finally {
       setIsSaving(false);
@@ -140,15 +172,12 @@ export function AdminCategoriesContent() {
     if (!confirm("این دسته‌بندی حذف بشه؟")) return;
     await adminAPI.categories.delete(id);
     loadCategories();
+    loadAllCategoriesForParentSelect();
   };
 
-  const parentOptions = categories?.filter((c) => c.id !== editingId) || [];
-
-  // صفحه‌بندی سمت کلاینت - چون کل لیست (حداکثر ۱۰۰ تا) یه‌جا لود می‌شه،
-  // نیازی به صفحه‌بندی سمت سرور نیست؛ فقط همین آرایه رو برش می‌زنیم.
-  const paginatedCategories =
-    categories?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) ||
-    null;
+  const parentOptions = allCategoriesForParentSelect.filter(
+    (c) => c.id !== editingId
+  );
 
   // اگه فایل جدیدی انتخاب شده، پیش‌نمایش زنده‌ش رو بساز؛ وگرنه عکس قبلی
   // محصول (در حالت ویرایش) رو نشون بده.
@@ -205,13 +234,13 @@ export function AdminCategoriesContent() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedCategories === null ? (
+            {categories === null ? (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={28} />
                 </TableCell>
               </TableRow>
-            ) : paginatedCategories.length === 0 ? (
+            ) : categories.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                   <Typography color="text.secondary">
@@ -220,7 +249,7 @@ export function AdminCategoriesContent() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedCategories.map((category) => (
+              categories.map((category) => (
                 <TableRow key={category.id} hover>
                   <TableCell>
                     <Avatar
@@ -238,8 +267,9 @@ export function AdminCategoriesContent() {
                   <TableCell>{category.name}</TableCell>
                   <TableCell>
                     {category.parent_id
-                      ? categories?.find((c) => c.id === category.parent_id)
-                          ?.name || "—"
+                      ? allCategoriesForParentSelect.find(
+                          (c) => c.id === category.parent_id
+                        )?.name || "—"
                       : "—"}
                   </TableCell>
                   <TableCell>{category.sort_order}</TableCell>
@@ -272,7 +302,7 @@ export function AdminCategoriesContent() {
 
         <TablePagination
           component="div"
-          count={categories?.length || 0}
+          count={total}
           page={page}
           onPageChange={(_, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
@@ -354,8 +384,8 @@ export function AdminCategoriesContent() {
                 {thumbnailFile
                   ? thumbnailFile.name
                   : editingId
-                    ? "تعویض تصویر"
-                    : "انتخاب تصویر"}
+                  ? "تعویض تصویر"
+                  : "انتخاب تصویر"}
                 <input
                   type="file"
                   accept="image/*"

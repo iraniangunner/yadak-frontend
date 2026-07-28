@@ -33,6 +33,7 @@ export type ServerCategory = {
   slug: string;
   thumbnail_url: string | null;
   parent_id: number | null;
+  products_count: number;
 };
 
 /**
@@ -144,7 +145,7 @@ export async function getVehiclesByBrand(
   brand: string
 ): Promise<ServerVehicle[]> {
   const res = await serverFetch<{ data: ServerVehicle[] }>(
-    `/vehicles?brand=${encodeURIComponent(brand)}&per_page=100`,
+    `/vehicles?brand=${encodeURIComponent(brand)}&has_products=1&per_page=100`,
     120
   );
   return res?.data || [];
@@ -153,7 +154,6 @@ export async function getVehiclesByBrand(
 export type ServerProductDetail = {
   id: number;
   slug: string;
-  sku:string;
   title: string;
   description: string | null;
   price: number;
@@ -213,7 +213,8 @@ export async function getCategories(scope?: {
 
 export async function getBrands(
   categoryIds?: number[],
-  vehicleScope?: { vehicleBrand?: string; vehicleModel?: string }
+  vehicleScope?: { vehicleBrand?: string; vehicleModel?: string },
+  onlyWithProducts?: boolean
 ) {
   const params = new URLSearchParams();
   if (categoryIds?.length) params.set("category_id", categoryIds.join(","));
@@ -221,6 +222,7 @@ export async function getBrands(
     params.set("vehicle_brand", vehicleScope.vehicleBrand);
   if (vehicleScope?.vehicleModel)
     params.set("vehicle_model", vehicleScope.vehicleModel);
+  if (onlyWithProducts) params.set("has_products", "1");
   const query = params.toString() ? `?${params.toString()}` : "";
   const res = await serverFetch<{ data: ServerBrand[] }>(
     `/brands${query}`,
@@ -305,9 +307,12 @@ export type VehicleBrandImage = {
   is_active: boolean;
 };
 
-export async function getVehicleBrandImages(): Promise<VehicleBrandImage[]> {
+export async function getVehicleBrandImages(
+  onlyWithProducts?: boolean
+): Promise<VehicleBrandImage[]> {
+  const query = onlyWithProducts ? "?has_products=1" : "";
   const res = await serverFetch<{ data: VehicleBrandImage[] }>(
-    "/vehicle-brands",
+    `/vehicle-brands${query}`,
     300
   );
   return res?.data || [];

@@ -42,7 +42,7 @@ const MODEL_SLUG_PREFIX = "لوازم-یدکی-";
 
 // فقط برای این برندها اسم برند هم توی عنوان نشون داده می‌شه (بقیه‌ی
 // برندها فقط با اسم مدل تنها).
-const BRANDS_WITH_LABEL = ["پژو"];
+const BRANDS_WITH_LABEL = ["پژو" , "جک"];
 
 function vehicleTitlePart(brand: string, model: string): string {
   return BRANDS_WITH_LABEL.includes(brand) ? `${brand} ${model}` : model;

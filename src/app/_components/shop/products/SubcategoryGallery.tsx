@@ -11,18 +11,22 @@ import { CardCarousel } from "../home/CardCarousel";
 |--------------------------------------------------------------------------
 | گالری زیردسته‌ها - بالای صفحه‌ی /category/[slug]، دقیقاً هم‌سبک با
 | کاروسل‌های هومپیج (Embla): عکس بالا، اسم پایین، کارت مربعی سفید.
+| ⚠️ فقط زیردسته‌هایی که واقعاً محصول فعال دارن نشون داده می‌شن - وگرنه
+| کلیک روش مشتری رو به یه صفحه‌ی خالی می‌بره.
 */
 export function SubcategoryGallery({
   children,
 }: {
   children: ServerCategory[];
 }) {
-  if (children.length === 0) return null;
+  const withProducts = children.filter((child) => child.products_count > 0);
+
+  if (withProducts.length === 0) return null;
 
   return (
     <Box sx={{ mb: 3 }}>
       <CardCarousel>
-        {children.map((child) => (
+        {withProducts.map((child) => (
           <Box
             key={child.id}
             component={NextLink}

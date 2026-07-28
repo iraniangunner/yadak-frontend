@@ -9,9 +9,10 @@ import type { getCategories } from "@/lib/serverApi";
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/Home/CategoriesSection.tsx
 |--------------------------------------------------------------------------
-| «خرید بر اساس دسته‌بندی» - آیکون گرد بالا، اسم پایین. برخلاف قبل که
-| فقط دسته‌های سطح بالا رو نشون می‌داد، الان یه ترکیب تصادفی از هر دو
-| سطح (والد + زیردسته) - نه همه‌شون، فقط یه تعداد معقول.
+| «خرید بر اساس دسته‌بندی» - آیکون گرد بالا، اسم پایین. فقط دسته‌های
+| سطح ۱ به بعد (parent_id داره - یعنی نه ریشه/سطح ۰) که «مؤثراً» محصول
+| دارن - چه خودش مستقیم (برگ)، چه از طریق زیرمجموعه‌هاش (سطح میانی
+| توی ساختار ۳سطحی).
 */
 type Category = Awaited<ReturnType<typeof getCategories>>[number];
 
@@ -25,9 +26,25 @@ function shuffle<T>(arr: T[]): T[] {
   return copy;
 }
 
+// آیا این دسته «مؤثراً» محصول داره؟ برای برگ‌ها یعنی خودش مستقیم؛ برای
+// سطح‌های میانی یعنی حداقل یکی از زیرمجموعه‌هاش (به هر عمقی، بازگشتی)
+// محصول داشته باشه.
+function hasEffectiveProducts(
+  category: Category,
+  allCategories: Category[]
+): boolean {
+  if (category.products_count > 0) return true;
+  return allCategories.some(
+    (c) => c.parent_id === category.id && hasEffectiveProducts(c, allCategories)
+  );
+}
+
 export function CategoriesSection({ categories }: { categories: Category[] }) {
-  // هم والدها هم زیردسته‌ها - همه با هم قاطی، فقط یه انتخاب تصادفی از کل
-  const selected = shuffle(categories).slice(0, 24);
+  // فقط سطح ۱ به بعد (نه ریشه/سطح ۰) + مؤثراً محصول داره
+  const level1Plus = categories.filter(
+    (c) => c.parent_id !== null && hasEffectiveProducts(c, categories)
+  );
+  const selected = shuffle(level1Plus).slice(0, 24);
 
   if (selected.length === 0) return null;
 
