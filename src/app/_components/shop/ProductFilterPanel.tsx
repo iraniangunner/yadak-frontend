@@ -71,7 +71,7 @@ const ratingOptions = [4, 3, 2, 1];
 // اینکه بریم سراغ ریشه‌ی بعدی - تا لیست مسطح هم منطقی و قابل‌فهم بمونه.
 function flattenCategories(
   categories: CategoryOption[],
-  parentId: number | null = null,
+  parentId: number | null = null
 ): CategoryOption[] {
   const children = categories.filter((c) => c.parent_id === parentId);
   let result: CategoryOption[] = [];
@@ -96,7 +96,7 @@ function CategoryTree({
   // به‌عنوان فیلتر همیشه نتیجه‌ی خالی می‌داد (هیچ محصولی category_id
   // برابر با آیدی والد نداره).
   const flatList = flattenCategories(categories).filter(
-    (c) => !categories.some((child) => child.parent_id === c.id),
+    (c) => !categories.some((child) => child.parent_id === c.id)
   );
   const [search, setSearch] = useState("");
   const filtered = search.trim()
@@ -107,7 +107,7 @@ function CategoryTree({
     onChange(
       selectedIds.includes(id)
         ? selectedIds.filter((v) => v !== id)
-        : [...selectedIds, id],
+        : [...selectedIds, id]
     );
   };
 
@@ -341,7 +341,7 @@ export function ProductFilterPanel({
   // سرور می‌گیریم تا فقط ویژگی‌هایی که واقعاً بین محصولات باقی‌مونده
   // وجود دارن نشون داده بشن (faceted filtering، مثل دیجی‌کالا).
   const [liveFilterableAttributes, setLiveFilterableAttributes] = useState(
-    filterableAttributes || [],
+    filterableAttributes || []
   );
 
   useEffect(() => {
@@ -397,7 +397,7 @@ export function ProductFilterPanel({
 
   const toggleInArray = (
     key: "brand_ids" | "vehicle_brands" | "vehicle_models" | "stock_statuses",
-    value: string,
+    value: string
   ) => {
     const current = optimisticFilters[key] as string[];
     const next = current.includes(value)
@@ -568,15 +568,20 @@ export function ProductFilterPanel({
       />
       <Divider sx={{ my: 1 }} />
 
-      <SearchableCheckboxList
-        title="برند"
-        options={brands.map((b) => String(b.id))}
-        selected={optimisticFilters.brand_ids}
-        onToggle={(v) => toggleInArray("brand_ids", v)}
-        getLabel={(id) => brands.find((b) => String(b.id) === id)?.name || id}
-      />
-
-      <Divider sx={{ my: 1 }} />
+      {brands.length > 0 && (
+        <>
+          <SearchableCheckboxList
+            title="برند"
+            options={brands.map((b) => String(b.id))}
+            selected={optimisticFilters.brand_ids}
+            onToggle={(v) => toggleInArray("brand_ids", v)}
+            getLabel={(id) =>
+              brands.find((b) => String(b.id) === id)?.name || id
+            }
+          />
+          <Divider sx={{ my: 1 }} />
+        </>
+      )}
 
       <Typography variant="body2" sx={{ fontWeight: 600 }}>
         وضعیت موجودی
