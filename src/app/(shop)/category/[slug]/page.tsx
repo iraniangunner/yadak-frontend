@@ -156,7 +156,10 @@ export default async function CategoryPage({
       </Typography>
 
       {directChildren.length > 0 ? (
-        <SubcategoryGallery children={directChildren} />
+        <SubcategoryGallery
+          children={directChildren}
+          allCategories={categories}
+        />
       ) : (
         <CategoryVehicleGallery
           vehicles={categoryVehicles}

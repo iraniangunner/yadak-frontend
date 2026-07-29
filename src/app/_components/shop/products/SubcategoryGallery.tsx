@@ -11,15 +11,31 @@ import { CardCarousel } from "../home/CardCarousel";
 |--------------------------------------------------------------------------
 | گالری زیردسته‌ها - بالای صفحه‌ی /category/[slug]، دقیقاً هم‌سبک با
 | کاروسل‌های هومپیج (Embla): عکس بالا، اسم پایین، کارت مربعی سفید.
-| ⚠️ فقط زیردسته‌هایی که واقعاً محصول فعال دارن نشون داده می‌شن - وگرنه
-| کلیک روش مشتری رو به یه صفحه‌ی خالی می‌بره.
+| ⚠️ فقط زیردسته‌هایی که «مؤثراً» محصول دارن نشون داده می‌شن - چه خودشون
+| مستقیم (برگ)، چه از طریق زیرمجموعه‌هاشون (سطح میانی توی ساختار
+| ۳سطحی). برای همین allCategories (کل لیست) هم لازمه، نه فقط children.
 */
+
+function hasEffectiveProducts(
+  category: ServerCategory,
+  allCategories: ServerCategory[]
+): boolean {
+  if (category.products_count > 0) return true;
+  return allCategories.some(
+    (c) => c.parent_id === category.id && hasEffectiveProducts(c, allCategories)
+  );
+}
+
 export function SubcategoryGallery({
   children,
+  allCategories,
 }: {
   children: ServerCategory[];
+  allCategories: ServerCategory[];
 }) {
-  const withProducts = children.filter((child) => child.products_count > 0);
+  const withProducts = children.filter((child) =>
+    hasEffectiveProducts(child, allCategories)
+  );
 
   if (withProducts.length === 0) return null;
 

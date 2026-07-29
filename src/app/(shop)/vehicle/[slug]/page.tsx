@@ -36,17 +36,12 @@ import Breadcrumbs from "@mui/material/Breadcrumbs";
 |   ۲. اگه با "{اسلاگ یه دسته‌ی موجود}-" شروع بشه → صفحه‌ی دسته+مدل
 |      مثلاً /vehicle/لنت-ترمز-پراید (دسته «لنت ترمز» + مدل «پراید»)
 |   ۳. در غیر این صورت → صفحه‌ی کل یه برند خودرو، مثلاً /vehicle/سایپا
+|
+| ⚠️ عنوان‌ها همیشه فقط اسم مدل - عمداً هیچ‌جا برند خودرو نشون داده
+| نمی‌شه (نه پژو، نه هیچ برند دیگه‌ای).
 */
 
 const MODEL_SLUG_PREFIX = "لوازم-یدکی-";
-
-// فقط برای این برندها اسم برند هم توی عنوان نشون داده می‌شه (بقیه‌ی
-// برندها فقط با اسم مدل تنها).
-const BRANDS_WITH_LABEL = ["پژو" , "جک"];
-
-function vehicleTitlePart(brand: string, model: string): string {
-  return BRANDS_WITH_LABEL.includes(brand) ? `${brand} ${model}` : model;
-}
 
 function buildQueryString(sp: Record<string, string | undefined>) {
   const params = new URLSearchParams();
@@ -71,11 +66,7 @@ export async function generateMetadata({
 
   if (decoded.startsWith(MODEL_SLUG_PREFIX)) {
     const modelName = decoded.slice(MODEL_SLUG_PREFIX.length);
-    const vehicle = await getVehicleByModel(modelName);
-    const titlePart = vehicle
-      ? vehicleTitlePart(vehicle.brand, modelName)
-      : modelName;
-    return { title: `لوازم یدکی ${titlePart} | یدکی` };
+    return { title: `لوازم یدکی ${modelName} | یدکی` };
   }
 
   const categories = await getCategories();
@@ -85,11 +76,7 @@ export async function generateMetadata({
 
   if (matchedCategory) {
     const modelName = decoded.slice(matchedCategory.slug.length + 1);
-    const vehicle = await getVehicleByModel(modelName);
-    const titlePart = vehicle
-      ? vehicleTitlePart(vehicle.brand, modelName)
-      : modelName;
-    return { title: `${matchedCategory.name} ${titlePart} | یدکی` };
+    return { title: `${matchedCategory.name} ${modelName} | یدکی` };
   }
 
   return { title: `قطعات ${decoded} | یدکی` };
@@ -197,7 +184,7 @@ export default async function VehiclePage({
             <DirectionsCar fontSize="small" />
           </Avatar>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            لوازم یدکی {vehicleTitlePart(vehicleBrandName, modelName)}
+            لوازم یدکی {modelName}
           </Typography>
         </Box>
 
@@ -343,8 +330,7 @@ export default async function VehiclePage({
             <DirectionsCar fontSize="small" />
           </Avatar>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            {matchedCategory.name}{" "}
-            {vehicleTitlePart(vehicleBrandName, modelName)}
+            {matchedCategory.name} {modelName}
           </Typography>
         </Box>
 
