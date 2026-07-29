@@ -18,20 +18,24 @@ import {
   Typography,
 } from "@mui/material";
 import {
-  Search,
   ShoppingCart,
   KeyboardArrowDown,
   Category,
+  PersonOutline,
 } from "@mui/icons-material";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useCartStore } from "@/lib/store/cartStore";
 import { ServerCategory } from "@/lib/serverApi";
-import { SearchModal } from "@/app/_components/shop/SearchModal";
+import { InlineSearchBar } from "@/app/_components/shop/InlineSearchBar";
 
 /*
 |--------------------------------------------------------------------------
 | مسیر فایل: src/app/_components/shop/SiteHeader.tsx
 |--------------------------------------------------------------------------
+| بازطراحی هدر مطابق نمونه‌ی طراحی: یک نوار باریک تبلیغاتی در بالا،
+| نوار اصلی با جستجوی توکار (به‌جای آیکون تنها) و دکمه‌های گرد
+| حالت‌شب/سبد خرید/حساب کاربری در سمت چپ، و یک نوار پایین برای منوی
+| دسته‌بندی‌ها و لینک‌های ناوبری.
 */
 
 function getChildren(categories: ServerCategory[], parentId: number | null) {
@@ -43,6 +47,33 @@ const MENU_BG_HOVER = "rgba(30,58,138,0.06)";
 const MENU_TEXT = "#4b5563";
 const MENU_TEXT_ACTIVE = "#1E3A8A";
 const MENU_ACCENT = "#1E3A8A";
+
+// دکمه‌های گرد سمت چپ هدر (حالت‌شب / سبد / حساب کاربری)
+const roundIconBtnSx = {
+  border: "1px solid",
+  borderColor: "divider",
+  borderRadius: 2,
+  width: 40,
+  height: 40,
+  color: "text.secondary",
+  "&:hover": {
+    bgcolor: "rgba(30,58,138,0.06)",
+    borderColor: "primary.main",
+    color: "primary.main",
+  },
+};
+
+// لینک‌های نوار پایین (فروش ویژه، مجله مستریدکی، ...)
+const navLinkSx = {
+  borderRadius: 999,
+  px: 2,
+  fontWeight: 500,
+  color: "text.secondary",
+  "&:hover": {
+    bgcolor: "rgba(30,58,138,0.06)",
+    color: "primary.main",
+  },
+};
 
 function CategoryLevel1Item({
   category,
@@ -353,12 +384,13 @@ export function SiteHeader({
   const cartItemTypesCount = useCartStore((s) => s.items.length);
   const router = useRouter();
   const headerRef = useRef<HTMLElement>(null);
+  const navBarRef = useRef<HTMLElement>(null);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
   const [accountAnchor, setAccountAnchor] = useState<HTMLElement | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
 
   const handleLogout = async () => {
     setAccountAnchor(null);
@@ -367,20 +399,19 @@ export function SiteHeader({
   };
 
   return (
-    <Box
-      component="header"
-      ref={headerRef}
-      sx={{ position: "sticky", top: 0, zIndex: 10 }}
-    >
-      {/* نوار اصلی - همه‌چیز یه‌جا */}
+    <>
+      {/* نوار اصلی: اسکرول می‌خوره و بالای صفحه گیر نمی‌کنه */}
       <Box
+        component="header"
+        ref={headerRef}
         sx={{
           bgcolor: "background.paper",
           boxShadow: "0 1px 12px rgba(17,24,39,0.06)",
         }}
       >
         <Container maxWidth="lg">
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, py: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, py: 1.75 }}>
+            {/* لوگو - سمت راست */}
             <Box
               component={NextLink}
               href="/"
@@ -419,73 +450,22 @@ export function SiteHeader({
               </Typography>
             </Box>
 
-            <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
-              <Stack
-                direction="row"
-                spacing={0.5}
-                sx={{
-                  display: { xs: "none", md: "flex" },
-                  alignItems: "center",
-                }}
-              >
-                <DesktopCategoriesMegaMenu
-                  categories={categories}
-                  headerRef={headerRef}
-                />
-                {[
-                  { href: "/blog", label: "بلاگ" },
-                  { href: "/about", label: "درباره‌ی ما" },
-                  { href: "/contact", label: "تماس با ما" },
-                ].map((link) => (
-                  <Button
-                    key={link.href}
-                    component={NextLink}
-                    href={link.href}
-                    color="inherit"
-                    size="small"
-                    sx={{
-                      borderRadius: 999,
-                      px: 2,
-                      fontWeight: 500,
-                      color: "text.secondary",
-                      "&:hover": {
-                        bgcolor: "rgba(30,58,138,0.06)",
-                        color: "primary.main",
-                      },
-                    }}
-                  >
-                    {link.label}
-                  </Button>
-                ))}
-              </Stack>
+            {/* جستجوی توکار - فضای وسط رو پر می‌کنه */}
+            <Box sx={{ display: { xs: "none", md: "flex" }, flex: 1 }}>
+              <InlineSearchBar />
             </Box>
 
-            {/* آیکون جستجو - کنار سبد خرید، مودال باز می‌کنه */}
-            <IconButton
-              onClick={() => setSearchOpen(true)}
-              sx={{ "&:hover": { bgcolor: "rgba(30,58,138,0.06)" } }}
-            >
-              <Search />
-            </IconButton>
+            {/* موبایل: فضای خالی تا دکمه‌ها بچسبن به لبه */}
+            <Box sx={{ display: { xs: "block", md: "none" }, flex: 1 }} />
 
-            {/* دسکتاپ: سبد و حساب کاربری همینجا. موبایل: هر دو توی نوار پایین هستن */}
-            <Box
-              sx={{
-                display: { xs: "none", md: "flex" },
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <IconButton
-                component={NextLink}
-                href="/cart"
-                sx={{ "&:hover": { bgcolor: "rgba(30,58,138,0.06)" } }}
-              >
+            {/* دکمه‌های گرد سمت چپ: سبد خرید، حساب کاربری */}
+            <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+              <IconButton component={NextLink} href="/cart" sx={roundIconBtnSx}>
                 <Badge
                   badgeContent={mounted ? cartItemTypesCount : 0}
                   color="primary"
                 >
-                  <ShoppingCart />
+                  <ShoppingCart fontSize="small" />
                 </Badge>
               </IconButton>
 
@@ -493,13 +473,14 @@ export function SiteHeader({
                 <>
                   <IconButton
                     onClick={(e) => setAccountAnchor(e.currentTarget)}
+                    sx={roundIconBtnSx}
                   >
                     <Avatar
                       sx={{
-                        width: 32,
-                        height: 32,
+                        width: 24,
+                        height: 24,
                         bgcolor: "primary.main",
-                        fontSize: "0.9rem",
+                        fontSize: "0.75rem",
                       }}
                     >
                       {user.name?.[0]}
@@ -541,22 +522,87 @@ export function SiteHeader({
                   </Menu>
                 </>
               ) : (
-                <Button
+                <IconButton
                   component={NextLink}
                   href="/login"
-                  variant="contained"
-                  disableElevation
-                  size="small"
+                  sx={roundIconBtnSx}
                 >
-                  ورود / ثبت‌نام
-                </Button>
+                  <PersonOutline fontSize="small" />
+                </IconButton>
               )}
-            </Box>
+            </Stack>
+          </Box>
+
+          {/* جستجوی موبایل: ردیف جدا زیر لوگو، تمام‌عرض */}
+          <Box sx={{ display: { xs: "block", md: "none" }, pb: 1.5 }}>
+            <InlineSearchBar />
           </Box>
         </Container>
       </Box>
 
-      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
-    </Box>
+      {/* نوار پایین: دسته‌بندی‌ها و لینک‌های ناوبری - ثابت می‌مونه */}
+      <Box
+        ref={navBarRef}
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          bgcolor: "background.paper",
+          borderTop: "1px solid",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          boxShadow: "0 1px 12px rgba(17,24,39,0.06)",
+          display: { xs: "none", md: "block" },
+        }}
+      >
+        <Container maxWidth="lg">
+          <Stack
+            direction="row"
+            spacing={0.5}
+            sx={{ py: 1, alignItems: "center" }}
+          >
+            <DesktopCategoriesMegaMenu
+              categories={categories}
+              headerRef={navBarRef}
+            />
+
+            <Button
+              component={NextLink}
+              href="/special-offers"
+              size="small"
+              sx={navLinkSx}
+            >
+              فروش ویژه
+            </Button>
+
+            <Button
+              component={NextLink}
+              href="/blog"
+              size="small"
+              sx={navLinkSx}
+            >
+              مجله یدکی
+            </Button>
+
+            <Button
+              component={NextLink}
+              href="/about"
+              size="small"
+              sx={navLinkSx}
+            >
+              درباره ما
+            </Button>
+            <Button
+              component={NextLink}
+              href="/contact"
+              size="small"
+              sx={navLinkSx}
+            >
+             تماس با ما
+            </Button>
+          </Stack>
+        </Container>
+      </Box>
+    </>
   );
 }

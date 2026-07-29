@@ -245,6 +245,7 @@ export function AdminProductsContent() {
       // موقع گرفتن جزئیات کامل میان - همین‌جا فرم رو باهاشون پر می‌کنیم.
       setForm((prev) => ({
         ...prev,
+        description: res.data.product.description || "",
         vehicle_brand: res.data.product.vehicle_brand || "",
         vehicle_model: res.data.product.vehicle_model || "",
         vehicle_type: res.data.product.vehicle_type || [],
